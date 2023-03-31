@@ -1,0 +1,5 @@
+{
+  "rest_url": "https://call.mytwinlife.net/rest",
+  "invite_url": "https://invite.mytwinlife.net?twincodeId=",
+  "proxy_url": "wss://call.mytwinlife.net/p2p/connect"
+}

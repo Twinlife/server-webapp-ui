@@ -1,0 +1,15 @@
+*~
+*.log
+node_modules
+public/js
+public/bundles
+public/electron.js
+.DS_Store
+dist
+manager/**/*.js
+public/*.css
+public/*.css.map
+embedded.provisionprofile
+build/embedded.provisionprofile
+build/embedded-dev.provisionprofile
+build/all-certs.p12

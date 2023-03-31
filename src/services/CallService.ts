@@ -1,0 +1,260 @@
+/*
+ *  Copyright (c) 2021-2023 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
+ */
+
+import config from "../config.json";
+
+const url = config.proxy_url;
+
+export type TurnServer = {
+    url: string,
+    username: string,
+    password: string
+}
+
+export type Message = {
+    msg: string,
+}
+
+export type RequestMessage = {
+    msg: string,
+}
+
+export type CallConfigMessage = {
+    msg: string,
+    turnServers: TurnServer[],
+    maxSendFrameSize: number,
+    maxSendFrameRate: number,
+    maxReceivedFrameSize: number,
+    maxReceivedFrameRate: number
+}
+
+export type SessionInitiateMessage = {
+    msg: string,
+    to: string,
+    sdp: string,
+    offer: string,
+    offerToReceive: string,
+    maxFrameSize: number,
+    maxFrameRate: number
+}
+
+export type SessionInitiateResponseMessage = {
+    msg: string,
+    to: string,
+    sessionId: string,
+    status: string
+}
+
+export type SessionAcceptMessage = {
+    msg: string,
+    sessionId: string,
+    to: string,
+    sdp: string,
+    offer: string,
+    offerToReceive: string
+}
+
+export type SessionUpdateMessage = {
+    msg: string,
+    sessionId: string,
+    updateType: string,
+    sdp: string
+}
+
+export type TransportCandidate = {
+    candidate: string,
+    sdpMid: string,
+    sdpMLineIndex: number,
+    removed: boolean
+}
+
+export type TransportInfoMessage = {
+    msg: string,
+    sessionId: string,
+    candidates: TransportCandidate[]
+}
+
+export type SessionTerminateMessage = {
+    msg: string,
+    sessionId: string,
+    reason: string
+}
+
+export interface CallServiceObserver {
+
+    onSessionInitiate(to: string, sessionId: string, status: string) : void;
+
+    onSessionAccept(sessionId: string, sdp: string, offer: string, offerToReceive: string) : void;
+
+    onSessionUpdate(sessionId: string, updateType: string, sdp: string) : void;
+
+    onTransportInfo(sessionId: string, candidates: TransportCandidate[]) : void;
+
+    onSessionTerminate(sessionId: string, reason: string): void;
+}
+
+/**
+ * WebRTC session management to send/receive SDPs.
+ */
+export class CallService {
+    private socket : WebSocket;
+    private callConfig : CallConfigMessage | null;
+    private callObserver : CallServiceObserver | null;
+
+    constructor() {
+        this.callConfig = null;
+        this.callObserver = null;
+        this.socket = new WebSocket(url);
+        this.socket.addEventListener('open', (event: Event) => {
+            console.log("Websocket is opened");
+            this.socket.send('{"msg":"session-request"}')
+        });
+
+        this.socket.addEventListener('message', (msg: MessageEvent) => {
+            let req : RequestMessage;
+            try {
+                req = JSON.parse(msg.data.toString());
+
+            } catch (e) {
+                return;
+            }
+            console.log("Received " + req.msg);
+            if (req.msg === "session-config") {
+                this.callConfig = req as CallConfigMessage;
+            } else if (req.msg === "session-accept") {
+                if (this.callObserver) {
+                    let sessionAccept : SessionAcceptMessage = req as SessionAcceptMessage;
+                    this.callObserver.onSessionAccept(sessionAccept.sessionId, sessionAccept.sdp, sessionAccept.offer, sessionAccept.offerToReceive);
+                }
+            } else if (req.msg === "session-update") {
+                if (this.callObserver) {
+                    let sessionUpdate : SessionUpdateMessage = req as SessionUpdateMessage;
+                    this.callObserver.onSessionUpdate(sessionUpdate.sessionId, sessionUpdate.updateType, sessionUpdate.sdp);
+                }
+            } else if (req.msg === "transport-info") {
+                if (this.callObserver) {
+                    let transportInfo : TransportInfoMessage = req as TransportInfoMessage;
+                    this.callObserver.onTransportInfo(transportInfo.sessionId, transportInfo.candidates);
+                }
+            } else if (req.msg === "session-terminate") {
+                if (this.callObserver) {
+                    let sessionTerminate : SessionTerminateMessage = req as SessionTerminateMessage;
+                    this.callObserver.onSessionTerminate(sessionTerminate.sessionId, sessionTerminate.reason);
+                }
+            } else if (req.msg === "session-initiate-response") {
+                if (this.callObserver) {
+                    let initResponse : SessionInitiateResponseMessage = req as SessionInitiateResponseMessage;
+                    this.callObserver.onSessionInitiate(initResponse.to, initResponse.sessionId, initResponse.status);
+                }
+            } else {
+                console.log("Unsupported message " + req);
+            }
+        });
+
+        this.socket.addEventListener('close', (event: CloseEvent) => {
+            console.log("Websocket is closed");
+        });
+
+        this.socket.addEventListener('error', (event: Event) => {
+            console.log("Websocket error" + event);
+        });
+    }
+
+    setObserver(observer: CallServiceObserver) : void {
+        this.callObserver = observer;
+    }
+
+    /**
+     * Get the WebRTC configuration to create the peer connection.
+     *
+     * @returns  the WebRTC configuration with turn servers.
+     */
+    getConfiguration() : any {
+
+        let iceServers: Array<RTCIceServer> = [];
+        if (this.callConfig) {
+            for (let i = 0; i < this.callConfig.turnServers.length; i++) {
+                let turnServer = this.callConfig.turnServers[i];
+                iceServers.push({
+                        urls: turnServer.url,
+                        username: turnServer.username,
+                        credential: turnServer.password
+                });
+                break;
+            }
+        }
+
+        let result = {
+            iceServers: iceServers
+            // bundlePolicy: "balanced",
+            // sdpSemantics: 'unified-plan'
+            // rtcpMuxPolicy: 'require',
+            // iceTransportPolicy: 'all'
+        }
+        return result;
+    }
+
+    sessionInitiate(to: string, sdp: string, offer: string) {
+
+        const msg : SessionInitiateMessage = {
+            msg: "session-initiate",
+            to: to,
+            sdp: sdp,
+            offer: offer,
+            offerToReceive: offer,
+            maxFrameRate: 60,
+            maxFrameSize: 921600
+        };
+
+        this.socket.send(JSON.stringify(msg));
+    }
+
+    sessionUpdate(sessionId: string, sdp: string, updateType: string) {
+
+        const msg : SessionUpdateMessage = {
+            msg: "session-update",
+            sessionId: sessionId,
+            sdp: sdp,
+            updateType: updateType
+        };
+
+        this.socket.send(JSON.stringify(msg));
+    }
+
+    transportInfo(sessionId: string, candidate: string, label: string, index: number) {
+
+        const msg : TransportInfoMessage = {
+            msg: "transport-info",
+            sessionId: sessionId,
+            candidates: [
+                {
+                    sdpMid: label,
+                    sdpMLineIndex: index,
+                    candidate: candidate,
+                    removed: false
+                }
+            ]
+        };
+
+        console.log("send transport info to " + sessionId + " candidate " + candidate);
+        this.socket.send(JSON.stringify(msg));
+    }
+
+    sessionTerminate(sessionId: string, reason: string) {
+
+        const msg : SessionTerminateMessage = {
+            msg: "session-terminate",
+            sessionId: sessionId,
+            reason: reason
+        };
+
+        this.socket.send(JSON.stringify(msg));
+    }
+
+}
