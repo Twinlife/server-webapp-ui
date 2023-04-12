@@ -7,7 +7,7 @@
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import { InputStream } from "./InputStream";
+import { ByteArrayInputStream } from "./ByteArrayInputStream";
 import { UUID } from "./UUID";
 import { Decoder } from "./Decoder";
 import { SerializerException } from "./SerializerException";
@@ -18,11 +18,11 @@ export class BinaryCompactDecoder implements Decoder {
 
 	static DEBUG: boolean = false;
 
-	mInputStream: InputStream;
+	mInputStream: ByteArrayInputStream;
 
 	private mBuffer: ArrayBuffer = new ArrayBuffer(8);
 
-	public constructor(inputStream: InputStream) {
+	public constructor(inputStream: ByteArrayInputStream) {
 		this.mInputStream = inputStream;
 	}
 

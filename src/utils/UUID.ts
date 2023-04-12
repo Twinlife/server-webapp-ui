@@ -39,8 +39,6 @@
  * questions.
  */
 
-import * as crypto from "crypto";
-
 export class UUID {
 	private value: ArrayBuffer = new ArrayBuffer(16);
 
@@ -182,15 +180,6 @@ export class UUID {
 		let dstBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
 		dstBuffer.set(srcBuffer);
 		return buffer;
-	}
-
-	public static randomUUID(): UUID {
-		let randomBytes = crypto.randomBytes(16);
-		randomBytes[6] &= 0x0f; /* clear version        */
-		randomBytes[6] |= 0x40; /* set to version 4     */
-		randomBytes[8] &= 0x3f; /* clear variant        */
-		randomBytes[8] |= 0x80; /* set to IETF variant  */
-		return new UUID(randomBytes);
 	}
 
 	public hashCode(): number {

@@ -38,8 +38,6 @@
  * questions.
  */
 
-import { InputStream } from "./InputStream";
-
 /**
  * Creates <code>ByteArrayInputStream</code>
  * that uses <code>buf</code> as its
@@ -57,7 +55,7 @@ import { InputStream } from "./InputStream";
  * @extends InputStream
  * @author  Arthur van Hoff
  */
-export class ByteArrayInputStream extends InputStream {
+export class ByteArrayInputStream {
 	/**
 	 * An array of bytes that was provided
 	 * by the creator of the stream. Elements <code>buf[0]</code>
@@ -105,7 +103,6 @@ export class ByteArrayInputStream extends InputStream {
 
 	public constructor(buf: ArrayBuffer) {
 
-		super();
 		this.buf = buf;
 		this.pos = 0;
 		this.count = buf.byteLength;

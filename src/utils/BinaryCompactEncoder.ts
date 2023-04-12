@@ -7,7 +7,7 @@
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import { OutputStream } from "./OutputStream";
+import { ByteArrayOutputStream } from "./ByteArrayOutputStream";
 import { UUID } from "./UUID";
 import { SerializerException } from "./SerializerException";
 import { Utf8 } from "./Utf8";
@@ -17,11 +17,11 @@ export class BinaryCompactEncoder implements Encoder {
 
 	static DEBUG: boolean = false;
 
-	mOutputStream: OutputStream;
+	mOutputStream: ByteArrayOutputStream;
 
 	mBuffer: ArrayBuffer = new ArrayBuffer(16);
 
-	public constructor(outputStream: OutputStream) {
+	public constructor(outputStream: ByteArrayOutputStream) {
 		this.mOutputStream = outputStream;
 	}
 

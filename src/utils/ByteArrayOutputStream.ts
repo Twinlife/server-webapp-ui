@@ -38,9 +38,6 @@
  * questions.
  */
 
-// import { Arrays } from "../util/Arrays";
-import { OutputStream } from "./OutputStream";
-
 /**
  * Creates a new byte array output stream, with a buffer capacity of
  * the specified size, in bytes.
@@ -51,7 +48,7 @@ import { OutputStream } from "./OutputStream";
  * @extends OutputStream
  * @author  Arthur van Hoff
  */
-export class ByteArrayOutputStream extends OutputStream {
+export class ByteArrayOutputStream {
 	/**
 	 * The buffer where data is stored.
 	 */
@@ -63,7 +60,6 @@ export class ByteArrayOutputStream extends OutputStream {
 	count: number;
 
 	public constructor(size: number) {
-		super();
 		this.buf = new ArrayBuffer(size);
 		this.count = 0;
 	}
