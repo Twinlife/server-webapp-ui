@@ -1,0 +1,88 @@
+/*
+ *  Copyright (c) 2022-2023 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
+ */
+import { UUID } from "../utils/UUID";
+import { Decoder } from "../utils/Decoder";
+import { Encoder } from "../utils/Encoder";
+import { BinaryPacketIQ } from "../utils/BinaryPacketIQ";
+
+/**
+ * Participant info IQ sent to a call group member to share the participant name and picture.
+ *
+ * Schema version 1
+ * <pre>
+ * {
+ * "schemaId":"a8aa7e0d-c495-4565-89bb-0c5462b54dd0",
+ * "schemaVersion":"1",
+ *
+ * "type":"record",
+ * "name":"ParticipantInfoIQ",
+ * "namespace":"org.twinlife.schemas.calls",
+ * "super":"org.twinlife.schemas.BinaryPacketIQ"
+ * "fields": [
+ * {"name":"memberId", "type":"String"},
+ * {"name":"name", "type":"String"},
+ * {"name":"description", [null, "type":"String"}],
+ * {"name":"avatar", [null, "type":"bytes"]}
+ * ]
+ * }
+ *
+ * </pre>
+ * @extends BinaryPacketIQ
+ * @class
+ */
+export class ParticipantInfoIQ extends BinaryPacketIQ {
+	public static createSerializer(schemaId: UUID, schemaVersion: number): BinaryPacketIQ.BinaryPacketIQSerializer {
+		return new ParticipantInfoIQ.ParticipantInfoIQSerializer(schemaId, schemaVersion);
+	}
+
+	memberId: string;
+	name: string;
+	description: string | null;
+	thumbnailData: ArrayBuffer | null;
+
+	constructor(serializer: BinaryPacketIQ.BinaryPacketIQSerializer,
+		requestId: number,
+		memberId: string,
+		name: string,
+		description: string | null,
+		thumbnailData: ArrayBuffer | null
+	) {
+		super(serializer, requestId);
+		this.memberId = memberId;
+		this.name = name;
+		this.description = description;
+		this.thumbnailData = thumbnailData;
+	}
+}
+
+export namespace ParticipantInfoIQ {
+	export class ParticipantInfoIQSerializer extends BinaryPacketIQ.BinaryPacketIQSerializer {
+		constructor(schemaId: UUID, schemaVersion: number) {
+			super(schemaId, schemaVersion, ParticipantInfoIQ);
+		}
+
+		public serialize(encoder: Encoder, object: any): void {
+			super.serialize(encoder, object);
+			let participantInfoIQ: ParticipantInfoIQ = object as ParticipantInfoIQ;
+			encoder.writeString(participantInfoIQ.memberId);
+			encoder.writeString(participantInfoIQ.name);
+			encoder.writeOptionalString(participantInfoIQ.description);
+			encoder.writeOptionalBytes(participantInfoIQ.thumbnailData);
+		}
+
+		public deserialize(decoder: Decoder): any {
+			let serviceRequestIQ: BinaryPacketIQ = super.deserialize(decoder) as BinaryPacketIQ;
+			let memberId: string = decoder.readString();
+			let name: string = decoder.readString();
+			let description: string | null = decoder.readOptionalString();
+			let thumbnailData: ArrayBuffer | null = decoder.readOptionalBytes(null);
+			return new ParticipantInfoIQ(this, serviceRequestIQ.getRequestId(), memberId, name, description, thumbnailData);
+		}
+	}
+}

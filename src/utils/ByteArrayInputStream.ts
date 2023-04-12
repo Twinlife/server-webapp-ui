@@ -1,0 +1,227 @@
+/*
+ *  Copyright (c) 2019 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Christian Jacquemot (Christian.Jacquemot@twin.life)
+ */
+
+/*
+ * Derived from ByteArrayInputStream.java
+ *  https://android.googlesource.com/platform/libcore (f8dfc9872ecc2f8c3cbc7cb747c2f010f14b3247)
+ *  ojluni/src/main/java/java/io/ByteArrayInputStream.java
+ */
+
+/*
+ * Copyright (c) 1994, 2013, Oracle and/or its affiliates. All rights reserved.
+ * DO NOT ALTER OR REMOVE COPYRIGHT NOTICES OR THIS FILE HEADER.
+ *
+ * This code is free software; you can redistribute it and/or modify it
+ * under the terms of the GNU General Public License version 2 only, as
+ * published by the Free Software Foundation.  Oracle designates this
+ * particular file as subject to the "Classpath" exception as provided
+ * by Oracle in the LICENSE file that accompanied this code.
+ *
+ * This code is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+ * version 2 for more details (a copy is included in the LICENSE file that
+ * accompanied this code).
+ *
+ * You should have received a copy of the GNU General Public License version
+ * 2 along with this work; if not, write to the Free Software Foundation,
+ * Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *
+ * Please contact Oracle, 500 Oracle Parkway, Redwood Shores, CA 94065 USA
+ * or visit www.oracle.com if you need additional information or have any
+ * questions.
+ */
+
+import { InputStream } from "./InputStream";
+
+/**
+ * Creates <code>ByteArrayInputStream</code>
+ * that uses <code>buf</code> as its
+ * buffer array. The initial value of <code>pos</code>
+ * is <code>offset</code> and the initial value
+ * of <code>count</code> is the minimum of <code>offset+length</code>
+ * and <code>buf.length</code>.
+ * The buffer array is not copied. The buffer's mark is
+ * set to the specified offset.
+ *
+ * @param   {Array} buf      the input buffer.
+ * @param   {number} offset   the offset in the buffer of the first byte to read.
+ * @param   {number} length   the maximum number of bytes to read from the buffer.
+ * @class
+ * @extends InputStream
+ * @author  Arthur van Hoff
+ */
+export class ByteArrayInputStream extends InputStream {
+	/**
+	 * An array of bytes that was provided
+	 * by the creator of the stream. Elements <code>buf[0]</code>
+	 * through <code>buf[count-1]</code> are the
+	 * only bytes that can ever be read from the
+	 * stream;  element <code>buf[pos]</code> is
+	 * the next byte to be read.
+	 */
+	buf: ArrayBuffer;
+
+	/**
+	 * The index of the next character to read from the input stream buffer.
+	 * This value should always be nonnegative
+	 * and not larger than the value of <code>count</code>.
+	 * The next byte to be read from the input stream buffer
+	 * will be <code>buf[pos]</code>.
+	 */
+	pos: number;
+
+	/**
+	 * The currently marked position in the stream.
+	 * ByteArrayInputStream objects are marked at position zero by
+	 * default when constructed.  They may be marked at another
+	 * position within the buffer by the <code>mark()</code> method.
+	 * The current buffer position is set to this point by the
+	 * <code>reset()</code> method.
+	 * <p>
+	 * If no mark has been set, then the value of mark is the offset
+	 * passed to the constructor (or 0 if the offset was not supplied).
+	 *
+	 * @since   JDK1.1
+	 */
+	__mark: number;
+
+	/**
+	 * The index one greater than the last valid character in the input
+	 * stream buffer.
+	 * This value should always be nonnegative
+	 * and not larger than the length of <code>buf</code>.
+	 * It  is one greater than the position of
+	 * the last byte within <code>buf</code> that
+	 * can ever be read  from the input stream buffer.
+	 */
+	count: number;
+
+	public constructor(buf: ArrayBuffer) {
+
+		super();
+		this.buf = buf;
+		this.pos = 0;
+		this.count = buf.byteLength;
+		this.__mark = 0;
+	}
+
+	public read(): number {
+		let srcBuffer: Uint8Array = new Uint8Array(this.buf, this.pos, 1);
+		let value: number;
+		if (this.pos < this.count) {
+			value = srcBuffer[0] & 255;
+			this.pos++;
+		} else {
+			value = -1;
+		}
+		return value;
+	}
+
+	public readBuffer(b: ArrayBuffer, off: number, len: number): number {
+		if (this.pos >= this.count) {
+			return -1;
+		}
+		let avail: number = this.count - this.pos;
+		if (len > avail) {
+			len = avail;
+		}
+		if (len <= 0) {
+			return 0;
+		}
+		let srcBuffer: Uint8Array = new Uint8Array(this.buf, this.pos + off, len);
+		let dstBuffer: Uint8Array = new Uint8Array(b, 0, len);
+		dstBuffer.set(srcBuffer);
+		this.pos += len;
+		return len;
+	}
+
+	/**
+	 * Skips <code>n</code> bytes of input from this input stream. Fewer
+	 * bytes might be skipped if the end of the input stream is reached.
+	 * The actual number <code>k</code>
+	 * of bytes to be skipped is equal to the smaller
+	 * of <code>n</code> and  <code>count-pos</code>.
+	 * The value <code>k</code> is added into <code>pos</code>
+	 * and <code>k</code> is returned.
+	 *
+	 * @param   {number} n   the number of bytes to be skipped.
+	 * @return  {number} the actual number of bytes skipped.
+	 */
+	public skip(n: number): number {
+		let k: number = this.count - this.pos;
+		if (n < k) {
+			k = n < 0 ? 0 : n;
+		}
+		this.pos += k;
+		return k;
+	}
+
+	/**
+	 * Returns the number of remaining bytes that can be read (or skipped over)
+	 * from this input stream.
+	 * <p>
+	 * The value returned is <code>count&nbsp;- pos</code>,
+	 * which is the number of bytes remaining to be read from the input buffer.
+	 *
+	 * @return  {number} the number of remaining bytes that can be read (or skipped
+	 * over) from this input stream without blocking.
+	 */
+	public available(): number {
+		return this.count - this.pos;
+	}
+
+	/**
+	 * Tests if this <code>InputStream</code> supports mark/reset. The
+	 * <code>markSupported</code> method of <code>ByteArrayInputStream</code>
+	 * always returns <code>true</code>.
+	 *
+	 * @since   JDK1.1
+	 * @return {boolean}
+	 */
+	public markSupported(): boolean {
+		return true;
+	}
+
+	/**
+	 * Set the current marked position in the stream.
+	 * ByteArrayInputStream objects are marked at position zero by
+	 * default when constructed.  They may be marked at another
+	 * position within the buffer by this method.
+	 * <p>
+	 * If no mark has been set, then the value of the mark is the
+	 * offset passed to the constructor (or 0 if the offset was not
+	 * supplied).
+	 *
+	 * <p> Note: The <code>readAheadLimit</code> for this class
+	 * has no meaning.
+	 *
+	 * @since   JDK1.1
+	 * @param {number} readAheadLimit
+	 */
+	public mark(readAheadLimit: number) {
+		this.__mark = this.pos;
+	}
+
+	/**
+	 * Resets the buffer to the marked position.  The marked position
+	 * is 0 unless another position was marked or an offset was specified
+	 * in the constructor.
+	 */
+	public reset() {
+		this.pos = this.__mark;
+	}
+
+	/**
+	 * Closing a <tt>ByteArrayInputStream</tt> has no effect. The methods in
+	 * this class can be called after the stream has been closed without
+	 * generating an <tt>IOException</tt>.
+	 */
+	public close() {}
+}
