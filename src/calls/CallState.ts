@@ -324,17 +324,6 @@ export class CallState {
 		return (this.mState & operation) !== 0;
 	}
 
-	/**
-	 * Leave the call room.
-	 *
-	 */
-	leaveCallRoom(): void {
-
-		if (this.mCallRoomId != null && this.mCallRoomMemberId != null) {
-			this.mPeerCallService.leaveCallRoom(this.mCallRoomId.toString(), this.mCallRoomMemberId);
-		}
-	}
-
 	updateCallRoom(callRoomId: string, memberId: string): void {
 
 		this.mCallRoomId = UUID.fromString(callRoomId);

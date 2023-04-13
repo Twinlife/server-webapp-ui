@@ -138,10 +138,6 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		if (call.getCallRoomId() != null) {
-			call.leaveCallRoom();
-		}
-
 		let connections: Array<CallConnection> = call.getConnections();
 		for (let callConnection of connections) {
 			if (callConnection.getStatus() !== CallStatus.TERMINATED) {
@@ -327,16 +323,6 @@ export class CallService implements PeerCallServiceObserver {
 				peerId
 			);
 			this.mActiveCall.addPeerConnection(callConnection);
-		}
-	}
-
-	onInviteCallRoom(callRoomId: string, sessionId: string, maxCount: number): void {
-
-		if (sessionId && this.mPeerCallService) {
-			let connection: CallConnection | undefined = this.mPeers.get(sessionId);
-			if (connection) {
-				this.mPeerCallService.joinCallRoom(callRoomId, sessionId);
-			}
 		}
 	}
 

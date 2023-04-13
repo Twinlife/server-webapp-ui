@@ -97,24 +97,20 @@ export type SessionTerminateMessage = {
     reason: TerminateReason
 }
 
-export type JoinCallRoomMessage = {
-    msg: string,
-    callRoomId: string,
-    sessionId: string
-}
-
-export type LeaveCallRoomMessage = {
-    msg: string,
-    callRoomId: string,
-    memberId: string
-}
-
 export type MemberStatus = "member-new" | "member-need-session" | "member-delete";
 
 export type MemberInfo = {
     status: MemberStatus,
     memberId: string,
     sessionId: string | null
+}
+
+export type JoinCallRoomMessage = {
+    msg: string,
+    callRoomId: string,
+    sessionId: string,
+    memberId: string,
+    members: MemberInfo[]
 }
 
 export interface PeerCallServiceObserver {
@@ -130,8 +126,6 @@ export interface PeerCallServiceObserver {
     onTransportInfo(sessionId: string, candidates: TransportCandidate[]) : void;
 
     onSessionTerminate(sessionId: string, reason: TerminateReason): void;
-
-    onInviteCallRoom(callRoomId: string, sessionId: string, maxCount: number): void;
 
     onJoinCallRoom(callRoomId: string, memberId: string, members: MemberInfo[]): void;
 }
@@ -188,6 +182,11 @@ export class PeerCallService {
                 if (this.callObserver) {
                     let initResponse : SessionInitiateResponseMessage = req as SessionInitiateResponseMessage;
                     this.callObserver.onSessionInitiate(initResponse.to, initResponse.sessionId, initResponse.status);
+                }
+            } else if (req.msg === "join-callroom") {
+                if (this.callObserver) {
+                    let joinRoom : JoinCallRoomMessage = req as JoinCallRoomMessage;
+                    this.callObserver.onJoinCallRoom(joinRoom.callRoomId, joinRoom.memberId, joinRoom.members);
                 }
             } else {
                 console.log("Unsupported message " + req);
@@ -293,27 +292,4 @@ export class PeerCallService {
 
         this.socket.send(JSON.stringify(msg));
     }
-
-    joinCallRoom(callRoomId: string, sessionId: string): void {
-
-        const msg : JoinCallRoomMessage = {
-            msg: "join-callroom",
-            callRoomId: callRoomId,
-            sessionId: sessionId
-        };
-
-        this.socket.send(JSON.stringify(msg));
-    }
-
-    leaveCallRoom(callRoomId: string, memberId: string): void {
-
-        const msg : LeaveCallRoomMessage = {
-            msg: "leave-callroom",
-            callRoomId: callRoomId,
-            memberId: memberId
-        };
-
-        this.socket.send(JSON.stringify(msg));
-    }
-
 }
