@@ -70,12 +70,16 @@ export class CallConnection {
 	private readonly mCallService : CallService;
 	private readonly mPeerCallService : PeerCallService;
 	private readonly mTo: string;
-	private mPeerConnectionId: UUID | null = null;
+	private readonly mInitiator: boolean;
+	private readonly mCall: CallState;
+	private mPeerConnectionId: string | null = null;
 	private mPeerConnection: RTCPeerConnection | null;
 	private mDataChannel: RTCDataChannel | null;
     private mIcePending : Array<RTCIceCandidate> | null = null;
 	private mRenegotiationNeeded : boolean = false;
 	private mMakingOffer: boolean = false;
+	private mRemoteAnswerPending: boolean = false;
+	private mIgnoreOffer: boolean = false;
 	private mAudioDirection: RTCRtpTransceiverDirection = "inactive";
 	private mVideoDirection: RTCRtpTransceiverDirection = "inactive";
     private mState: number = 0;
@@ -83,12 +87,10 @@ export class CallConnection {
 	private mVideoTrack: MediaStreamTrack | null = null;
 	private mConnectionState: RTCIceConnectionState = "closed";
 	private mParticipants: Map<String, CallParticipant>;
-	private readonly mCall: CallState;
 	private mBinaryListeners: Map<String, PacketHandler> = new Map();
 
 	private mMainParticipant: CallParticipant;
 
-	private mPeerTwincodeOutboundId: String | null = null;
 	private mVideoTrackId: string | null = null;
 	private mAudioTrackId: string | null = null;
 	private mConnectionStartTime: number = 0;
@@ -119,7 +121,7 @@ export class CallConnection {
 	 *
 	 * @return {String} the peer connectin id or null.
 	 */
-	public getPeerConnectionId(): UUID | null {
+	public getPeerConnectionId(): string | null {
 		return this.mPeerConnectionId;
 	}
 
@@ -175,23 +177,15 @@ export class CallConnection {
 		return v.major >= 2;
 	}
 
-	/**
-	 * The peer twincode outbound id that is used for the P2P connection.
-	 *
-	 * @return {UUID} the peer twincode outbound id if we know it.
-	 */
-	public getPeerTwincodeOutboundId(): String | null {
-		return this.mPeerTwincodeOutboundId;
-	}
-
 	constructor(
 		callService: CallService,
 		peerCallService: PeerCallService,
 		call: CallState,
-		peerConnectionId: UUID | null,
+		peerConnectionId: string | null,
 		callStatus: CallStatus,
 		mediaStream: MediaStream | null,
-		memberId: string | null
+		memberId: string | null,
+		sdp: string | null
 	) {
 		this.mCallService = callService;
 		this.mPeerCallService = peerCallService;
@@ -205,6 +199,7 @@ export class CallConnection {
 		this.mConnectionState = "closed";
 		this.mConnectionStartTime = 0;
 		this.mPeerVersion = null;
+		this.mInitiator = sdp === null;
 		this.mVideo = CallStatusOps.isVideo(callStatus);
 		this.mCallMemberId = memberId;
 		this.mParticipants = new Map();
@@ -257,14 +252,13 @@ export class CallConnection {
             if (!candidate || !this.mPeerConnection || !candidate.candidate) {
                 return;
             }
-            // console.log("Local ICE='" + candidate?.candidate + "' label=" + candidate?.sdpMid + " id=" + candidate?.sdpMLineIndex);
             if (!this.mPeerConnectionId) {
                 this.mIcePending?.push(candidate);
                 return;
             }
 
             if (candidate.candidate && candidate.sdpMid != null && candidate.sdpMLineIndex != null) {
-                this.mPeerCallService.transportInfo(this.mPeerConnectionId.toString(), candidate.candidate, candidate.sdpMid, candidate.sdpMLineIndex);
+                this.mPeerCallService.transportInfo(this.mPeerConnectionId, candidate.candidate, candidate.sdpMid, candidate.sdpMLineIndex);
             }
         };
 
@@ -277,7 +271,7 @@ export class CallConnection {
 			if (this.mPeerConnection) {
 				let signalingState = this.mPeerConnection.signalingState;
 				if (signalingState === "closed" && this.mPeerConnectionId) {
-					this.mPeerCallService.sessionTerminate(this.mPeerConnectionId.toString(), "connectivity-error");
+					this.mPeerCallService.sessionTerminate(this.mPeerConnectionId, "connectivity-error");
 				}
 			}
 		};
@@ -295,7 +289,7 @@ export class CallConnection {
                 if (this.mPeerConnection && this.mPeerConnectionId) {
                     let description : RTCSessionDescription | null = this.mPeerConnection.localDescription;
                     if (description) {
-                        this.mPeerCallService.sessionUpdate(this.mPeerConnectionId.toString(), description.sdp, "offer");
+                        this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "offer");
                     }
                 }
             }).catch();
@@ -320,6 +314,7 @@ export class CallConnection {
 			if (this.mDataChannel) {
 				let label : string = this.mDataChannel.label;
 				let pos : number = label.indexOf('.');
+				console.log("Data channel for " + this.mPeerConnectionId + " opened with label " + label);
 				if (pos > 0) {
 					label = label.substring(pos + 1);
 
@@ -410,26 +405,55 @@ export class CallConnection {
 			version: "1.0.0"
 		};
 		// this.mVideoSourceOn ? "video" : "audio";
-        pc.createOffer(offerOptions).then((description: RTCSessionDescriptionInit) => {
-            console.log("SDP " + description.sdp);
-            pc.setLocalDescription(description).then(() => {
-                if (this.mTo && description.sdp) {
-                    console.log("sending session-initiate with " + offer);
-                    this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
-                }
-            }).catch((reason: any) => {
-                console.log("setLocalDescription failed: " + reason);
-            });
-            console.log("setLocalDescription is done");
-        }).catch((reason: any) => {
-            console.error("createOffer failed: " + reason);
-        });
+		if (sdp) {
+			this.mMakingOffer = false;
+			this.mPeerConnection.setRemoteDescription({
+				sdp: sdp,
+				type: "offer"
+		   }).then(() => {
+			   console.log("Set remote is done");
+			   this.createAnswer(offer);
+   
+		   }).catch((error : any) => {
+			   console.log("Set remote failed: " + error);
+   
+		   });
+
+		   /* if (this.mTimer) {
+			   clearTimeout(this.mTimer);
+		   }
+		   this.mTimer = setTimeout(() => {
+			   this.mCallService.callTimeout(this);
+		   }, CallConnection.CONNECT_TIMEOUT);*/
+		} else {
+			this.mMakingOffer = true;
+			pc.createOffer(offerOptions).then((description: RTCSessionDescriptionInit) => {
+				console.log("SDP " + description.sdp);
+				pc.setLocalDescription(description).then(() => {
+					this.mMakingOffer = false;
+					if (this.mTo && description.sdp) {
+						if (description.type === "offer" || !this.mPeerConnectionId) {
+							console.log("sending session-initiate with " + offer);
+							this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
+						} else {
+							console.log("sending session-accept with " + offer);
+							this.mPeerCallService.sessionAccept(this.mPeerConnectionId, this.mTo, description.sdp, offer);
+						}
+					}
+				}).catch((reason: any) => {
+					console.log("setLocalDescription failed: " + reason);
+				});
+				console.log("setLocalDescription is done");
+			}).catch((reason: any) => {
+				console.error("createOffer failed: " + reason);
+			});
+		}
 	}
 
 	onSessionInitiate(sessionId: string) : void {
 
         console.log("session-initiate created " + sessionId);
-        this.mPeerConnectionId = UUID.fromString(sessionId);
+        this.mPeerConnectionId = sessionId;
 		this.mParticipants.set(sessionId, this.mMainParticipant);
 		console.log("Add new participant");
 		this.mCall.onAddParticipant(this.mMainParticipant);
@@ -480,15 +504,55 @@ export class CallConnection {
             return false;
         }
 
-        const type : RTCSdpType = updateType === "offer" ? "offer" : "answer";
+		const isOffer: boolean = (updateType === "offer");
+		const state: RTCSignalingState = this.mPeerConnection.signalingState;
+		const readyForOffer: boolean = !this.mMakingOffer && (state === "stable" || this.mRemoteAnswerPending);
+		const offerCollision: boolean = isOffer && !readyForOffer;
+		this.mIgnoreOffer = !this.mInitiator && offerCollision;
+		if (this.mIgnoreOffer || (state === "stable" && !isOffer)) {
+			return true;
+		}
+
+		const type : RTCSdpType = isOffer ? "offer" : "answer";
+		this.mRemoteAnswerPending = !isOffer;
         this.mPeerConnection.setRemoteDescription({
             sdp: sdp,
             type: type
-        });
+        }).then(() => {
+			this.mRemoteAnswerPending = false;
+			if (isOffer) {
+				this.createAnswer(null);
+			}
+		});
 		return true;
     }
 
-    onTransportInfo(candidates: TransportCandidate[]) : boolean {
+	createAnswer(offer: Offer | null) : void {
+		const pc: RTCPeerConnection | null = this.mPeerConnection;
+
+		if (!pc) {
+			return;
+		}
+
+		this.mMakingOffer = false;
+		pc.createAnswer().then((description: RTCSessionDescriptionInit) => {
+			pc.setLocalDescription(description).then(() => {
+				if (this.mTo && description.sdp && this.mPeerConnectionId) {
+					if (offer) {
+						this.mPeerCallService.sessionAccept(this.mPeerConnectionId, this.mTo, description.sdp, offer);
+					} else {
+						this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "answer");
+					}
+				}
+			}).catch ((reason: any) => {
+				console.error("setLocalDescription failed: " + reason);
+			});
+		}).catch((reason: any) => {
+			console.error("createAnswer failed: " + reason);
+		});
+	}
+
+	onTransportInfo(candidates: TransportCandidate[]) : boolean {
 
         if (!this.mPeerConnection) {
             return false;

@@ -289,17 +289,19 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
         }
 
         /*                 {participants.map((participant) => this.renderParticipant(participant))} */
-        let participantVideo;
-        if (participants.length === 1) {
-            let participant = participants[0];
-            participantVideo = <Participant key={participant.getParticipantId()} participant={participant} />
+        /*let participantVideo;
+        if (participants.length > 0) {
+            participantVideo = '';
+            for (let participant of participants) {
+                participantVideo = participantVideo + <Participant key={participant.getParticipantId()} participant={participant} />
+            }
         } else {
             participantVideo = '';
-        }
+        }*/
         return <div className={className}>
             {invitation}
             <div id='video-container'>
-                {participantVideo}
+                {participants.map((participant) => <Participant key={participant.getParticipantId()} participant={participant} />)}
                 <video id="local-video" className="local-video-stream" onClick={this.reverseDisplay} autoPlay muted={false} playsInline></video>
             </div>
             </div>

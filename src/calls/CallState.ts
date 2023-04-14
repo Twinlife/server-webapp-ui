@@ -15,7 +15,7 @@ import { CallParticipantEvent } from "./CallParticipantEvent";
 import { CallParticipantObserver } from "./CallParticipantObserver";
 import { CallService } from "./CallService";
 import { CallStatus, CallStatusOps } from "./CallStatus";
-import { PeerCallService, TerminateReason } from "../services/PeerCallService";
+import { PeerCallService } from "../services/PeerCallService";
 
 /**
  * The call state associated with an Audio or Video call:
@@ -47,12 +47,9 @@ export class CallState {
 	private readonly mIdentityAvatar: ArrayBuffer;
 	private readonly mIdentityName: string;
 	private mPeers: Array<CallConnection> = [];
-	private mParticipants: Map<UUID, CallParticipant> = new Map();
 	private mLocalRenderer: any = null;
 	private mConnectionStartTime: number = 0;
-	private mPeerTwincodeOutboundId: UUID | null = null;
 	private mPeerConnected: boolean = false;
-	private mTerminateReason: TerminateReason | null = null;
 	private mCallRoomId: UUID | null = null;
 	private mCallRoomMemberId: string | null = null;
 	private mMaxMemberCount: number = 0;
@@ -241,11 +238,6 @@ export class CallState {
 		this.mIdentityAvatar = identityImage;
 	}
 
-	getPeerTwincodeOutboundId(): UUID | null {
-
-		return this.mPeerTwincodeOutboundId;
-	}
-
 	/**
 	 * Set the local video renderer when the camera is opened.
 	 * @param {*} localRenderer
@@ -335,18 +327,14 @@ export class CallState {
 	 *
 	 * @param {CallConnection} callConnection the peer connection to remove.
 	 * @return {boolean} true if the call has no peer connection.
-	 * @param {TerminateReason} terminateReason
 	 */
-	remove(callConnection: CallConnection, terminateReason: TerminateReason): boolean {
+	remove(callConnection: CallConnection): boolean {
 
 		let index = this.mPeers.indexOf(callConnection);
 		if (index >= 0) {
 			this.mPeers.splice(index, 1);
 		}
 		let empty: boolean = this.mPeers.length === 0;
-		if (empty) {
-			this.mTerminateReason = terminateReason;
-		}
 		this.onRemoveParticipants(callConnection.release());
 		return empty;
 	}

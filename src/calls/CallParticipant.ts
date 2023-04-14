@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 twinlife SA.
+ *  Copyright (c) 2022-2023 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -8,7 +8,6 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
  */
-import { UUID } from "../utils/UUID";
 import { CallConnection } from "./CallConnection";
 
 /**
@@ -28,9 +27,9 @@ import { CallConnection } from "./CallConnection";
  * @class
  */
 export class CallParticipant {
-	static LOG_TAG: string = "CallParticipant";
+	static readonly LOG_TAG: string = "CallParticipant";
 
-	static DEBUG: boolean = false;
+	static readonly DEBUG: boolean = false;
 
 	private mParticipantId: number = 0;
 	private mConnection: CallConnection;
@@ -149,7 +148,7 @@ export class CallParticipant {
 	 *
 	 * @return {UUID} the peer connection id or null.
 	 */
-	public getPeerConnectionId(): UUID | null {
+	public getPeerConnectionId(): string | null {
 		return this.mConnection.getPeerConnectionId();
 	}
 

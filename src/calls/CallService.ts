@@ -16,24 +16,20 @@ import { CallParticipantObserver } from "./CallParticipantObserver";
 import { CallState } from "./CallState";
 import { CallStatus } from "./CallStatus";
 import { CallObserver } from "./CallObserver";
-import { PeerCallService, PeerCallServiceObserver, TransportCandidate, Offer, MemberInfo, TerminateReason } from '../services/PeerCallService';
+import { PeerCallService, PeerCallServiceObserver, TransportCandidate, Offer, MemberInfo, MemberStatus, TerminateReason } from '../services/PeerCallService';
 import { ConnectionOperation } from "./ConnectionOperation";
 import { Version } from "../utils/Version";
 
-type Timer = ReturnType<typeof setTimeout>;
+// type Timer = ReturnType<typeof setTimeout>;
 
 /**
- * Audio or video call foreground service.
+ * Audio or video call service.
  *
- * The service manages a P2P audio/video call and it runs as a foreground service.  It is associated with a notification
- * that allows to control the audio/video call.  Some important notes:
+ * The service manages a P2P audio/video call.  Some important notes:
  *
  * Calls:
  * - The CallService manages two audio/video calls: an active audio/video call represented by mActiveCall and a possible
  * second audio/video call which is on-hold (is it worth to manage several on-hold calls? probably not).
- * - When an incoming call is received which we are already in a call, a mHoldCall is created (it is not accepted).
- * - The holding call can be accepted in which case it becomes active and the active call is put on-hold.
- * - If the active call terminates, the mHoldCall becomes active.
  *
  * Connections:
  * - The CallService maintains a list of active peer connections for the 1-1 call, for 1-N group calls and for 1-1 call
@@ -42,49 +38,21 @@ type Timer = ReturnType<typeof setTimeout>;
  * from the CallConnection to allow different architectures (ex: a same P2P connection that provides different tracks
  * one for each participant).
  *
- * Videos:
- * - The video EGL context is created only when the video call is accepted for an incoming call, or when we start the outgoing video call.
- * This is done by 'setupVideo()' which must be called from the main UI thread only.
- * - The video SurfaceView(s) are allocated by the CallService and the VideoCallActivity retrieves them through static methods.
- * They cannot be passed to Intent.  SurfaceView(s) are associated with CallParticipant.
- *
- * Notifications:
- * - When an audio/video call wakes up the application, the Firebase message starts the CallService but we don't know the
- * contact yet.  We MUST create a notification and associate it with the service.  The CallService will trigger the Twinlife
- * service initialization through the JobService.  This is handled by onActionIncomingNotification().
- * - The audio/video incoming call can also be started without Firebase.  In that case, onActionIncomingCall() is invoked and
- * we know the contact.  We also create a notification and associate it with the service.  We have to be careful that
- * onActionIncomingNotifcation() will ALSO be called.
- * - We must call the Service.startForeground() several times because some call will be ignored by Android 10 and 11 when the
- * application is in background.  Only the call made as a result of Firebase message will allow us to start the CallService
- * as a foreground service.
- * - The CallService is now started from the main thread to limit the risks of not calling the startForground()
- * within the 5 seconds constraints.
- * - For an incoming call, we use a first notification ID either CALL_SERVICE_INCOMING_AUDIO_NOTIFICATION_ID or
- * CALL_SERVICE_INCOMING_VIDEO_NOTIFICATION_ID and when the call is accepted we switch to a second notification ID
- * CALL_SERVICE_INCALL_NOTIFICATION_ID.  This is necessary on Android 12 because the notification content is not updated.
- *
- * Executors & timers:
- * - a dedicated executor thread is used to perform some possibly blocking tasks such as some media player operations
+ * Timers:
  * - the P2P connection timer is specific to each CallConnection so that they are independent from each other
  * - the CallService has a shutdown timer that is fired at the end to terminate the CallService 3s after the last call terminate
  * (see FINISH_TIMEOUT)
- * @class
- * @extends Service
  */
 export class CallService implements PeerCallServiceObserver {
-	static LOG_TAG: string = "CallService";
+	static readonly LOG_TAG: string = "CallService";
 
-	static DEBUG: boolean = false;
-
-	static CALL_TIMEOUT: number = 30;
-
-	static FINISH_TIMEOUT: number = 3;
+	static readonly DEBUG: boolean = false;
+	static readonly CALL_TIMEOUT: number = 30;
+	static readonly FINISH_TIMEOUT: number = 3;
 
 	private readonly mPeerCallService : PeerCallService;
 	private readonly mObserver: CallObserver;
 	private mParticipantObserver: CallParticipantObserver | null = null;
-	private mShutdownTimer: Timer | null = null;
 	private mAudioMute: boolean = false;
 	private mIsCameraMute: boolean = false;
 	private mPeers: Map<String, CallConnection> = new Map<any, any>();
@@ -108,14 +76,11 @@ export class CallService implements PeerCallServiceObserver {
 
 	actionOutgoingCall(twincodeId: string, video: boolean, identityName: string, identityImage: ArrayBuffer): void {
 
-		let call: CallState | null = this.getActiveCall();
-		if (call != null && call.getStatus() !== CallStatus.TERMINATED) {
+		let call: CallState | null = this.mActiveCall;
+		if (call && call.getStatus() !== CallStatus.TERMINATED) {
 			return;
 		}
-		if (this.mShutdownTimer) {
-			clearTimeout(this.mShutdownTimer);
-			this.mShutdownTimer = null;
-		}
+
 		call = new CallState(this, this.mPeerCallService, identityName, identityImage);
 		let callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
 		let callConnection: CallConnection = new CallConnection(this,
@@ -124,7 +89,8 @@ export class CallService implements PeerCallServiceObserver {
 			null,
 			callStatus,
 			this.mLocalStream,
-			twincodeId
+			twincodeId,
+			null
 		);
 		this.mActiveCall = call;
 		call.addPeerConnection(callConnection);
@@ -133,7 +99,7 @@ export class CallService implements PeerCallServiceObserver {
 
 	actionTerminateCall(terminateReason: TerminateReason): void {
 
-		let call: CallState | null = this.getActiveCall();
+		let call: CallState | null = this.mActiveCall;
 		if (!call) {
 			return;
 		}
@@ -149,8 +115,8 @@ export class CallService implements PeerCallServiceObserver {
 
 	actionAudioMute(audioMute: boolean): void {
 
-		let call: CallState | null = this.getActiveCall();
-		if (call == null) {
+		let call: CallState | null = this.mActiveCall;
+		if (!call) {
 			return;
 		}
 
@@ -164,7 +130,7 @@ export class CallService implements PeerCallServiceObserver {
 	actionCameraMute(cameraMute: boolean): void {
 
 		let call: CallState | null = this.mActiveCall;
-		if (call == null) {
+		if (!call) {
 			return;
 		}
 
@@ -185,7 +151,7 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	/**
-	 * Get the list of participants in this P2P connection.
+	 * Get the list of participants in this audio/video call.
 	 *
 	 * @return the list of participants are returned.
 	 */
@@ -206,8 +172,8 @@ export class CallService implements PeerCallServiceObserver {
 	/**
 	 * IQs received from the proxy server.
 	 */
-    onIncomingSessionInitiate(sessionId: string, peerId: string, offer: Offer) : void {
-		console.log("session-initiate created " + sessionId);
+    onIncomingSessionInitiate(sessionId: string, peerId: string, sdp: string, offer: Offer) : void {
+		console.log("session-initiate received " + sessionId);
 
 		let call: CallState | null = this.mActiveCall;
 		let pos: number = peerId.indexOf("@");
@@ -236,10 +202,11 @@ export class CallService implements PeerCallServiceObserver {
 		let callConnection : CallConnection = new CallConnection(this,
 				this.mPeerCallService,
 				call,
-				UUID.fromString(sessionId),
+				sessionId,
 				status,
 				this.mLocalStream,
-				peerId
+				peerId,
+				sdp
 			);
 		callConnection.setPeerVersion(new Version(offer.version));
 		this.mPeers.set(sessionId, callConnection);
@@ -320,10 +287,17 @@ export class CallService implements PeerCallServiceObserver {
 				null,
 				mode,
 				this.mLocalStream,
-				peerId
+				peerId,
+				null
 			);
 			this.mActiveCall.addPeerConnection(callConnection);
+			this.mPeerTo.set(peerId, callConnection);
 		}
+	}
+
+	onMemberJoin(sessionId: string | null, memberId: string, status: MemberStatus): void {
+
+		console.log("Member join sessionId: " + sessionId + " memberId: " + memberId + " status: " + status);
 	}
 
 	onChangeConnectionState(callConnection: CallConnection, state: RTCIceConnectionState): void {
@@ -346,12 +320,12 @@ export class CallService implements PeerCallServiceObserver {
 	onTerminatePeerConnection(callConnection: CallConnection, terminateReason: TerminateReason): void {
 
 		let call: CallState = callConnection.getCall();
-		let sessionId: UUID | null = callConnection.getPeerConnectionId();
+		let sessionId: string | null = callConnection.getPeerConnectionId();
 		if (sessionId) {
-			console.log("Remove peer session " + sessionId.toString());
-			this.mPeers.delete(sessionId.toString());
+			console.log("Remove peer session " + sessionId);
+			this.mPeers.delete(sessionId);
 		}
-		if (!call.remove(callConnection, terminateReason)) {
+		if (!call.remove(callConnection)) {
 			return;
 		}
 
@@ -368,33 +342,6 @@ export class CallService implements PeerCallServiceObserver {
 	getConnections(): Array<CallConnection> {
 
 		return this.mPeers.values() as any;
-	}
-
-	/**
-	 * Get the current active audio/video call.
-	 *
-	 * @return {CallState} the active audio/video call.
-	 * @private
-	 */
-	getActiveCall(): CallState | null {
-
-		return this.mActiveCall;
-	}
-
-	getMode(): CallStatus | null {
-		let call: CallState | null = this.getActiveCall();
-		let callConnection: CallConnection | null = call != null ? call.getCurrentConnection() : null;
-		return callConnection != null ? callConnection.getStatus() : null;
-	}
-
-	setupVideo(participant: CallParticipant): void {
-
-		if (participant == null) {
-			return;
-		}
-		//if (!participant.setupVideo(this, this.mLocalRenderer)) {
-		//	this.sendError(ErrorType.CAMERA_ERROR);
-		//}
 	}
 
 	callTimeout(callConnection: CallConnection): void {

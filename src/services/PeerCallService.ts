@@ -49,6 +49,7 @@ export type SessionInitiateMessage = {
     msg: string,
     to: string,
     sdp: string,
+    sessionId: string | null | undefined,
     offer: Offer,
     offerToReceive: Offer,
     maxFrameSize: number,
@@ -113,9 +114,16 @@ export type JoinCallRoomMessage = {
     members: MemberInfo[]
 }
 
+export type MemberJoinMessage = {
+    msg: string,
+    sessionId: string | null,
+    memberId: string,
+    status: MemberStatus
+}
+
 export interface PeerCallServiceObserver {
 
-    onIncomingSessionInitiate(sessionId: string, peerId: string, offer: Offer) : void;
+    onIncomingSessionInitiate(sessionId: string, peerId: string, sdp: string, offer: Offer) : void;
 
     onSessionInitiate(to: string, sessionId: string, status: string) : void;
 
@@ -128,6 +136,8 @@ export interface PeerCallServiceObserver {
     onSessionTerminate(sessionId: string, reason: TerminateReason): void;
 
     onJoinCallRoom(callRoomId: string, memberId: string, members: MemberInfo[]): void;
+
+    onMemberJoin(sessionId: string | null, memberId: string, status: MemberStatus): void;
 }
 
 /**
@@ -183,10 +193,23 @@ export class PeerCallService {
                     let initResponse : SessionInitiateResponseMessage = req as SessionInitiateResponseMessage;
                     this.callObserver.onSessionInitiate(initResponse.to, initResponse.sessionId, initResponse.status);
                 }
+            } else if (req.msg === "session-initiate") {
+                if (this.callObserver) {
+                    let sessionInitiate : SessionInitiateMessage = req as SessionInitiateMessage;
+                    if (sessionInitiate.sessionId) {
+                        this.callObserver.onIncomingSessionInitiate(sessionInitiate.sessionId, sessionInitiate.to,
+                             sessionInitiate.sdp, sessionInitiate.offer);
+                    }
+                }
             } else if (req.msg === "join-callroom") {
                 if (this.callObserver) {
                     let joinRoom : JoinCallRoomMessage = req as JoinCallRoomMessage;
                     this.callObserver.onJoinCallRoom(joinRoom.callRoomId, joinRoom.memberId, joinRoom.members);
+                }
+            } else if (req.msg === "member-join") {
+                if (this.callObserver) {
+                    let memberJoin : MemberJoinMessage = req as MemberJoinMessage;
+                    this.callObserver.onMemberJoin(memberJoin.sessionId, memberJoin.memberId, memberJoin.status);
                 }
             } else {
                 console.log("Unsupported message " + req);
@@ -245,7 +268,22 @@ export class PeerCallService {
             offer: offer,
             offerToReceive: offer,
             maxFrameRate: 60,
-            maxFrameSize: 921600
+            maxFrameSize: 921600,
+            sessionId: null
+        };
+
+        this.socket.send(JSON.stringify(msg));
+    }
+
+    sessionAccept(sessionId: string, to: string, sdp: string, offer: Offer) {
+
+        const msg : SessionAcceptMessage = {
+            msg: "session-accept",
+            sessionId: sessionId,
+            to: to,
+            sdp: sdp,
+            offer: offer,
+            offerToReceive: offer
         };
 
         this.socket.send(JSON.stringify(msg));
