@@ -311,22 +311,15 @@ export class CallConnection {
 
 		this.mDataChannel = pc.createDataChannel("data");
 		this.mDataChannel.onopen = (event: Event) : any => {
-			if (this.mDataChannel) {
-				let label : string = this.mDataChannel.label;
-				let pos : number = label.indexOf('.');
-				console.log("Data channel for " + this.mPeerConnectionId + " opened with label " + label);
-				if (pos > 0) {
-					label = label.substring(pos + 1);
-
-					if (this.mCall?.getCallRoomId() != null) {
-						this.sendParticipantInfoIQ();
-					}
-				}
+			console.log("Data channel is now opened");
+			if (this.mDataChannel && this.mCall /* && this.mCall.getCallRoomId() != null*/) {
+				this.sendParticipantInfoIQ();
 			}
 		};
 		this.mDataChannel.onmessage = (event: MessageEvent<ArrayBuffer>) : any => {
 			let schemaId: UUID | null = null;
 			let schemaVersion: number = 0;
+			console.log("Received a data channel message");
 			try {
 				let inputStream: ByteArrayInputStream = new ByteArrayInputStream(event.data);
 				let binaryDecoder: BinaryCompactDecoder = new BinaryCompactDecoder(inputStream);
@@ -338,6 +331,7 @@ export class CallConnection {
 					let iq: BinaryPacketIQ = listener.serializer.deserialize(binaryDecoder) as BinaryPacketIQ;
 					listener.handler(this, iq);
 				} else {
+					console.log("Schema " + key + " is not recognized");
 					//if (Logger.ERROR) {
 					//	Logger.error(CallConnection.LOG_TAG, "Schema key ", key, " not found");
 					//}
@@ -346,6 +340,7 @@ export class CallConnection {
 				//if (Logger.ERROR) {
 				//	Logger.error(CallConnection.LOG_TAG, "Internal error ", exception);
 				//}
+				console.log("Exception raised when handling data channel message");
 			}
 		};
 		if (mediaStream) {
@@ -798,6 +793,7 @@ export class CallConnection {
 	private sendParticipantInfoIQ(): void {
 
 		let name: string = this.mCall.getIdentityName();
+		console.log("Sending participant with name=" + name);
 		if (name == null || this.mDataChannel == null) {
 			return;
 		}
