@@ -76,7 +76,7 @@ body {
   height: 100%;
 }
 #video-container {
-  margin-left: 1em;
+  margin-left: 0.5em;
   margin-right: 1em;
   float: left;
   width: calc(100% - 256px);
@@ -90,10 +90,11 @@ body {
 .invitation {
   margin-top: 1em;
   margin-bottom: 1em;
+  margin-left: 1em;
+  margin-right: 0.5em;
   float: left;
   width: 256px;
   box-sizing: border-box;
-  margin: 1em;
 }
 .invitation-contact {
   display: flex;
@@ -102,7 +103,7 @@ body {
 .invitation-contact ul {
   text-align: center;
 }
-.invitation h2, #video-container h2 {
+.invitation h2 {
   margin-top: 1em;
   text-align: center;
 }
@@ -129,22 +130,18 @@ body {
   margin: auto;
   width: 256px;
 }
-video {
-  /* border: 1px solid red; */
-  margin: 0 10px 10px 0;
-}
 .call-active {
   float: left;
   position: relative;
 }
-.call-grid-1 .call-active {
+.call-grid-1 .call-participant {
   width: 100%;
 }
-.call-grid-2 .call-active {
+.call-grid-2 .call-participant {
   width: 50%;
   border: 2px solid #424242;
 }
-.call-grid-3 .call-active {
+.call-grid-3 .call-participant {
   width: 33.33%;
   border: 2px solid #424242;
 }
@@ -152,18 +149,20 @@ video {
   display: flex;
   flex-direction: row;
 }
-.call-grid-4 .call-active {
+.call-grid-4 .call-participant {
+  float: left;
   width: 49%;
+  height: 49%;
   border: 2px solid #424242;
 }
-.call-active .call-participant-info {
+.call-participant .call-participant-info {
   position: absolute;
   bottom: 30px;
   left: 30px;
   right: 30px;
 }
 
-.call-active .call-participant-name {
+.call-participant .call-participant-name {
   background: #424242;
   width: 256px;
   margin: auto;
@@ -180,22 +179,34 @@ video {
   margin-top: 64px;
   margin-bottom: 64px;
 }
-.call-active .call-video-muted .remote-video-stream {
+.call-active .call-video-muted .remote-video-stream, .call-inactive .call-video-muted .remote-video-stream {
   display: none;
 }
 .call-audio-muted .call-participant-status {
-  float: right;
+  float: left;
   width: 24px;
   height: 24px;
-  mask: url(./icons/calls/micOn.svg) no-repeat center;
-  background: red;
+  mask: url(./icons/calls/micOff.svg) no-repeat center;
+  background: white;
 }
-
+.call-participant {
+  overflow: hidden;
+  display: flex;
+  align-items: center; 
+  justify-content: center;
+  position: relative;
+}
 .remote-video-stream {
   display: none;
-  float: left;
-  width: 80%;
-  height: 80%;
+  object-fit: contain;
+}
+.call-local-participant {
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center; 
+  justify-content: center;
+  margin-top: 1em;
 }
 .local-video-stream {
   float: left;
@@ -203,13 +214,10 @@ video {
   height: 200px;
   width: 100%;
   height: 100%;
+  object-fit: contain;
 }
 .call-active .remote-video-stream {
   display: block;
-}
-.call-active .local-video-stream {
-  width: 20%;
-  height: 20%;
 }
 .status {
   float: left;
@@ -226,7 +234,9 @@ video {
   white-space: nowrap;
 }
 .call-actions {
-  display: inline-block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .call-actions ul {
   list-style-type: none;

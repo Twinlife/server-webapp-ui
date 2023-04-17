@@ -68,7 +68,7 @@ export default class Participant extends Component<Props, State> {
         // const videoMuted = this.state.videoMute;
         // const label = this.state.label;
 
-        let className = "call-active";
+        let className = "call-participant";
         if (audioMuted) {
             className = className + " call-audio-muted";
         }
@@ -86,7 +86,7 @@ export default class Participant extends Component<Props, State> {
                        autoPlay={true} muted={false} playsInline>
                 </video>
                 <div className='call-participant-info'>
-                    <div className='call-participant-name'><span>{label}</span><span className='call-participant-status' /></div>
+                    <div className='call-participant-name'><span className='call-participant-status' /><span>{label}</span></div>
                 </div>
             </div>
     }

@@ -6,7 +6,7 @@
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import React, { Component } from "react";
+import React, { Component, RefObject } from "react";
 import { ContactService, TwincodeInfo } from '../services/ContactService';
 import { PeerCallService } from '../services/PeerCallService';
 import { CallParticipant } from '../calls/CallParticipant';
@@ -37,10 +37,10 @@ type State = {
 };
 
 class Call extends Component<Props, State> implements CallParticipantObserver, CallObserver {
+    private localVideo: RefObject<HTMLVideoElement>;
     private contactService: ContactService;
     private peerCallService: PeerCallService;
     private callService: CallService;
-    private localVideoElement : HTMLVideoElement | null;
     private twincodeId: string | null;
     private identityName: string;
 
@@ -50,11 +50,11 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
         this.contactService = new ContactService();
         this.peerCallService = new PeerCallService();
         this.callService = new CallService(this.peerCallService, this, this);
+        this.localVideo = React.createRef();
         this.callService.setIdentity(this.identityName, new ArrayBuffer(0));
-        this.localVideoElement = null;
         this.twincodeId = null;
         this.state = {
-            status: CallStatus.TERMINATED, // CallStatus.IN_CALL,
+            status: CallStatus.TERMINATED, // CallStatus.IN_CALL, /* SCz simulate call */
             twincode: {
                 name: null,
                 description: null,
@@ -68,7 +68,8 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
             participants: []
         };
 
-        /* let first : CallParticipant = new CallParticipant(null, 1);
+        /* SCz: simulate call
+        let first : CallParticipant = new CallParticipant(null, 1);
         first.setInformation("Joe", "", "");
         first.setCameraMute(true);
         this.state.participants.push(first);
@@ -84,7 +85,7 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
 
         let fourth : CallParticipant = new CallParticipant(null, 4);
         fourth.setInformation("Bilbon", "", "");
-        this.state.participants.push(fourth); */
+        this.state.participants.push(fourth);*/
     }
 
     /**
@@ -173,7 +174,8 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
             this.setState({ twincode: twincode, videoMute: !video })
             this.getMedia(video);
 
-            /* let name: string = twincode.name ? twincode.name : "Unknown";
+            /* SCz: simulate call.
+            let name: string = twincode.name ? twincode.name : "Unknown";
             console.log("Prepare to call " + name);
             let avatarUrl: string = config.rest_url + "/images/" + twincode.avatarId;
             let first : CallParticipant = this.state.participants[0];
@@ -191,8 +193,10 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
             video: video
         }).then((mediaStream: MediaStream) => {
             console.log("Media stream " + mediaStream);
-            if (this.localVideoElement) {
-                this.localVideoElement.srcObject = mediaStream;
+            if (this.localVideo.current) {
+                this.localVideo.current.srcObject = mediaStream;
+            } else {
+                console.log("There is no local video element");
             }
             this.callService.setMediaStream(mediaStream);
 
@@ -204,15 +208,10 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
     componentDidMount = () => {
         console.log("componentDidMount");
 
-        this.localVideoElement = document.getElementById("local-video") as HTMLVideoElement;
         this.retrieveInformation();
     };
 
     tryPlay = () => {
-        /* if (this.remoteVideoElement && this.localVideoElement) {
-            this.remoteVideoElement.play().catch(() => setTimeout(this.tryPlay, 250));
-            this.localVideoElement.play().catch(() => setTimeout(this.tryPlay, 250));
-        }*/
     };
 
     handleTerminateClick : React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
@@ -220,7 +219,6 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
         ev.preventDefault();
 
         this.callService.actionTerminateCall("success");
-        // this.setState({sessionId: null, signalingState: "closed", connectionState: "closed", terminateReason: null });
     }
 
     muteAudioClick : React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
@@ -278,9 +276,7 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
                 <li>
                     <div onClick={this.muteAudioClick} className='call-mute-audio'></div>
                 </li>
-                <li>
-                    <div onClick={this.muteVideoClick} className='call-mute-video'></div>
-                </li>
+                { twincode.video && <li><div onClick={this.muteVideoClick} className='call-mute-video'></div></li>}
                 <li>
                     <div onClick={this.handleTerminateClick} className='call-terminate'></div>
                 </li>
@@ -307,8 +303,9 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
                 callAction = '';
                 callStatus = '';
             } else {
+                const msg : string = terminateReason ? "Call terminated: " + terminateReason : "";
                 callAction = <div onClick={this.handleCallClick} className='call-button'>Call</div>
-                callStatus = <div className='call-status'>Call terminated: {terminateReason}</div>
+                callStatus = <div className='call-status'>{msg}</div>
             }
             invitation = <div className='invitation'>
                 <div className='invitation-contact'>
@@ -317,13 +314,14 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
                     </div>
                     <h2>{twincode.name}</h2>
                 </div>
-                <div className=''>
-                    {terminateReason}
-                </div>
                 <div className='call-actions'>
                     {defActions}
                 </div>
                 {callAction}
+                { twincode.video && <div className='call-local-participant'>
+                    <video id="local-video" ref={this.localVideo} className="local-video-stream" onClick={this.reverseDisplay} autoPlay muted={false} playsInline></video>
+                  </div>
+                }
             </div>
         } else {
             invitation = <div className='invitation'>No invitation</div>
@@ -337,7 +335,6 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
             {invitation}
             <div id='video-container'>
                 {participants.map((participant) => <Participant key={participant.getParticipantId()} participant={participant} />)}
-                <video id="local-video" className="local-video-stream" onClick={this.reverseDisplay} autoPlay muted={false} playsInline></video>
                 {callStatus}
             </div>
         </div>
