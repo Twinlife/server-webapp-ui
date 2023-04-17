@@ -59,6 +59,8 @@ export class CallService implements PeerCallServiceObserver {
 	private mPeerTo: Map<String, CallConnection> = new Map<String, CallConnection>();
 	private mActiveCall: CallState | null = null;
 	private mLocalStream: MediaStream | null = null;
+	private mIdentityName: string = "Unknown";
+	private mIdentityImage: ArrayBuffer = new ArrayBuffer(0);
 
 	/**
 	 * Constructor to build the main CallService and maintain the state of current call with one or
@@ -74,14 +76,20 @@ export class CallService implements PeerCallServiceObserver {
 		peerCallService.setObserver(this);
 	}
 
-	actionOutgoingCall(twincodeId: string, video: boolean, identityName: string, identityImage: ArrayBuffer): void {
+	setIdentity(identityName: string, identityImage: ArrayBuffer): void {
+
+		this.mIdentityName = identityName;
+		this.mIdentityImage = identityImage;
+	}
+
+	actionOutgoingCall(twincodeId: string, video: boolean, contactName: string, contactURL: string): void {
 
 		let call: CallState | null = this.mActiveCall;
 		if (call && call.getStatus() !== CallStatus.TERMINATED) {
 			return;
 		}
 
-		call = new CallState(this, this.mPeerCallService, identityName, identityImage);
+		call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage);
 		let callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
 		let callConnection: CallConnection = new CallConnection(this,
 			this.mPeerCallService,
@@ -94,6 +102,7 @@ export class CallService implements PeerCallServiceObserver {
 		);
 		this.mActiveCall = call;
 		call.addPeerConnection(callConnection);
+		callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
 		this.mPeerTo.set(twincodeId, callConnection);
 	}
 

@@ -74,7 +74,8 @@ export class CallConnection {
 	private readonly mCall: CallState;
 	private mPeerConnectionId: string | null = null;
 	private mPeerConnection: RTCPeerConnection | null;
-	private mDataChannel: RTCDataChannel | null;
+	private mInDataChannel: RTCDataChannel | null;
+	private mOutDataChannel: RTCDataChannel | null;
     private mIcePending : Array<RTCIceCandidate> | null = null;
 	private mRenegotiationNeeded : boolean = false;
 	private mMakingOffer: boolean = false;
@@ -309,40 +310,47 @@ export class CallConnection {
 			this.addRemoteTrack(event.track, event.streams[0]);
         };
 
-		this.mDataChannel = pc.createDataChannel("data");
-		this.mDataChannel.onopen = (event: Event) : any => {
-			console.log("Data channel is now opened");
-			if (this.mDataChannel && this.mCall /* && this.mCall.getCallRoomId() != null*/) {
+		// Setup the input data channel to handle incoming data messages.
+		this.mInDataChannel = null;
+		pc.ondatachannel = (event: RTCDataChannelEvent) : void => {
+			let channel : RTCDataChannel = event.channel;
+			channel.onopen = (event : Event) : any => {
+				let label : string = channel.label;
+
+				console.log("Input data channel " + label + " is opened");
+			}
+			channel.onmessage = (event: MessageEvent<ArrayBuffer>) : any => {
+				let schemaId: UUID | null = null;
+				let schemaVersion: number = 0;
+				console.log("Received a data channel message");
+				try {
+					let inputStream: ByteArrayInputStream = new ByteArrayInputStream(event.data);
+					let binaryDecoder: BinaryCompactDecoder = new BinaryCompactDecoder(inputStream);
+					schemaId = binaryDecoder.readUUID();
+					schemaVersion = binaryDecoder.readInt();
+					let key: SchemaKey = new SchemaKey(schemaId, schemaVersion);
+					let listener: PacketHandler | undefined = this.mBinaryListeners.get(key.toString());
+					if (listener !== undefined) {
+						let iq: BinaryPacketIQ = listener.serializer.deserialize(binaryDecoder) as BinaryPacketIQ;
+						listener.handler(this, iq);
+					} else {
+						console.log("Schema " + key + " is not recognized");
+					}
+				} catch (exception) {
+					console.log("Exception raised when handling data channel message");
+				}
+			};
+		}
+
+		// Setup the output data channel.
+		this.mOutDataChannel = pc.createDataChannel("data");
+		this.mOutDataChannel.onopen = (event: Event) : any => {
+			console.log("Output data channel is now opened");
+			if (this.mOutDataChannel && this.mCall) {
 				this.sendParticipantInfoIQ();
 			}
 		};
-		this.mDataChannel.onmessage = (event: MessageEvent<ArrayBuffer>) : any => {
-			let schemaId: UUID | null = null;
-			let schemaVersion: number = 0;
-			console.log("Received a data channel message");
-			try {
-				let inputStream: ByteArrayInputStream = new ByteArrayInputStream(event.data);
-				let binaryDecoder: BinaryCompactDecoder = new BinaryCompactDecoder(inputStream);
-				schemaId = binaryDecoder.readUUID();
-				schemaVersion = binaryDecoder.readInt();
-				let key: SchemaKey = new SchemaKey(schemaId, schemaVersion);
-				let listener: PacketHandler | undefined = this.mBinaryListeners.get(key.toString());
-				if (listener !== undefined) {
-					let iq: BinaryPacketIQ = listener.serializer.deserialize(binaryDecoder) as BinaryPacketIQ;
-					listener.handler(this, iq);
-				} else {
-					console.log("Schema " + key + " is not recognized");
-					//if (Logger.ERROR) {
-					//	Logger.error(CallConnection.LOG_TAG, "Schema key ", key, " not found");
-					//}
-				}
-			} catch (exception) {
-				//if (Logger.ERROR) {
-				//	Logger.error(CallConnection.LOG_TAG, "Internal error ", exception);
-				//}
-				console.log("Exception raised when handling data channel message");
-			}
-		};
+
 		if (mediaStream) {
 			mediaStream.getTracks().forEach(track => {
 				console.log("Found track " + track.id);
@@ -769,6 +777,14 @@ export class CallConnection {
 	 */
 	release(): Array<CallParticipant> {
 
+		if (this.mInDataChannel) {
+			this.mInDataChannel.close();
+			this.mInDataChannel = null;
+		}
+		if (this.mOutDataChannel) {
+			this.mOutDataChannel.close();
+			this.mOutDataChannel = null;
+		}
 		if (this.mPeerConnection) {
             this.mPeerConnection.close();
             this.mPeerConnection = null;
@@ -794,7 +810,7 @@ export class CallConnection {
 
 		let name: string = this.mCall.getIdentityName();
 		console.log("Sending participant with name=" + name);
-		if (name == null || this.mDataChannel == null) {
+		if (name == null || this.mOutDataChannel == null) {
 			return;
 		}
 		let thumbnailData: ArrayBuffer = this.mCall.getIdentityAvatarData();
@@ -810,7 +826,7 @@ export class CallConnection {
 				thumbnailData
 			);
 			let packet: ArrayBuffer = iq.serializeCompact();
-			this.mDataChannel.send(packet);
+			this.mOutDataChannel.send(packet);
 
 		} catch (exception) {}
 	}

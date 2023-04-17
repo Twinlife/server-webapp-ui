@@ -16,7 +16,8 @@ export type TwincodeInfo = {
   name: string | null;
   description: string | null;
   avatarId: string | null;
-  capabilities: string | null;
+  audio: boolean;
+  video: boolean;
 }
 
 /**

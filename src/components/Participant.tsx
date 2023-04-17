@@ -16,6 +16,7 @@ interface Props {
 type State = {
     audioMute: boolean;
     videoMute: boolean;
+    label: string;
 };
 
 export default class Participant extends Component<Props, State> {
@@ -30,7 +31,8 @@ export default class Participant extends Component<Props, State> {
         this.mounted = false;
         this.state = {
             audioMute: false,
-            videoMute: false
+            videoMute: false,
+            label: "unkown"
         };
     }
 
@@ -48,15 +50,44 @@ export default class Participant extends Component<Props, State> {
         this.mounted = false;
     }
 
+    updateParticipant = () => {
+
+        const audioMuted = this.participant.isAudioMute();
+        const videoMuted = this.participant.isCameraMute();
+        const label = this.participant.getName();
+        this.setState({ audioMute: audioMuted, videoMute: videoMuted, label: label ? label : "No name" });
+    }
+
     render() {
+        const audioMuted = this.participant.isAudioMute();
+        const videoMuted = this.participant.isCameraMute();
+        const label = this.participant.getName();
+        let avatarUrl = this.participant.getAvatarUrl();
+        console.log("Participant " + this.participant.getParticipantId() + " is " + label + " with " + avatarUrl);
         // const audioMuted = this.state.audioMute;
         // const videoMuted = this.state.videoMute;
+        // const label = this.state.label;
 
         let className = "call-active";
+        if (audioMuted) {
+            className = className + " call-audio-muted";
+        }
+        let img;
+        if (videoMuted) {
+            className = className + " call-video-muted";
+            if (!avatarUrl) {
+                avatarUrl = '/icons/twinme/drawable/anonymous_avatar.png';
+            }
+            img = <div className='call-participant-avatar'><img alt='Contact avatar' src={avatarUrl} /></div>;
+        }
         return <div className={className}>
+                {img}
                 <video className="remote-video-stream" ref={this.remoteVideo}
                        autoPlay={true} muted={false} playsInline>
                 </video>
+                <div className='call-participant-info'>
+                    <div className='call-participant-name'><span>{label}</span><span className='call-participant-status' /></div>
+                </div>
             </div>
     }
 };

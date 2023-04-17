@@ -79,11 +79,9 @@ body {
   margin-left: 1em;
   margin-right: 1em;
   float: left;
-  width: 60%;
+  width: calc(100% - 256px);
   background: #121313;
   border-left: 2px solid #424242;
-  display: flex;
-  flex-direction: row;
 }
 .call .status {
   width: 20%;
@@ -127,13 +125,72 @@ body {
 .invitation .call-actions {
   padding-top: 1em;
 }
+.call-status {
+  margin: auto;
+  width: 256px;
+}
 video {
   /* border: 1px solid red; */
   margin: 0 10px 10px 0;
 }
 .call-active {
   float: left;
+  position: relative;
 }
+.call-grid-1 .call-active {
+  width: 100%;
+}
+.call-grid-2 .call-active {
+  width: 50%;
+  border: 2px solid #424242;
+}
+.call-grid-3 .call-active {
+  width: 33.33%;
+  border: 2px solid #424242;
+}
+.call-grid-2 #video-container, .call-grid-3 #video-container {
+  display: flex;
+  flex-direction: row;
+}
+.call-grid-4 .call-active {
+  width: 49%;
+  border: 2px solid #424242;
+}
+.call-active .call-participant-info {
+  position: absolute;
+  bottom: 30px;
+  left: 30px;
+  right: 30px;
+}
+
+.call-active .call-participant-name {
+  background: #424242;
+  width: 256px;
+  margin: auto;
+  text-align: center;
+  padding: 3px;
+  border-radius: 5px;
+  line-height: 26px;
+}
+.call-participant-avatar {
+  width: 256px;
+  margin: auto;
+  border-radius: 128px;
+  overflow: hidden;
+  margin-top: 64px;
+  margin-bottom: 64px;
+}
+.call-active .call-video-muted .remote-video-stream {
+  display: none;
+}
+.call-audio-muted .call-participant-status {
+  float: right;
+  width: 24px;
+  height: 24px;
+  mask: url(./icons/calls/micOn.svg) no-repeat center;
+  background: red;
+}
+
 .remote-video-stream {
   display: none;
   float: left;

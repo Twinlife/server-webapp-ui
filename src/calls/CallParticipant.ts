@@ -32,7 +32,7 @@ export class CallParticipant {
 	static readonly DEBUG: boolean = false;
 
 	private mParticipantId: number = 0;
-	private mConnection: CallConnection;
+	private mConnection: CallConnection | null;
 	private mAvatarUrl: string | null = null;
 	private mName: string | null;
 	private mDescription: string | null;
@@ -47,7 +47,7 @@ export class CallParticipant {
 	 *
 	 * @return {CallConnection} the call connection.
 	 */
-	public getCallConnection(): CallConnection {
+	public getCallConnection(): CallConnection | null {
 		return this.mConnection;
 	}
 
@@ -57,7 +57,7 @@ export class CallParticipant {
 	 * @return {boolean} NULL if we don't know, TRUE if P2P group calls are supported.
 	 */
 	public isGroupSupported(): boolean | null {
-		return this.mConnection.isGroupSupported();
+		return this.mConnection ? this.mConnection.isGroupSupported() : null;
 	}
 
 	/**
@@ -149,7 +149,7 @@ export class CallParticipant {
 	 * @return {UUID} the peer connection id or null.
 	 */
 	public getPeerConnectionId(): string | null {
-		return this.mConnection.getPeerConnectionId();
+		return this.mConnection ? this.mConnection.getPeerConnectionId() : null;
 	}
 
 	public setRemoteRenderer(remoteRenderer: HTMLVideoElement) {
@@ -157,7 +157,7 @@ export class CallParticipant {
 		console.log("Set remote renderer for participant");
 	}
 
-	constructor(callConnection: CallConnection, participantId: number) {
+	constructor(callConnection: CallConnection | null, participantId: number) {
 		this.mConnection = callConnection;
 		this.mAvatarUrl = null;
 		this.mName = null;
@@ -183,17 +183,13 @@ export class CallParticipant {
 		this.mAvatarUrl = avatarUrl;
 	}
 
-	setupVideo(localRenderer: any): boolean {
+	/* setupVideo(localRenderer: any): boolean {
 
 		if (this.mRemoteRenderer == null) {
-			try {
-			} catch (ex) {
-				return false;
-			}
 			this.mConnection.getCall().setLocalRenderer(localRenderer);
 		}
 		return true;
-	}
+	}*/
 
 	/**
 	 * Release the remote renderer when the connexion is destroyed.

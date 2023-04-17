@@ -42,29 +42,52 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
     private callService: CallService;
     private localVideoElement : HTMLVideoElement | null;
     private twincodeId: string | null;
+    private identityName: string;
 
     constructor(props: Props) {
         super(props);
+        this.identityName = "Aragorn";
         this.contactService = new ContactService();
         this.peerCallService = new PeerCallService();
         this.callService = new CallService(this.peerCallService, this, this);
+        this.callService.setIdentity(this.identityName, new ArrayBuffer(0));
         this.localVideoElement = null;
         this.twincodeId = null;
         this.state = {
-            status: CallStatus.TERMINATED,
+            status: CallStatus.TERMINATED, // CallStatus.IN_CALL,
             twincode: {
                 name: null,
                 description: null,
                 avatarId: null,
-                capabilities: null
+                audio: false,
+                video: false
             },
             audioMute: false,
             videoMute: false,
             terminateReason: null,
             participants: []
         };
+
+        /* let first : CallParticipant = new CallParticipant(null, 1);
+        first.setInformation("Joe", "", "");
+        first.setCameraMute(true);
+        this.state.participants.push(first);
+    
+        let second : CallParticipant = new CallParticipant(null, 2);
+        second.setInformation("Billy", "", "");
+        second.setMicrophoneMute(true);
+        this.state.participants.push(second);
+    
+        let third : CallParticipant = new CallParticipant(null, 3);
+        third.setInformation("Alice", "", "");
+        this.state.participants.push(third);
+
+        let fourth : CallParticipant = new CallParticipant(null, 4);
+        fourth.setInformation("Bilbon", "", "");
+        this.state.participants.push(fourth); */
     }
-	/**
+
+    /**
 	 * The call status was changed.
 	 *
 	 * @param {CallStatus} status the new call status.
@@ -145,15 +168,27 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
 
         this.twincodeId = id;
         this.contactService.getTwincode(id).then(response => {
-            this.setState({ twincode: response.data })
+            let twincode: TwincodeInfo = response.data;
+            const video : boolean = twincode.video;
+            this.setState({ twincode: twincode, videoMute: !video })
+            this.getMedia(video);
+
+            /* let name: string = twincode.name ? twincode.name : "Unknown";
+            console.log("Prepare to call " + name);
+            let avatarUrl: string = config.rest_url + "/images/" + twincode.avatarId;
+            let first : CallParticipant = this.state.participants[0];
+            first.setInformation(name, "", avatarUrl);
+            this.setState({participants: this.state.participants});*/
 
         }).catch(e => {
             console.log(e);
         });
+    }
 
+    getMedia(video : boolean) {
         navigator.mediaDevices.getUserMedia({
             audio: true,
-            video: true
+            video: video
         }).then((mediaStream: MediaStream) => {
             console.log("Media stream " + mediaStream);
             if (this.localVideoElement) {
@@ -200,10 +235,12 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
     muteVideoClick : React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
 
         ev.preventDefault();
-        let videoMute = !this.state.videoMute;
-        this.setState({ videoMute: videoMute });
+        if (this.state.twincode.video) {
+            let videoMute = !this.state.videoMute;
+            this.setState({ videoMute: videoMute });
 
-        this.callService.actionCameraMute(videoMute);
+            this.callService.actionCameraMute(videoMute);
+        }
     }
 
     handleCallClick : React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
@@ -213,10 +250,11 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
             return;
         }
 
+        let twincode: TwincodeInfo = this.state.twincode;
+        let name: string = twincode.name ? twincode.name : "Unknown";
         let video : boolean = !this.state.videoMute;
-        let identityName = "Joe";
-        let fakeImage = new ArrayBuffer(0);
-        this.callService.actionOutgoingCall(this.twincodeId, video, identityName, fakeImage);
+        let avatarUrl: string = config.rest_url + "/images/" + twincode.avatarId;
+        this.callService.actionOutgoingCall(this.twincodeId, video, name, avatarUrl);
         ev.preventDefault();
     };
 
@@ -261,13 +299,16 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
             className = className + " call-video-muted";
         }
 
+        let callStatus;
         if (twincode && twincode.name) {
             let callAction;
 
             if (!CallStatusOps.isTerminated(status)) {
                 callAction = '';
+                callStatus = '';
             } else {
                 callAction = <div onClick={this.handleCallClick} className='call-button'>Call</div>
+                callStatus = <div className='call-status'>Call terminated: {terminateReason}</div>
             }
             invitation = <div className='invitation'>
                 <div className='invitation-contact'>
@@ -286,25 +327,20 @@ class Call extends Component<Props, State> implements CallParticipantObserver, C
             </div>
         } else {
             invitation = <div className='invitation'>No invitation</div>
+            callStatus = '';
         }
 
-        /*                 {participants.map((participant) => this.renderParticipant(participant))} */
-        /*let participantVideo;
-        if (participants.length > 0) {
-            participantVideo = '';
-            for (let participant of participants) {
-                participantVideo = participantVideo + <Participant key={participant.getParticipantId()} participant={participant} />
-            }
-        } else {
-            participantVideo = '';
-        }*/
+        if (participants.length >= 1 && participants.length <= 8) {
+            className = className + " call-grid-" + participants.length;
+        }
         return <div className={className}>
             {invitation}
             <div id='video-container'>
                 {participants.map((participant) => <Participant key={participant.getParticipantId()} participant={participant} />)}
                 <video id="local-video" className="local-video-stream" onClick={this.reverseDisplay} autoPlay muted={false} playsInline></video>
+                {callStatus}
             </div>
-            </div>
+        </div>
     }
 };
 
