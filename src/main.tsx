@@ -15,11 +15,11 @@ import Call from "./pages/Call.tsx";
 
 const router = createBrowserRouter([
 	{
-		path: "/",
+		path: "/call",
 		element: <Call />,
 	},
 	{
-		path: "/:id",
+		path: "/call/:id",
 		element: <Call />,
 	},
 ]);
