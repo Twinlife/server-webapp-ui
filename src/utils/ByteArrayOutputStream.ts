@@ -102,7 +102,8 @@ export class ByteArrayOutputStream {
 		let oldCapacity: number = this.buf.byteLength;
 		let newCapacity: number = oldCapacity << 1;
 		if (newCapacity - minCapacity < 0) newCapacity = minCapacity;
-		if (newCapacity - ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$() > 0) newCapacity = ByteArrayOutputStream.hugeCapacity(minCapacity);
+		if (newCapacity - ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$() > 0)
+			newCapacity = ByteArrayOutputStream.hugeCapacity(minCapacity);
 		this.buf = ByteArrayOutputStream.copyOf(this.buf, newCapacity);
 	}
 
@@ -114,7 +115,7 @@ export class ByteArrayOutputStream {
 			dstBuffer[i] = srcBuffer[i];
 		}
 		return dstBuffer.buffer;
-}
+	}
 
 	private static hugeCapacity(minCapacity: number): number {
 		if (minCapacity < 0)
@@ -125,10 +126,12 @@ export class ByteArrayOutputStream {
 					"java.lang.VirtualMachineError",
 					"java.lang.Error",
 					"java.lang.Object",
-					"java.lang.OutOfMemoryError"
-				]
+					"java.lang.OutOfMemoryError",
+				],
 			});
-		return minCapacity > ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$() ? 2147483647 : ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$();
+		return minCapacity > ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$()
+			? 2147483647
+			: ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$();
 	}
 
 	public write$int(b: number) {
@@ -147,8 +150,8 @@ export class ByteArrayOutputStream {
 					"java.lang.IndexOutOfBoundsException",
 					"java.lang.Object",
 					"java.lang.RuntimeException",
-					"java.lang.Exception"
-				]
+					"java.lang.Exception",
+				],
 			});
 		}
 		this.ensureCapacity(this.count + len);
@@ -200,4 +203,3 @@ export class ByteArrayOutputStream {
 	 */
 	public close() {}
 }
-

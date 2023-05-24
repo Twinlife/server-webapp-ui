@@ -8,12 +8,11 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { ByteArrayInputStream } from "./ByteArrayInputStream";
-import { UUID } from "./UUID";
 import { Decoder } from "./Decoder";
 import { SerializerException } from "./SerializerException";
+import { UUID } from "./UUID";
 
 export class BinaryCompactDecoder implements Decoder {
-
 	static LOG_TAG: string = "BinaryDecoder";
 
 	static DEBUG: boolean = false;
@@ -201,12 +200,10 @@ export class BinaryCompactDecoder implements Decoder {
 	}
 
 	public readEnum(): number {
-
 		return this.readInt();
 	}
 
 	public readString(): string {
-
 		try {
 			let length: number = this.readInt();
 			if (length === 0) {
@@ -221,7 +218,6 @@ export class BinaryCompactDecoder implements Decoder {
 	}
 
 	public readOptionalString(): string | null {
-
 		if (this.readInt() === 1) {
 			return this.readString();
 		} else {
@@ -242,7 +238,6 @@ export class BinaryCompactDecoder implements Decoder {
 	}
 
 	public readOptionalBytes(buffer: ArrayBuffer): ArrayBuffer | null {
-
 		if (this.readInt() === 1) {
 			return this.readBytes(buffer);
 		} else {
@@ -251,12 +246,10 @@ export class BinaryCompactDecoder implements Decoder {
 	}
 
 	public readFixed(bytes: ArrayBuffer, start: number, length: number): void {
-
 		this.doReadBytes(bytes, start, length);
 	}
 
 	private doReadBytes(bytes: ArrayBuffer, start: number, length: number): void {
-
 		while (true) {
 			let n: number;
 			try {
@@ -278,12 +271,12 @@ export class BinaryCompactDecoder implements Decoder {
 	private readBinaryLong(): number {
 		let value: number;
 		value = this.mInputStream.read();
-		value |= (n => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 8;
-		value |= (n => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 16;
-		value |= (n => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 24;
-		value |= (n => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 32;
-		value |= (n => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 40;
-		value |= (n => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 48;
+		value |= ((n) => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 8;
+		value |= ((n) => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 16;
+		value |= ((n) => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 24;
+		value |= ((n) => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 32;
+		value |= ((n) => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 40;
+		value |= ((n) => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 48;
 		let b: number = this.mInputStream.read();
 		if (b < 0) {
 			throw new SerializerException();
@@ -291,5 +284,4 @@ export class BinaryCompactDecoder implements Decoder {
 		value |= b << 56;
 		return value;
 	}
-
 }

@@ -6,10 +6,10 @@
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import { UUID } from "../utils/UUID";
+import { BinaryPacketIQ } from "../utils/BinaryPacketIQ";
 import { Decoder } from "../utils/Decoder";
 import { Encoder } from "../utils/Encoder";
-import { BinaryPacketIQ } from "../utils/BinaryPacketIQ";
+import { UUID } from "../utils/UUID";
 
 /**
  * Participant info IQ sent to a call group member to share the participant name and picture.
@@ -46,7 +46,8 @@ export class ParticipantInfoIQ extends BinaryPacketIQ {
 	description: string | null;
 	thumbnailData: ArrayBuffer | null;
 
-	constructor(serializer: BinaryPacketIQ.BinaryPacketIQSerializer,
+	constructor(
+		serializer: BinaryPacketIQ.BinaryPacketIQSerializer,
 		requestId: number,
 		memberId: string,
 		name: string,
@@ -82,7 +83,14 @@ export namespace ParticipantInfoIQ {
 			let name: string = decoder.readString();
 			let description: string | null = decoder.readOptionalString();
 			let thumbnailData: ArrayBuffer | null = decoder.readOptionalBytes(null);
-			return new ParticipantInfoIQ(this, serviceRequestIQ.getRequestId(), memberId, name, description, thumbnailData);
+			return new ParticipantInfoIQ(
+				this,
+				serviceRequestIQ.getRequestId(),
+				memberId,
+				name,
+				description,
+				thumbnailData
+			);
 		}
 	}
 }

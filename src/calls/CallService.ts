@@ -9,16 +9,24 @@
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
  */
 
+import {
+	MemberInfo,
+	MemberStatus,
+	Offer,
+	PeerCallService,
+	PeerCallServiceObserver,
+	TerminateReason,
+	TransportCandidate,
+} from "../services/PeerCallService";
 import { UUID } from "../utils/UUID";
+import { Version } from "../utils/Version";
 import { CallConnection } from "./CallConnection";
+import { CallObserver } from "./CallObserver";
 import { CallParticipant } from "./CallParticipant";
 import { CallParticipantObserver } from "./CallParticipantObserver";
 import { CallState } from "./CallState";
 import { CallStatus } from "./CallStatus";
-import { CallObserver } from "./CallObserver";
-import { PeerCallService, PeerCallServiceObserver, TransportCandidate, Offer, MemberInfo, MemberStatus, TerminateReason } from '../services/PeerCallService';
 import { ConnectionOperation } from "./ConnectionOperation";
-import { Version } from "../utils/Version";
 
 // type Timer = ReturnType<typeof setTimeout>;
 
@@ -50,7 +58,7 @@ export class CallService implements PeerCallServiceObserver {
 	static readonly CALL_TIMEOUT: number = 30;
 	static readonly FINISH_TIMEOUT: number = 3;
 
-	private readonly mPeerCallService : PeerCallService;
+	private readonly mPeerCallService: PeerCallService;
 	private readonly mObserver: CallObserver;
 	private mParticipantObserver: CallParticipantObserver | null = null;
 	private mAudioMute: boolean = false;
@@ -69,7 +77,11 @@ export class CallService implements PeerCallServiceObserver {
 	 * @param peerCallService  the peer call service for the signaling.
 	 * @param observer the call observer.
 	 */
-	constructor(peerCallService: PeerCallService, observer: CallObserver, participantObserver: CallParticipantObserver) {
+	constructor(
+		peerCallService: PeerCallService,
+		observer: CallObserver,
+		participantObserver: CallParticipantObserver
+	) {
 		this.mPeerCallService = peerCallService;
 		this.mObserver = observer;
 		this.mParticipantObserver = participantObserver;
@@ -77,13 +89,11 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	setIdentity(identityName: string, identityImage: ArrayBuffer): void {
-
 		this.mIdentityName = identityName;
 		this.mIdentityImage = identityImage;
 	}
 
 	actionOutgoingCall(twincodeId: string, video: boolean, contactName: string, contactURL: string): void {
-
 		let call: CallState | null = this.mActiveCall;
 		if (call && call.getStatus() !== CallStatus.TERMINATED) {
 			return;
@@ -91,7 +101,8 @@ export class CallService implements PeerCallServiceObserver {
 
 		call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage);
 		let callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
-		let callConnection: CallConnection = new CallConnection(this,
+		let callConnection: CallConnection = new CallConnection(
+			this,
 			this.mPeerCallService,
 			call,
 			null,
@@ -104,10 +115,10 @@ export class CallService implements PeerCallServiceObserver {
 		call.addPeerConnection(callConnection);
 		callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
 		this.mPeerTo.set(twincodeId, callConnection);
+		this.mObserver.onUpdateCallStatus(callStatus);
 	}
 
 	actionTerminateCall(terminateReason: TerminateReason): void {
-
 		let call: CallState | null = this.mActiveCall;
 		if (!call) {
 			return;
@@ -123,7 +134,6 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	actionAudioMute(audioMute: boolean): void {
-
 		let call: CallState | null = this.mActiveCall;
 		if (!call) {
 			return;
@@ -137,7 +147,6 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	actionCameraMute(cameraMute: boolean): void {
-
 		let call: CallState | null = this.mActiveCall;
 		if (!call) {
 			return;
@@ -147,16 +156,33 @@ export class CallService implements PeerCallServiceObserver {
 		let connections: Array<CallConnection> = call.getConnections();
 		for (let connection of connections) {
 			if (!this.mIsCameraMute && !connection.isVideo()) {
-				// this.setupVideo(connection.getMainParticipant());
-				// connection.initSources(CallStatus_$WRAPPER.toVideo(connection.getStatus()));
+				console.log("NEED ACTIVATE CAMERA");
+				const track = this.mLocalStream!.getVideoTracks()[0];
+				if (track) {
+					connection.addVideoTrack(track);
+				}
+			} else {
+				connection.setVideoDirection(this.mIsCameraMute ? "recvonly" : "sendrecv");
 			}
-			connection.setVideoDirection(this.mIsCameraMute ? "recvonly" : "sendrecv");
 		}
 	}
 
-	setMediaStream(mediaStream: MediaStream): void {
-
+	setMediaStream(mediaStream: MediaStream): MediaStream {
 		this.mLocalStream = mediaStream;
+		return this.mLocalStream;
+	}
+
+	addVideoTrack(videoTrack: MediaStreamTrack) {
+		if (this.mLocalStream) {
+			this.mLocalStream.addTrack(videoTrack);
+		}
+	}
+
+	hasVideoTrack(): boolean {
+		if (this.mLocalStream) {
+			return this.mLocalStream.getVideoTracks().length > 0;
+		}
+		return false;
 	}
 
 	/**
@@ -164,10 +190,9 @@ export class CallService implements PeerCallServiceObserver {
 	 *
 	 * @return the list of participants are returned.
 	 */
-	getParticipants() : Array<CallParticipant> {
-
-		let participants : Array<CallParticipant> = [];
-		let connections : Array<CallConnection> = this.getConnections();
+	getParticipants(): Array<CallParticipant> {
+		let participants: Array<CallParticipant> = [];
+		let connections: Array<CallConnection> = this.getConnections();
 		for (let callConnection of connections) {
 			callConnection.getParticipants(participants);
 		}
@@ -181,7 +206,7 @@ export class CallService implements PeerCallServiceObserver {
 	/**
 	 * IQs received from the proxy server.
 	 */
-    onIncomingSessionInitiate(sessionId: string, peerId: string, sdp: string, offer: Offer) : void {
+	onIncomingSessionInitiate(sessionId: string, peerId: string, sdp: string, offer: Offer): void {
 		console.log("session-initiate received " + sessionId);
 
 		let call: CallState | null = this.mActiveCall;
@@ -207,25 +232,28 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		let status: CallStatus = offer.video ? CallStatus.ACCEPTED_INCOMING_VIDEO_CALL : CallStatus.ACCEPTED_INCOMING_CALL;
-		let callConnection : CallConnection = new CallConnection(this,
-				this.mPeerCallService,
-				call,
-				sessionId,
-				status,
-				this.mLocalStream,
-				peerId,
-				sdp
-			);
+		let status: CallStatus = offer.video
+			? CallStatus.ACCEPTED_INCOMING_VIDEO_CALL
+			: CallStatus.ACCEPTED_INCOMING_CALL;
+		let callConnection: CallConnection = new CallConnection(
+			this,
+			this.mPeerCallService,
+			call,
+			sessionId,
+			status,
+			this.mLocalStream,
+			peerId,
+			sdp
+		);
 		callConnection.setPeerVersion(new Version(offer.version));
 		this.mPeers.set(sessionId, callConnection);
 		call.addPeerConnection(callConnection);
 	}
 
-	onSessionInitiate(to: string, sessionId: string) : void {
-        console.log("session-initiate created " + sessionId);
+	onSessionInitiate(to: string, sessionId: string): void {
+		console.log("session-initiate created " + sessionId);
 
-		let callConnection : CallConnection | undefined = this.mPeerTo.get(to);
+		let callConnection: CallConnection | undefined = this.mPeerTo.get(to);
 		if (callConnection) {
 			callConnection.onSessionInitiate(sessionId);
 			this.mPeers.set(sessionId, callConnection);
@@ -233,46 +261,44 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-    onSessionAccept(sessionId: string, sdp: string, offer: Offer, offerToReceive: Offer) : void {
-        console.log("P2P " + sessionId + " is accepted for " + offer);
+	onSessionAccept(sessionId: string, sdp: string, offer: Offer, offerToReceive: Offer): void {
+		console.log("P2P " + sessionId + " is accepted for " + offer);
 
-		const callConnection : CallConnection | undefined = this.mPeers.get(sessionId);
+		const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
 		if (!callConnection || !callConnection.onSessionAccept(sdp, offer, offerToReceive)) {
 			this.mPeerCallService.sessionTerminate(sessionId, "gone");
 		}
-    }
+	}
 
-    onSessionUpdate(sessionId: string, updateType: string, sdp: string) : void {
-        console.log("P2P " + sessionId + "update " + updateType);
+	onSessionUpdate(sessionId: string, updateType: string, sdp: string): void {
+		console.log("P2P " + sessionId + "update " + updateType);
 
-		const callConnection : CallConnection | undefined = this.mPeers.get(sessionId);
+		const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
 		if (!callConnection || !callConnection.onSessionUpdate(updateType, sdp)) {
-            this.mPeerCallService.sessionTerminate(sessionId, "gone");
+			this.mPeerCallService.sessionTerminate(sessionId, "gone");
 		}
-    }
+	}
 
-    onTransportInfo(sessionId: string, candidates: TransportCandidate[]) : void {
-        // console.log("transport-info " + sessionId + " candidates: " + candidates);
+	onTransportInfo(sessionId: string, candidates: TransportCandidate[]): void {
+		// console.log("transport-info " + sessionId + " candidates: " + candidates);
 
-		const callConnection : CallConnection | undefined = this.mPeers.get(sessionId);
+		const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
 		if (!callConnection || !callConnection?.onTransportInfo(candidates)) {
-            this.mPeerCallService.sessionTerminate(sessionId, "gone");
-            return;
-        }
-    }
+			this.mPeerCallService.sessionTerminate(sessionId, "gone");
+			return;
+		}
+	}
 
-    onSessionTerminate(sessionId: string, reason: TerminateReason): void {
+	onSessionTerminate(sessionId: string, reason: TerminateReason): void {
+		console.log("session " + sessionId + " terminated with " + reason);
 
-        console.log("session " + sessionId + " terminated with " + reason);
-
-		const callConnection : CallConnection | undefined = this.mPeers.get(sessionId);
+		const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
 		if (callConnection) {
 			this.onTerminatePeerConnection(callConnection, reason);
-        }
-    }
+		}
+	}
 
 	onJoinCallRoom(callRoomId: string, memberId: string, members: MemberInfo[]): void {
-
 		if (!this.mActiveCall) {
 			return;
 		}
@@ -290,7 +316,8 @@ export class CallService implements PeerCallServiceObserver {
 				continue;
 			}
 			let peerId: string = member.memberId;
-			let callConnection: CallConnection = new CallConnection(this,
+			let callConnection: CallConnection = new CallConnection(
+				this,
 				this.mPeerCallService,
 				this.mActiveCall,
 				null,
@@ -305,20 +332,16 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onMemberJoin(sessionId: string | null, memberId: string, status: MemberStatus): void {
-
 		console.log("Member join sessionId: " + sessionId + " memberId: " + memberId + " status: " + status);
 	}
 
 	onChangeConnectionState(callConnection: CallConnection, state: RTCIceConnectionState): void {
-
 		let call: CallState = callConnection.getCall();
 		let status: CallState.UpdateState = call.updateConnectionState(callConnection, state);
 		if (status === CallState.UpdateState.FIRST_CONNECTION) {
 			// this.stopRingtone();
-
 		} else if (status === CallState.UpdateState.FIRST_GROUP) {
 			// this.stopRingtone();
-
 		} else if (status === CallState.UpdateState.NEW_CONNECTION && callConnection.getCallMemberId() == null) {
 			// this.stopRingtone();
 		}
@@ -327,7 +350,6 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onTerminatePeerConnection(callConnection: CallConnection, terminateReason: TerminateReason): void {
-
 		let call: CallState = callConnection.getCall();
 		let sessionId: string | null = callConnection.getPeerConnectionId();
 		if (sessionId) {
@@ -336,6 +358,13 @@ export class CallService implements PeerCallServiceObserver {
 		}
 		if (!call.remove(callConnection)) {
 			return;
+		}
+
+		if (this.mLocalStream) {
+			for (const track of this.mLocalStream.getTracks()) {
+				track.stop();
+				this.mLocalStream.removeTrack(track);
+			}
 		}
 
 		this.mObserver.onTerminateCall(terminateReason);
@@ -349,12 +378,10 @@ export class CallService implements PeerCallServiceObserver {
 	 * @private
 	 */
 	getConnections(): Array<CallConnection> {
-
 		return this.mPeers.values() as any;
 	}
 
 	callTimeout(callConnection: CallConnection): void {
-
 		callConnection.terminate("expired");
 		this.onTerminatePeerConnection(callConnection, "expired");
 	}

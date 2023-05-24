@@ -7,12 +7,12 @@
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import { UUID } from "./UUID";
+import { BinaryCompactEncoder } from "./BinaryCompactEncoder";
+import { ByteArrayOutputStream } from "./ByteArrayOutputStream";
 import { Decoder } from "./Decoder";
 import { Encoder } from "./Encoder";
 import { Serializer } from "./Serializer";
-import { BinaryCompactEncoder } from "./BinaryCompactEncoder";
-import { ByteArrayOutputStream } from "./ByteArrayOutputStream";
+import { UUID } from "./UUID";
 
 /**
  * Base class of binary packets.
@@ -23,7 +23,10 @@ import { ByteArrayOutputStream } from "./ByteArrayOutputStream";
 export class BinaryPacketIQ {
 	public static SERIALIZER_BUFFER_DEFAULT_SIZE: number = 1024;
 
-	public static createDefaultSerializer(schemaId: UUID, schemaVersion: number): BinaryPacketIQ.BinaryPacketIQSerializer {
+	public static createDefaultSerializer(
+		schemaId: UUID,
+		schemaVersion: number
+	): BinaryPacketIQ.BinaryPacketIQSerializer {
 		return new BinaryPacketIQ.BinaryPacketIQSerializer(schemaId, schemaVersion, BinaryPacketIQ);
 	}
 
@@ -48,7 +51,7 @@ export class BinaryPacketIQ {
 		let binaryEncoder: BinaryCompactEncoder = new BinaryCompactEncoder(outputStream);
 		this.mSerializer.serialize(binaryEncoder, this);
 		return outputStream.toByteArray();
-}
+	}
 
 	public toString(): string {
 		return "BinaryPacketIQ[" + this.mRequestId + "]";

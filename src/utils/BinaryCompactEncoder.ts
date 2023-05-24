@@ -8,13 +8,12 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { ByteArrayOutputStream } from "./ByteArrayOutputStream";
-import { UUID } from "./UUID";
-import { SerializerException } from "./SerializerException";
-import { Utf8 } from "./Utf8";
 import { Encoder } from "./Encoder";
+import { SerializerException } from "./SerializerException";
+import { UUID } from "./UUID";
+import { Utf8 } from "./Utf8";
 
 export class BinaryCompactEncoder implements Encoder {
-
 	static DEBUG: boolean = false;
 
 	mOutputStream: ByteArrayOutputStream;
@@ -106,7 +105,6 @@ export class BinaryCompactEncoder implements Encoder {
 			} else {
 				this.writeZero();
 			}
-
 		} catch (exception) {
 			throw new SerializerException(exception);
 		}
@@ -267,7 +265,13 @@ export class BinaryCompactEncoder implements Encoder {
 					dstBuffer[position++] = (byte | 0x80) & 0xff;
 					byte >>= 7;
 					byte |= srcBuffer[4] << 3;
-					if ((byte & ~0x7f) !== 0 || srcBuffer[3] !== 0 || srcBuffer[2] !== 0 || srcBuffer[1] !== 0 || srcBuffer[0] !== 0) {
+					if (
+						(byte & ~0x7f) !== 0 ||
+						srcBuffer[3] !== 0 ||
+						srcBuffer[2] !== 0 ||
+						srcBuffer[1] !== 0 ||
+						srcBuffer[0] !== 0
+					) {
 						dstBuffer[position++] = (byte | 0x80) & 0xff;
 						byte >>= 7;
 						byte |= srcBuffer[3] << 4;
@@ -302,4 +306,3 @@ export class BinaryCompactEncoder implements Encoder {
 		return position;
 	}
 }
-

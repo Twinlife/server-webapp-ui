@@ -7,9 +7,9 @@
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import { UUID } from "./UUID";
 import { Decoder } from "./Decoder";
 import { Encoder } from "./Encoder";
+import { UUID } from "./UUID";
 
 export abstract class Serializer {
 	public schemaId: UUID;

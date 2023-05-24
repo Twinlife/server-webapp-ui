@@ -8,6 +8,7 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
  */
+import { PeerCallService } from "../services/PeerCallService";
 import { UUID } from "../utils/UUID";
 import { CallConnection } from "./CallConnection";
 import { CallParticipant } from "./CallParticipant";
@@ -15,7 +16,6 @@ import { CallParticipantEvent } from "./CallParticipantEvent";
 import { CallParticipantObserver } from "./CallParticipantObserver";
 import { CallService } from "./CallService";
 import { CallStatus, CallStatusOps } from "./CallStatus";
-import { PeerCallService } from "../services/PeerCallService";
 
 /**
  * The call state associated with an Audio or Video call:
@@ -43,7 +43,7 @@ export class CallState {
 	static DEBUG: boolean = false;
 
 	private readonly mCallService: CallService;
-	private readonly mPeerCallService : PeerCallService;
+	private readonly mPeerCallService: PeerCallService;
 	private readonly mIdentityAvatar: ArrayBuffer;
 	private readonly mIdentityName: string;
 	private mPeers: Array<CallConnection> = [];
@@ -61,7 +61,7 @@ export class CallState {
 	 *
 	 * @return {string} the identity name.
 	 */
-	 public getIdentityName(): string {
+	public getIdentityName(): string {
 		return this.mIdentityName;
 	}
 
@@ -132,7 +132,6 @@ export class CallState {
 	 * @return {*} the local video renderer or null.
 	 */
 	public getLocalRenderer(): any {
-
 		return this.mLocalRenderer;
 	}
 
@@ -142,7 +141,6 @@ export class CallState {
 	 * @return {CallParticipant[]} the current frozen list of participants.
 	 */
 	public getParticipants(): Array<CallParticipant> {
-
 		let result: Array<CallParticipant> = [];
 		for (let index0 = 0; index0 < this.mPeers.length; index0++) {
 			let connection = this.mPeers[index0];
@@ -152,7 +150,6 @@ export class CallState {
 	}
 
 	public getCurrentConnection(): CallConnection | null {
-
 		if (this.mPeers.length === 0) {
 			return null;
 		}
@@ -183,7 +180,6 @@ export class CallState {
 	 * @param {CallParticipant} participant the participant.
 	 */
 	onAddParticipant(participant: CallParticipant): void {
-
 		let observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
 		if (observer != null) {
 			observer.onAddParticipant(participant);
@@ -196,7 +192,6 @@ export class CallState {
 	 * @param {CallParticipant[]} participants the list of participants being removed.
 	 */
 	onRemoveParticipants(participants: Array<CallParticipant>): void {
-
 		let observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
 		if (observer != null) {
 			observer.onRemoveParticipants(participants);
@@ -210,7 +205,6 @@ export class CallState {
 	 * @param {CallParticipantEvent} event the event that occurred.
 	 */
 	onEventParticipant(participant: CallParticipant, event: CallParticipantEvent): void {
-
 		let observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
 		if (observer != null) {
 			observer.onEventParticipant(participant, event);
@@ -227,11 +221,15 @@ export class CallState {
 	 * @return {CallConnection[]} the current frozen list of connections.
 	 */
 	getConnections(): Array<CallConnection> {
-
 		return this.mPeers.concat();
 	}
 
-	constructor(callService: CallService, peerCallService: PeerCallService, identityName: string, identityImage: ArrayBuffer) {
+	constructor(
+		callService: CallService,
+		peerCallService: PeerCallService,
+		identityName: string,
+		identityImage: ArrayBuffer
+	) {
 		this.mCallService = callService;
 		this.mPeerCallService = peerCallService;
 		this.mIdentityName = identityName;
@@ -243,7 +241,6 @@ export class CallState {
 	 * @param {*} localRenderer
 	 */
 	setLocalRenderer(localRenderer: any): void {
-
 		this.mLocalRenderer = localRenderer;
 	}
 
@@ -253,7 +250,6 @@ export class CallState {
 	 * @param {CallConnection} callConnection the peer connection to add.
 	 */
 	addPeerConnection(callConnection: CallConnection): void {
-
 		this.mPeers.push(callConnection);
 	}
 
@@ -265,7 +261,6 @@ export class CallState {
 	 * @return {CallState.UpdateState} the update state of this connection.
 	 */
 	updateConnectionState(callConnection: CallConnection, state: RTCIceConnectionState): CallState.UpdateState {
-
 		let status: CallStatus = callConnection.getStatus();
 		if (!callConnection.updateConnectionState(state)) {
 			return CallState.UpdateState.IGNORE;
@@ -296,7 +291,6 @@ export class CallState {
 	 * @return {boolean} true if the operation must be executed NOW.
 	 */
 	checkOperation(operation: number): boolean {
-
 		if ((this.mState & operation) === 0) {
 			this.mState |= operation;
 			return true;
@@ -312,12 +306,10 @@ export class CallState {
 	 * @return {boolean} true if the operation was done.
 	 */
 	isDoneOperation(operation: number): boolean {
-
 		return (this.mState & operation) !== 0;
 	}
 
 	updateCallRoom(callRoomId: string, memberId: string): void {
-
 		this.mCallRoomId = UUID.fromString(callRoomId);
 		this.mCallRoomMemberId = memberId;
 	}
@@ -329,7 +321,6 @@ export class CallState {
 	 * @return {boolean} true if the call has no peer connection.
 	 */
 	remove(callConnection: CallConnection): boolean {
-
 		let index = this.mPeers.indexOf(callConnection);
 		if (index >= 0) {
 			this.mPeers.splice(index, 1);
@@ -343,7 +334,6 @@ export class CallState {
 	 * Release all the resources used by the call participants.
 	 */
 	release(): void {
-
 		for (let callConnection of this.mPeers) {
 			callConnection.release();
 		}
@@ -356,6 +346,6 @@ export namespace CallState {
 		IGNORE,
 		FIRST_CONNECTION,
 		FIRST_GROUP,
-		NEW_CONNECTION
+		NEW_CONNECTION,
 	}
 }

@@ -1,15 +1,25 @@
-*~
+# Logs
+logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
 node_modules
-public/js
-public/bundles
-public/electron.js
-.DS_Store
 dist
-manager/**/*.js
-public/*.css
-public/*.css.map
-embedded.provisionprofile
-build/embedded.provisionprofile
-build/embedded-dev.provisionprofile
-build/all-certs.p12
+dist-ssr
+*.local
+src/config.json
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

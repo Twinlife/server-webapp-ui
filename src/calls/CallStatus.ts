@@ -53,7 +53,8 @@ export enum CallStatus {
 	IN_CALL,
 	IN_VIDEO_CALL,
 	FALLBACK,
-	TERMINATED
+	TERMINATED,
+	IDDLE,
 }
 
 /** @ignore */
@@ -125,15 +126,27 @@ export class CallStatusOps {
 	}
 
 	public static isIncoming(mode: CallStatus): boolean {
-		return mode === CallStatus.INCOMING_CALL || mode === CallStatus.INCOMING_VIDEO_CALL || mode === CallStatus.INCOMING_VIDEO_BELL;
+		return (
+			mode === CallStatus.INCOMING_CALL ||
+			mode === CallStatus.INCOMING_VIDEO_CALL ||
+			mode === CallStatus.INCOMING_VIDEO_BELL
+		);
 	}
 
 	public static isOutgoing(mode: CallStatus): boolean {
-		return mode === CallStatus.OUTGOING_CALL || mode === CallStatus.OUTGOING_VIDEO_CALL || mode === CallStatus.OUTGOING_VIDEO_BELL;
+		return (
+			mode === CallStatus.OUTGOING_CALL ||
+			mode === CallStatus.OUTGOING_VIDEO_CALL ||
+			mode === CallStatus.OUTGOING_VIDEO_BELL
+		);
 	}
 
 	public static isActive(mode: CallStatus): boolean {
 		return mode === CallStatus.IN_CALL || mode === CallStatus.IN_VIDEO_CALL;
+	}
+
+	public static isIddle(mode: CallStatus): boolean {
+		return mode === CallStatus.IDDLE;
 	}
 
 	public static isAccepted(mode: CallStatus): boolean {
@@ -169,4 +182,3 @@ export class CallStatusOps {
 		return CallStatus[mode];
 	}
 }
-

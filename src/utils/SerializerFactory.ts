@@ -6,8 +6,8 @@
  *  Contributors:
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  */
-import { UUID } from "./UUID";
 import { Serializer } from "./Serializer";
+import { UUID } from "./UUID";
 
 export interface SerializerFactory {
 	getObjectSerializer(object: any): Serializer;

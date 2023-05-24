@@ -13,20 +13,18 @@ import config from "../config.json";
 const url = config.rest_url;
 
 export type TwincodeInfo = {
-  name: string | null;
-  description: string | null;
-  avatarId: string | null;
-  audio: boolean;
-  video: boolean;
-}
+	name: string | null;
+	description: string | null;
+	avatarId: string | null;
+	audio: boolean;
+	video: boolean;
+};
 
 /**
  * Simple service to get the contact information (aka twincode attributes).
  */
 export class ContactService {
-
-  getTwincode(id: string) {
-    return axios.get<TwincodeInfo>(url + '/twincodes/' + id);
-  }
-
+	getTwincode(id: string) {
+		return axios.get<TwincodeInfo>(url + "/twincodes/" + id);
+	}
 }

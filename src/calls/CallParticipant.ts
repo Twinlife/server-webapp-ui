@@ -195,7 +195,6 @@ export class CallParticipant {
 	 * Release the remote renderer when the connexion is destroyed.
 	 */
 	release(): void {
-
 		let remoteRenderer: any = this.mRemoteRenderer;
 		if (remoteRenderer != null) {
 			this.mRemoteRenderer = null;

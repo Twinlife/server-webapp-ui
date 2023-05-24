@@ -21,5 +21,5 @@ export enum CallParticipantEvent {
 	EVENT_AUDIO_ON,
 	EVENT_AUDIO_OFF,
 	EVENT_VIDEO_ON,
-	EVENT_VIDEO_OFF
+	EVENT_VIDEO_OFF,
 }

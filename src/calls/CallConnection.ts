@@ -8,12 +8,13 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
  */
-import { UUID } from "../utils/UUID";
-import { ByteArrayInputStream } from "../utils/ByteArrayInputStream";
-import { Serializer } from "../utils/Serializer";
+import { Offer, PeerCallService, TerminateReason, TransportCandidate } from "../services/PeerCallService";
 import { BinaryCompactDecoder } from "../utils/BinaryCompactDecoder";
 import { BinaryPacketIQ } from "../utils/BinaryPacketIQ";
+import { ByteArrayInputStream } from "../utils/ByteArrayInputStream";
 import { SchemaKey } from "../utils/SchemaKey";
+import { Serializer } from "../utils/Serializer";
+import { UUID } from "../utils/UUID";
 import { Version } from "../utils/Version";
 import { CallParticipant } from "./CallParticipant";
 import { CallParticipantEvent } from "./CallParticipantEvent";
@@ -21,12 +22,11 @@ import { CallService } from "./CallService";
 import { CallState } from "./CallState";
 import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ParticipantInfoIQ } from "./ParticipantInfoIQ";
-import { PeerCallService, Offer, TransportCandidate, TerminateReason } from "../services/PeerCallService";
 
 type PacketHandler = {
-    serializer: Serializer,
-	handler: ((this: PacketHandler, callConnection: CallConnection, packet: BinaryPacketIQ) => any);
-}
+	serializer: Serializer;
+	handler: (this: PacketHandler, callConnection: CallConnection, packet: BinaryPacketIQ) => any;
+};
 
 type Timer = ReturnType<typeof setTimeout>;
 
@@ -67,8 +67,8 @@ export class CallConnection {
 		return CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER;
 	}
 
-	private readonly mCallService : CallService;
-	private readonly mPeerCallService : PeerCallService;
+	private readonly mCallService: CallService;
+	private readonly mPeerCallService: PeerCallService;
 	private readonly mTo: string;
 	private readonly mInitiator: boolean;
 	private readonly mCall: CallState;
@@ -76,14 +76,14 @@ export class CallConnection {
 	private mPeerConnection: RTCPeerConnection | null;
 	private mInDataChannel: RTCDataChannel | null;
 	private mOutDataChannel: RTCDataChannel | null;
-    private mIcePending : Array<RTCIceCandidate> | null = null;
-	private mRenegotiationNeeded : boolean = false;
+	private mIcePending: Array<RTCIceCandidate> | null = null;
+	private mRenegotiationNeeded: boolean = false;
 	private mMakingOffer: boolean = false;
 	private mRemoteAnswerPending: boolean = false;
 	private mIgnoreOffer: boolean = false;
 	private mAudioDirection: RTCRtpTransceiverDirection = "inactive";
 	private mVideoDirection: RTCRtpTransceiverDirection = "inactive";
-    private mState: number = 0;
+	private mState: number = 0;
 	private mAudioTrack: MediaStreamTrack | null = null;
 	private mVideoTrack: MediaStreamTrack | null = null;
 	private mConnectionState: RTCIceConnectionState = "closed";
@@ -212,20 +212,20 @@ export class CallConnection {
 		}
 		this.addListener({
 			serializer: CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER_$LI$(),
-			handler: (callConnection: CallConnection, iq : BinaryPacketIQ) => {
+			handler: (callConnection: CallConnection, iq: BinaryPacketIQ) => {
 				return callConnection.onParticipantInfoIQ(iq);
-			}
+			},
 		});
 		this.addListener({
 			serializer: CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER_$LI$(),
-			handler: (callConnection: CallConnection, iq : BinaryPacketIQ) => {
+			handler: (callConnection: CallConnection, iq: BinaryPacketIQ) => {
 				return callConnection.onParticipantInfoIQ(iq);
-			}
+			},
 		});
 
-		let config : RTCConfiguration = peerCallService.getConfiguration();
-        const pc : RTCPeerConnection = new RTCPeerConnection(config);
-        this.mPeerConnection = pc;
+		let config: RTCConfiguration = peerCallService.getConfiguration();
+		const pc: RTCPeerConnection = new RTCPeerConnection(config);
+		this.mPeerConnection = pc;
 
 		// Handle ICE connection state.
 		pc.oniceconnectionstatechange = (event: Event) => {
@@ -249,23 +249,28 @@ export class CallConnection {
 
 		// Handle ICE candidates and propagates to the peer.
 		pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
-            const candidate : RTCIceCandidate | null = event.candidate;
-            if (!candidate || !this.mPeerConnection || !candidate.candidate) {
-                return;
-            }
-            if (!this.mPeerConnectionId) {
-                this.mIcePending?.push(candidate);
-                return;
-            }
+			const candidate: RTCIceCandidate | null = event.candidate;
+			if (!candidate || !this.mPeerConnection || !candidate.candidate) {
+				return;
+			}
+			if (!this.mPeerConnectionId) {
+				this.mIcePending?.push(candidate);
+				return;
+			}
 
-            if (candidate.candidate && candidate.sdpMid != null && candidate.sdpMLineIndex != null) {
-                this.mPeerCallService.transportInfo(this.mPeerConnectionId, candidate.candidate, candidate.sdpMid, candidate.sdpMLineIndex);
-            }
-        };
+			if (candidate.candidate && candidate.sdpMid != null && candidate.sdpMLineIndex != null) {
+				this.mPeerCallService.transportInfo(
+					this.mPeerConnectionId,
+					candidate.candidate,
+					candidate.sdpMid,
+					candidate.sdpMLineIndex
+				);
+			}
+		};
 
 		pc.onicecandidateerror = (event: Event) => {
-            console.log("ice candidate error: " + event);
-        };
+			console.log("ice candidate error: " + event);
+		};
 
 		// Handle signaling state errors.
 		pc.onsignalingstatechange = (event: Event) => {
@@ -279,26 +284,29 @@ export class CallConnection {
 
 		// Handle WebRTC renegotiation to send a new offer.
 		pc.onnegotiationneeded = (event: Event) => {
-            console.log("on negotiation needed");
-            if (!this.mRenegotiationNeeded || !this.mPeerConnection) {
-                return;
-            }
-            this.mRenegotiationNeeded = false;
-            this.mMakingOffer = true;
-            this.mPeerConnection.setLocalDescription().then(() => {
-                this.mMakingOffer = false;
-                if (this.mPeerConnection && this.mPeerConnectionId) {
-                    let description : RTCSessionDescription | null = this.mPeerConnection.localDescription;
-                    if (description) {
-                        this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "offer");
-                    }
-                }
-            }).catch();
-        };
+			console.log("on negotiation needed");
+			if (!this.mRenegotiationNeeded || !this.mPeerConnection) {
+				return;
+			}
+			this.mRenegotiationNeeded = false;
+			this.mMakingOffer = true;
+			this.mPeerConnection
+				.setLocalDescription()
+				.then(() => {
+					this.mMakingOffer = false;
+					if (this.mPeerConnection && this.mPeerConnectionId) {
+						let description: RTCSessionDescription | null = this.mPeerConnection.localDescription;
+						if (description) {
+							this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "offer");
+						}
+					}
+				})
+				.catch();
+		};
 
 		// Handle the audio/video track.
-		pc.ontrack = (event : RTCTrackEvent) => {
-            console.log("Received on track event");
+		pc.ontrack = (event: RTCTrackEvent) => {
+			console.log("Received on track event");
 
 			for (let stream of event.streams) {
 				stream.onremovetrack = (ev: MediaStreamTrackEvent) => {
@@ -308,18 +316,18 @@ export class CallConnection {
 				};
 			}
 			this.addRemoteTrack(event.track, event.streams[0]);
-        };
+		};
 
 		// Setup the input data channel to handle incoming data messages.
 		this.mInDataChannel = null;
-		pc.ondatachannel = (event: RTCDataChannelEvent) : void => {
-			let channel : RTCDataChannel = event.channel;
-			channel.onopen = (event : Event) : any => {
-				let label : string = channel.label;
+		pc.ondatachannel = (event: RTCDataChannelEvent): void => {
+			let channel: RTCDataChannel = event.channel;
+			channel.onopen = (event: Event): any => {
+				let label: string = channel.label;
 
 				console.log("Input data channel " + label + " is opened");
-			}
-			channel.onmessage = (event: MessageEvent<ArrayBuffer>) : any => {
+			};
+			channel.onmessage = (event: MessageEvent<ArrayBuffer>): any => {
 				let schemaId: UUID | null = null;
 				let schemaVersion: number = 0;
 				console.log("Received a data channel message");
@@ -340,11 +348,11 @@ export class CallConnection {
 					console.log("Exception raised when handling data channel message");
 				}
 			};
-		}
+		};
 
 		// Setup the output data channel.
 		this.mOutDataChannel = pc.createDataChannel("data");
-		this.mOutDataChannel.onopen = (event: Event) : any => {
+		this.mOutDataChannel.onopen = (event: Event): any => {
 			console.log("Output data channel is now opened");
 			if (this.mOutDataChannel && this.mCall) {
 				this.sendParticipantInfoIQ();
@@ -352,16 +360,14 @@ export class CallConnection {
 		};
 
 		if (mediaStream) {
-			mediaStream.getTracks().forEach(track => {
+			mediaStream.getTracks().forEach((track) => {
 				console.log("Found track " + track.id);
 				if (track.kind === "audio") {
 					this.mAudioTrack = track;
 					pc.addTrack(track, mediaStream);
-
 				} else if (track.kind === "video") {
 					this.mVideoTrack = track;
-					pc.addTrack(track, mediaStream)
-
+					pc.addTrack(track, mediaStream);
 				}
 			});
 		}
@@ -396,33 +402,34 @@ export class CallConnection {
 			this.mVideoDirection = "sendrecv";
 		}
 
-		const offerOptions : RTCOfferOptions = {
-            offerToReceiveAudio: true,
-            offerToReceiveVideo: true
-        };
-        const offer : Offer = {
+		const offerOptions: RTCOfferOptions = {
+			offerToReceiveAudio: true,
+			offerToReceiveVideo: true,
+		};
+		const offer: Offer = {
 			audio: true,
 			video: this.mVideoSourceOn,
 			data: true,
 			group: false,
-			version: "1.0.0"
+			version: "1.0.0",
 		};
 		// this.mVideoSourceOn ? "video" : "audio";
 		if (sdp) {
 			this.mMakingOffer = false;
-			this.mPeerConnection.setRemoteDescription({
-				sdp: sdp,
-				type: "offer"
-		   }).then(() => {
-			   console.log("Set remote is done");
-			   this.createAnswer(offer);
-   
-		   }).catch((error : any) => {
-			   console.log("Set remote failed: " + error);
-   
-		   });
+			this.mPeerConnection
+				.setRemoteDescription({
+					sdp: sdp,
+					type: "offer",
+				})
+				.then(() => {
+					console.log("Set remote is done");
+					this.createAnswer(offer);
+				})
+				.catch((error: any) => {
+					console.log("Set remote failed: " + error);
+				});
 
-		   /* if (this.mTimer) {
+			/* if (this.mTimer) {
 			   clearTimeout(this.mTimer);
 		   }
 		   this.mTimer = setTimeout(() => {
@@ -430,68 +437,86 @@ export class CallConnection {
 		   }, CallConnection.CONNECT_TIMEOUT);*/
 		} else {
 			this.mMakingOffer = true;
-			pc.createOffer(offerOptions).then((description: RTCSessionDescriptionInit) => {
-				console.log("SDP " + description.sdp);
-				pc.setLocalDescription(description).then(() => {
-					this.mMakingOffer = false;
-					if (this.mTo && description.sdp) {
-						if (description.type === "offer" || !this.mPeerConnectionId) {
-							console.log("sending session-initiate with " + offer);
-							this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
-						} else {
-							console.log("sending session-accept with " + offer);
-							this.mPeerCallService.sessionAccept(this.mPeerConnectionId, this.mTo, description.sdp, offer);
-						}
-					}
-				}).catch((reason: any) => {
-					console.log("setLocalDescription failed: " + reason);
+			pc.createOffer(offerOptions)
+				.then((description: RTCSessionDescriptionInit) => {
+					console.log("SDP " + description.sdp);
+					pc.setLocalDescription(description)
+						.then(() => {
+							this.mMakingOffer = false;
+							if (this.mTo && description.sdp) {
+								if (description.type === "offer" || !this.mPeerConnectionId) {
+									console.log("sending session-initiate with " + offer);
+									this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
+								} else {
+									console.log("sending session-accept with " + offer);
+									this.mPeerCallService.sessionAccept(
+										this.mPeerConnectionId,
+										this.mTo,
+										description.sdp,
+										offer
+									);
+								}
+							}
+						})
+						.catch((reason: any) => {
+							console.log("setLocalDescription failed: " + reason);
+						});
+					console.log("setLocalDescription is done");
+				})
+				.catch((reason: any) => {
+					console.error("createOffer failed: " + reason);
 				});
-				console.log("setLocalDescription is done");
-			}).catch((reason: any) => {
-				console.error("createOffer failed: " + reason);
-			});
 		}
 	}
 
-	onSessionInitiate(sessionId: string) : void {
+	addVideoTrack(track: MediaStreamTrack) {
+		this.mVideo = true;
+		this.mVideoTrack = track;
+		this.mPeerConnection?.addTrack(track);
+	}
 
-        console.log("session-initiate created " + sessionId);
-        this.mPeerConnectionId = sessionId;
+	onSessionInitiate(sessionId: string): void {
+		console.log("session-initiate created " + sessionId);
+		this.mPeerConnectionId = sessionId;
 		this.mParticipants.set(sessionId, this.mMainParticipant);
 		console.log("Add new participant");
 		this.mCall.onAddParticipant(this.mMainParticipant);
-        if (this.mIcePending && this.mIcePending.length > 0) {
-
+		if (this.mIcePending && this.mIcePending.length > 0) {
 			console.log("Flush " + this.mIcePending.length + " candidates");
-            for (var candidate of this.mIcePending) {
-                if (candidate.candidate && candidate.sdpMid != null && candidate.sdpMLineIndex != null) {
-                    this.mPeerCallService.transportInfo(sessionId, candidate.candidate, candidate.sdpMid, candidate.sdpMLineIndex);
-                }
-            }
+			for (var candidate of this.mIcePending) {
+				if (candidate.candidate && candidate.sdpMid != null && candidate.sdpMLineIndex != null) {
+					this.mPeerCallService.transportInfo(
+						sessionId,
+						candidate.candidate,
+						candidate.sdpMid,
+						candidate.sdpMLineIndex
+					);
+				}
+			}
 			console.log("Flush candidates ok");
-        }
-        this.mIcePending = null;
-    }
+		}
+		this.mIcePending = null;
+	}
 
-	onSessionAccept(sdp: string, offer: Offer, offerToReceive: Offer) : boolean {
-
+	onSessionAccept(sdp: string, offer: Offer, offerToReceive: Offer): boolean {
 		if (!this.mPeerConnection) {
 			if (this.mPeerConnectionId) {
 			}
-            return false;
-        }
+			return false;
+		}
 		this.setPeerVersion(new Version(offer.version));
 
-        this.mPeerConnection.setRemoteDescription({
-             sdp: sdp,
-             type: "answer"
-        }).then(() => {
-            console.log("Set remote is done");
-
-        }).catch((error : any) => {
-            console.log("Set remote failed: " + error);
-
-        });
+		this.mPeerConnection
+			.setRemoteDescription({
+				sdp: sdp,
+				type: "answer",
+			})
+			.then(() => {
+				console.log("Set remote is done");
+			})
+			.catch((error: any) => {
+				console.log("Set remote failed: " + error);
+			});
 		if (this.mTimer) {
 			clearTimeout(this.mTimer);
 		}
@@ -499,15 +524,14 @@ export class CallConnection {
 			this.mCallService.callTimeout(this);
 		}, CallConnection.CONNECT_TIMEOUT);
 		return true;
-    }
+	}
 
-	onSessionUpdate(updateType: string, sdp: string) : boolean {
+	onSessionUpdate(updateType: string, sdp: string): boolean {
+		if (!this.mPeerConnection) {
+			return false;
+		}
 
-        if (!this.mPeerConnection) {
-            return false;
-        }
-
-		const isOffer: boolean = (updateType === "offer");
+		const isOffer: boolean = updateType === "offer";
 		const state: RTCSignalingState = this.mPeerConnection.signalingState;
 		const readyForOffer: boolean = !this.mMakingOffer && (state === "stable" || this.mRemoteAnswerPending);
 		const offerCollision: boolean = isOffer && !readyForOffer;
@@ -516,21 +540,23 @@ export class CallConnection {
 			return true;
 		}
 
-		const type : RTCSdpType = isOffer ? "offer" : "answer";
+		const type: RTCSdpType = isOffer ? "offer" : "answer";
 		this.mRemoteAnswerPending = !isOffer;
-        this.mPeerConnection.setRemoteDescription({
-            sdp: sdp,
-            type: type
-        }).then(() => {
-			this.mRemoteAnswerPending = false;
-			if (isOffer) {
-				this.createAnswer(null);
-			}
-		});
+		this.mPeerConnection
+			.setRemoteDescription({
+				sdp: sdp,
+				type: type,
+			})
+			.then(() => {
+				this.mRemoteAnswerPending = false;
+				if (isOffer) {
+					this.createAnswer(null);
+				}
+			});
 		return true;
-    }
+	}
 
-	createAnswer(offer: Offer | null) : void {
+	createAnswer(offer: Offer | null): void {
 		const pc: RTCPeerConnection | null = this.mPeerConnection;
 
 		if (!pc) {
@@ -538,56 +564,66 @@ export class CallConnection {
 		}
 
 		this.mMakingOffer = false;
-		pc.createAnswer().then((description: RTCSessionDescriptionInit) => {
-			pc.setLocalDescription(description).then(() => {
-				if (this.mTo && description.sdp && this.mPeerConnectionId) {
-					if (offer) {
-						this.mPeerCallService.sessionAccept(this.mPeerConnectionId, this.mTo, description.sdp, offer);
-					} else {
-						this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "answer");
-					}
-				}
-			}).catch ((reason: any) => {
-				console.error("setLocalDescription failed: " + reason);
+		pc.createAnswer()
+			.then((description: RTCSessionDescriptionInit) => {
+				pc.setLocalDescription(description)
+					.then(() => {
+						if (this.mTo && description.sdp && this.mPeerConnectionId) {
+							if (offer) {
+								this.mPeerCallService.sessionAccept(
+									this.mPeerConnectionId,
+									this.mTo,
+									description.sdp,
+									offer
+								);
+							} else {
+								this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "answer");
+							}
+						}
+					})
+					.catch((reason: any) => {
+						console.error("setLocalDescription failed: " + reason);
+					});
+			})
+			.catch((reason: any) => {
+				console.error("createAnswer failed: " + reason);
 			});
-		}).catch((reason: any) => {
-			console.error("createAnswer failed: " + reason);
-		});
 	}
 
-	onTransportInfo(candidates: TransportCandidate[]) : boolean {
+	onTransportInfo(candidates: TransportCandidate[]): boolean {
+		if (!this.mPeerConnection) {
+			return false;
+		}
 
-        if (!this.mPeerConnection) {
-            return false;
-        }
+		for (var candidate of candidates) {
+			if (!candidate.removed) {
+				let startPos: number = candidate.candidate.indexOf(" ufrag ") + 7;
+				let endPos: number = candidate.candidate.indexOf(" ", startPos);
+				let ufrag: string = candidate.candidate.substring(startPos, endPos);
+				let c: RTCIceCandidateInit = {
+					candidate: candidate.candidate,
+					sdpMid: candidate.sdpMid,
+					sdpMLineIndex: candidate.sdpMLineIndex,
+					usernameFragment: ufrag,
+				};
 
-        for (var candidate of candidates) {
-            if (!candidate.removed) {
-                let startPos : number = candidate.candidate.indexOf(" ufrag ") + 7;
-                let endPos : number = candidate.candidate.indexOf(" ", startPos);
-                let ufrag : string = candidate.candidate.substring(startPos, endPos);
-                let c : RTCIceCandidateInit = {
-                    candidate: candidate.candidate,
-                    sdpMid: candidate.sdpMid,
-                    sdpMLineIndex: candidate.sdpMLineIndex,
-                    usernameFragment: ufrag
-                };
-
-                let ice : RTCIceCandidate = new RTCIceCandidate(c);
-                // console.log("Adding candidate " + c.candidate + " label=" + c.sdpMid + " id=" + c.sdpMLineIndex
-                // + " ufrag=" + ice.usernameFragment);
-                this.mPeerConnection.addIceCandidate(ice).then(() => {
-                    console.log("Add ice candidate ok " + JSON.stringify(ice.toJSON()));
-                }, err => {
-                    console.log("Add ice candidate error: " + err);
-                }
-                );
-            }
-        }
+				let ice: RTCIceCandidate = new RTCIceCandidate(c);
+				// console.log("Adding candidate " + c.candidate + " label=" + c.sdpMid + " id=" + c.sdpMLineIndex
+				// + " ufrag=" + ice.usernameFragment);
+				this.mPeerConnection.addIceCandidate(ice).then(
+					() => {
+						console.log("Add ice candidate ok " + JSON.stringify(ice.toJSON()));
+					},
+					(err) => {
+						console.log("Add ice candidate error: " + err);
+					}
+				);
+			}
+		}
 		return true;
-    }
+	}
 
-	private addListener(handler : PacketHandler): void {
+	private addListener(handler: PacketHandler): void {
 		let key: SchemaKey = new SchemaKey(handler.serializer.schemaId, handler.serializer.schemaVersion);
 		this.mBinaryListeners.set(key.toString(), handler);
 	}
@@ -601,7 +637,6 @@ export class CallConnection {
 	}
 
 	checkOperation(operation: number): boolean {
-
 		if ((this.mState & operation) === 0) {
 			this.mState |= operation;
 			return true;
@@ -611,7 +646,6 @@ export class CallConnection {
 	}
 
 	isDoneOperation(operation: number): boolean {
-
 		return (this.mState & operation) !== 0;
 	}
 
@@ -646,17 +680,16 @@ export class CallConnection {
 	}
 
 	setAudioDirection(direction: RTCRtpTransceiverDirection): void {
-
 		this.mAudioDirection = direction;
 		if (this.mPeerConnection != null && this.mAudioTrack) {
-		    if (this.mConnectionState === "connected" || this.mConnectionState === "completed") {
+			if (this.mConnectionState === "connected" || this.mConnectionState === "completed") {
 				console.log("Enable audio track");
 				this.mAudioTrack.enabled = direction === "sendrecv";
 			}
-			let transceivers : RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
+			let transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
 			for (let transceiver of transceivers) {
 				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "audio") {
-					let sender : RTCRtpSender = transceiver.sender;
+					let sender: RTCRtpSender = transceiver.sender;
 					this.mRenegotiationNeeded = true;
 					if (direction !== "sendrecv") {
 						sender.replaceTrack(null);
@@ -671,18 +704,25 @@ export class CallConnection {
 	}
 
 	setVideoDirection(direction: RTCRtpTransceiverDirection): void {
-
 		this.mVideoDirection = direction;
 		if (this.mPeerConnection != null && this.mVideoTrack) {
-		    if (this.mConnectionState === "connected" || this.mConnectionState === "completed") {
+			if (this.mConnectionState === "connected" || this.mConnectionState === "completed") {
 				this.mVideoTrack.enabled = direction === "sendrecv";
 				console.log("Enable video track");
 			}
-			console.log("Video track enabled=" + this.mVideoTrack.enabled + " state=" + this.mConnectionState + " dir=" + direction);
-			let transceivers : RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
+			console.log(
+				"Video track enabled=" +
+					this.mVideoTrack.enabled +
+					" state=" +
+					this.mConnectionState +
+					" dir=" +
+					direction
+			);
+			let transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
 			for (let transceiver of transceivers) {
+				console.log("TRANSIEVER", transceiver.receiver.track.kind, transceiver);
 				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
-					let sender : RTCRtpSender = transceiver.sender;
+					let sender: RTCRtpSender = transceiver.sender;
 					this.mRenegotiationNeeded = true;
 					if (direction !== "sendrecv") {
 						sender.replaceTrack(null);
@@ -697,7 +737,6 @@ export class CallConnection {
 	}
 
 	terminate(terminateReason: TerminateReason): void {
-
 		if (this.mPeerConnectionId != null) {
 			this.mPeerCallService.sessionTerminate(this.mPeerConnectionId.toString(), terminateReason);
 			this.mPeerConnectionId = null;
@@ -766,7 +805,6 @@ export class CallConnection {
 	 * @param {CallParticipant[]} into the list into which participants are returned.
 	 */
 	getParticipants(into: Array<CallParticipant>): void {
-
 		into.push(...this.mParticipants.values());
 	}
 
@@ -776,7 +814,6 @@ export class CallConnection {
 	 * @return {CallParticipant[]} the list of participants that have been released.
 	 */
 	release(): Array<CallParticipant> {
-
 		if (this.mInDataChannel) {
 			this.mInDataChannel.close();
 			this.mInDataChannel = null;
@@ -786,10 +823,10 @@ export class CallConnection {
 			this.mOutDataChannel = null;
 		}
 		if (this.mPeerConnection) {
-            this.mPeerConnection.close();
-            this.mPeerConnection = null;
+			this.mPeerConnection.close();
+			this.mPeerConnection = null;
 			this.mPeerConnectionId = null;
-        }
+		}
 
 		this.mStatus = CallStatus.TERMINATED;
 		if (this.mTimer) {
@@ -807,7 +844,6 @@ export class CallConnection {
 	}
 
 	private sendParticipantInfoIQ(): void {
-
 		let name: string = this.mCall.getIdentityName();
 		console.log("Sending participant with name=" + name);
 		if (name == null || this.mOutDataChannel == null) {
@@ -827,7 +863,6 @@ export class CallConnection {
 			);
 			let packet: ArrayBuffer = iq.serializeCompact();
 			this.mOutDataChannel.send(packet);
-
 		} catch (exception) {}
 	}
 
@@ -838,17 +873,16 @@ export class CallConnection {
 	 * @private
 	 */
 	private onParticipantInfoIQ(iq: BinaryPacketIQ): void {
-
 		if (!(iq != null && iq instanceof ParticipantInfoIQ)) {
 			return;
 		}
 
 		let participantInfoIQ: ParticipantInfoIQ = iq as ParticipantInfoIQ;
-		let imageUrl : string | null = null;
+		let imageUrl: string | null = null;
 		const buffer: ArrayBuffer | null = participantInfoIQ.thumbnailData;
 		if (buffer) {
 			const data: Uint8Array = new Uint8Array(buffer, 0, buffer.byteLength);
-			var blob = new Blob([ data ], { type: "image/jpeg" } );
+			var blob = new Blob([data], { type: "image/jpeg" });
 			var urlCreator = window.URL || window.webkitURL;
 			imageUrl = urlCreator.createObjectURL(blob);
 		}

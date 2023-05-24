@@ -102,7 +102,6 @@ export class ByteArrayInputStream {
 	count: number;
 
 	public constructor(buf: ArrayBuffer) {
-
 		this.buf = buf;
 		this.pos = 0;
 		this.count = buf.byteLength;

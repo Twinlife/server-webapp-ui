@@ -19,10 +19,10 @@ export interface CallObserver {
 	 */
 	onUpdateCallStatus(status: CallStatus): void;
 
-    /**
-     * Called when the call is terminated.
-     *
-     * @param reason the call termination reason.
-     */
-    onTerminateCall(reason: string): void;
+	/**
+	 * Called when the call is terminated.
+	 *
+	 * @param reason the call termination reason.
+	 */
+	onTerminateCall(reason: string): void;
 }
