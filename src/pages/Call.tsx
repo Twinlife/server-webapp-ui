@@ -506,7 +506,7 @@ const ParticipantsGrid = ({
 					ref={localVideoRef}
 					className={["h-full w-full object-cover", videoMute ? "hidden" : ""].join(" ")}
 					autoPlay
-					// muted={true}
+					muted={true}
 				></video>
 
 				<div
