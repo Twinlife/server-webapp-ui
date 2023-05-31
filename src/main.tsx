@@ -10,6 +10,7 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
+import "./i18n/i18n.ts";
 import "./index.css";
 import Call from "./pages/Call.tsx";
 

@@ -8,8 +8,10 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  */
 import { AxiosResponse } from "axios";
+import { TFunction } from "i18next";
 import React, { Component, RefObject, useEffect, useRef, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
+import { Trans, useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
 import appStoreBadge from "../assets/appstore-badge.svg";
 import camOffIcon from "../assets/cam-off.svg";
@@ -26,22 +28,23 @@ import { CallParticipantEvent } from "../calls/CallParticipantEvent";
 import { CallParticipantObserver } from "../calls/CallParticipantObserver";
 import { CallService } from "../calls/CallService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
-import Participant from "../components/Participant";
 import config from "../config.json";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
-import { PeerCallService } from "../services/PeerCallService";
+import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 
 interface CallProps {
 	id: string;
+	t: TFunction<"translation", undefined, "translation">;
 }
 
 interface CallState {
 	guestName: string;
+	guestNameError: boolean;
 	twincode: TwincodeInfo;
 	status: CallStatus;
 	audioMute: boolean;
 	videoMute: boolean;
-	terminateReason: string | null;
+	terminateReason: TerminateReason | null;
 	participants: Array<CallParticipant>;
 }
 
@@ -53,7 +56,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	private twincodeId: string | null = null;
 
 	state: CallState = {
-		guestName: "",
+		guestName: this.props.t("guest"),
+		guestNameError: false,
 		status: CallStatus.IDDLE,
 		twincode: {
 			name: null,
@@ -69,29 +73,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	};
 
 	componentDidMount = () => {
-		console.log("componentDidMount");
-
-		//
-
-		/* SCz: simulate call
-        let first : CallParticipant = new CallParticipant(null, 1);
-        first.setInformation("Joe", "", "");
-        first.setCameraMute(true);
-        this.state.participants.push(first);
-    
-        let second : CallParticipant = new CallParticipant(null, 2);
-        second.setInformation("Billy", "", "");
-        second.setMicrophoneMute(true);
-        this.state.participants.push(second);
-    
-        let third : CallParticipant = new CallParticipant(null, 3);
-        third.setInformation("Alice", "", "");
-        this.state.participants.push(third);
-
-        let fourth : CallParticipant = new CallParticipant(null, 4);
-        fourth.setInformation("Bilbon", "", "");
-        this.state.participants.push(fourth);*/
-
 		this.retrieveInformation();
 	};
 
@@ -111,7 +92,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 *
 	 * @param reason the call termination reason.
 	 */
-	onTerminateCall(reason: string): void {
+	onTerminateCall(reason: TerminateReason): void {
 		console.log("Call terminated " + reason);
 
 		this.setState({
@@ -246,6 +227,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		const { guestName } = this.state;
 		if (guestName === "") {
+			this.setState({ guestNameError: true });
 			console.error("Identity name needed");
 			return;
 		}
@@ -260,12 +242,45 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		ev.preventDefault();
 	};
 
-	renderParticipant(participant: CallParticipant) {
-		return <Participant key={participant.getParticipantId()} participant={participant} />;
-	}
+	getTerminateReasonMessage = (terminateReason: TerminateReason): string => {
+		let terminatedConnectionLabelID = "";
+		switch (terminateReason) {
+			case "success":
+				terminatedConnectionLabelID = "audio_call_activity_terminate";
+				break;
+			case "busy":
+				terminatedConnectionLabelID = "audio_call_activity_terminate_busy";
+				break;
+			case "cancel":
+				terminatedConnectionLabelID = "audio_call_activity_terminate_cancel";
+				break;
+			case "connectivity-error":
+				terminatedConnectionLabelID = "audio_call_activity_terminate_connectivity_error";
+				break;
+			case "decline":
+				terminatedConnectionLabelID = "audio_call_activity_terminate_decline";
+				break;
+			case "gone":
+				terminatedConnectionLabelID = "audio_call_activity_terminate_gone";
+				break;
+			case "revoked":
+				terminatedConnectionLabelID = "audio_call_activity_terminate_revoked";
+				break;
+			case "expired":
+				terminatedConnectionLabelID = "audio_call_activity_terminate_timeout";
+				break;
+			case "general-error":
+				console.error("PeerConnectionService.TerminateReason.GENERAL_ERROR");
+				return "";
+			default:
+				return "";
+		}
+		return terminatedConnectionLabelID;
+	};
 
 	render() {
-		const { guestName, twincode, videoMute, audioMute, status, terminateReason } = this.state;
+		const { guestName, guestNameError, twincode, videoMute, audioMute, status, terminateReason } = this.state;
+
 		return (
 			<div className=" flex h-full w-screen flex-col bg-black p-4">
 				<Header />
@@ -277,14 +292,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						participants={this.state.participants}
 						isIddle={CallStatusOps.isIddle(status)}
 						guestName={guestName}
-						setGuestName={(guestName: string) => this.setState({ guestName })}
+						guestNameError={guestNameError}
+						setGuestName={(guestName: string) =>
+							this.setState({ guestName, guestNameError: guestName === "" })
+						}
 					/>
 				)}
 
-				{CallStatusOps.isTerminated(status) && (
-					<div className="flex w-full flex-1 items-center justify-center text-center">
-						{"Call terminated: " + terminateReason}
-					</div>
+				{CallStatusOps.isTerminated(status) && terminateReason && (
+					<TerminateLabel
+						terminateLabel={this.getTerminateReasonMessage(terminateReason)}
+						contactName={twincode?.name}
+					/>
 				)}
 
 				{!CallStatusOps.isTerminated(status) && (
@@ -299,152 +318,37 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					/>
 				)}
 
-				{/* if (!CallStatusOps.isTerminated(status)) {
-        callAction = "";
-        callStatus = "";
-      } else {
-        const msg: string = terminateReason
-          ? "Call terminated: " + terminateReason
-          : "";
-        callAction = (
-          <div onClick={this.handleCallClick} className="call-button">
-            Call
-          </div>
-        );
-        callStatus = <div className="call-status">{msg}</div>;
-      } */}
-
-				<div className="py-6 text-center font-light">
-					Next time use <strong>twinme</strong> app !
-				</div>
+				<NextTimeLabel />
 				<StoresBadges />
 			</div>
 		);
 	}
-	// render() {
-	//   const twincode = this.state.twincode;
-	//   const status = this.state.status;
-	//   const audioMuted = this.state.audioMute;
-	//   const videoMuted = this.state.videoMute;
-	//   const terminateReason = this.state.terminateReason;
-	//   const participants = this.state.participants;
-
-	//   let invitation;
-	//   let className;
-
-	//   let defActions = (
-	//     <ul>
-	//       <li>
-	//         <div onClick={this.muteAudioClick} className="call-mute-audio"></div>
-	//       </li>
-	//       {twincode.video && (
-	//         <li>
-	//           <div
-	//             onClick={this.muteVideoClick}
-	//             className="call-mute-video"
-	//           ></div>
-	//         </li>
-	//       )}
-	//       <li>
-	//         <div
-	//           onClick={this.handleTerminateClick}
-	//           className="call-terminate"
-	//         ></div>
-	//       </li>
-	//     </ul>
-	//   );
-	//   if (CallStatusOps.isTerminated(status)) {
-	//     className = "call call-inactive call-terminated";
-	//   } else if (CallStatusOps.isActive(status)) {
-	//     className = "call call-active";
-	//   } else {
-	//     className = "call call-active";
-	//   }
-	//   if (audioMuted) {
-	//     className = className + " call-audio-muted";
-	//   }
-	//   if (videoMuted) {
-	//     className = className + " call-video-muted";
-	//   }
-
-	//   let callStatus;
-	//   if (twincode && twincode.name) {
-	//     let callAction;
-
-	//     if (!CallStatusOps.isTerminated(status)) {
-	//       callAction = "";
-	//       callStatus = "";
-	//     } else {
-	//       const msg: string = terminateReason
-	//         ? "Call terminated: " + terminateReason
-	//         : "";
-	//       callAction = (
-	//         <div onClick={this.handleCallClick} className="call-button">
-	//           Call
-	//         </div>
-	//       );
-	//       callStatus = <div className="call-status">{msg}</div>;
-	//     }
-	//     invitation = (
-	//       <div className="invitation">
-	//         <div className="invitation-contact">
-	//           <div className="invitation-image">
-	//             <img
-	//               alt="Contact avatar"
-	//               src={`${config.rest_url}/images/${twincode.avatarId}`}
-	//             />
-	//           </div>
-	//           <h2>{twincode.name}</h2>
-	//         </div>
-	//         <div className="call-actions">{defActions}</div>
-	//         {callAction}
-	//         {twincode.video && (
-	//           <div className="call-local-participant">
-	//             <video
-	//               id="local-video"
-	//               ref={this.localVideo}
-	//               className="local-video-stream"
-	//               onClick={this.reverseDisplay}
-	//               autoPlay
-	//               muted={false}
-	//               playsInline
-	//             ></video>
-	//           </div>
-	//         )}
-	//       </div>
-	//     );
-	//   } else {
-	//     invitation = <div className="invitation">No invitation</div>;
-	//     callStatus = "";
-	//   }
-
-	//   if (participants.length >= 1 && participants.length <= 8) {
-	//     className = className + " call-grid-" + participants.length;
-	//   }
-	//   return (
-	//     <div className={className}>
-	//       {invitation}
-	//       <div id="video-container">
-	//         {participants.map((participant) => (
-	//           <Participant
-	//             key={participant.getParticipantId()}
-	//             participant={participant}
-	//           />
-	//         ))}
-	//         {callStatus}
-	//       </div>
-	//     </div>
-	//   );
-	// }
 }
+
+const NextTimeLabel = () => {
+	const { t } = useTranslation();
+	return <div className="py-6 text-center font-light">{t("next_time_app")}</div>;
+};
+
+const TerminateLabel = ({ terminateLabel, contactName }: { terminateLabel: string; contactName: string | null }) => {
+	const { t } = useTranslation();
+
+	return (
+		<div className="flex w-full flex-1 items-center justify-center text-center">
+			<span>
+				<Trans i18nKey={terminateLabel} values={{ contactName }} t={t} />
+			</span>
+		</div>
+	);
+};
 
 const Header = () => (
 	<div className="flex w-full items-center justify-between">
 		<div className="flex items-center justify-start">
 			<img src={twinmeLogo} alt="" className="w-8" />
-			<div className="ml-2 font-light text-grey">Twinme</div>
+			<div className="ml-2 font-light text-grey">{config.appName}</div>
 		</div>
-		<div>Coccinelle d'occasion</div>
+		{/* <div>Coccinelle d'occasion</div> */}
 	</div>
 );
 
@@ -455,6 +359,7 @@ const ParticipantsGrid = ({
 	participants,
 	isIddle,
 	guestName,
+	guestNameError,
 	setGuestName,
 }: {
 	localVideoRef: RefObject<HTMLVideoElement>;
@@ -463,8 +368,11 @@ const ParticipantsGrid = ({
 	participants: CallParticipant[];
 	isIddle: boolean;
 	guestName: string;
+	guestNameError: boolean;
 	setGuestName: (value: string) => void;
 }) => {
+	const { t } = useTranslation();
+
 	let gridClass = "";
 	if (participants.length < 2) {
 		gridClass = "grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1";
@@ -485,16 +393,25 @@ const ParticipantsGrid = ({
 			))}
 			{participants.length === 0 && (
 				<>
-					<div className="relative overflow-hidden rounded-md">
+					<div className="relative flex items-center justify-center overflow-hidden rounded-md bg-[#202020]">
 						{twincode.avatarId && (
-							<img
-								src={`${config.rest_url}/images/${twincode.avatarId}`}
-								alt=""
-								className="h-full w-full object-cover"
-							/>
+							<>
+								<img
+									src={`${config.rest_url}/images/${twincode.avatarId}`}
+									alt=""
+									className="z-10 h-full w-full object-cover md:h-48 md:w-48 md:rounded-full md:shadow-lg"
+								/>
+								<img
+									src={`${config.rest_url}/images/${twincode.avatarId}`}
+									alt=""
+									className="absolute left-0 top-0 h-full w-full object-cover blur"
+								/>
+							</>
 						)}
 						<div
-							className={["absolute bottom-2 right-2 rounded-lg bg-black/70 px-2 py-1 text-sm"].join(" ")}
+							className={["absolute bottom-2 right-2 z-10 rounded-lg bg-black/70 px-2 py-1 text-sm"].join(
+								" "
+							)}
 						>
 							{twincode.name}
 						</div>
@@ -517,7 +434,7 @@ const ParticipantsGrid = ({
 				>
 					<div
 						className={[
-							"flex h-28 w-28 items-center justify-center rounded-full bg-[#2f2f2f] text-5xl",
+							"flex h-20 w-20 items-center justify-center rounded-full bg-[#2f2f2f] text-5xl md:h-28 md:w-28",
 							videoMute ? "" : "hidden",
 						].join(" ")}
 					>
@@ -536,19 +453,31 @@ const ParticipantsGrid = ({
 							</g>
 						</svg>
 					</div>
-					<span className="mt-2">Activez votre caméra</span>
+					<span className=" mt-2 text-sm md:text-base">{t("activate_camera")}</span>
 				</div>
-				<div className={["absolute bottom-2 right-2 rounded-lg bg-black/70 px-2 py-1 text-sm"].join(" ")}>
+				<div className={["absolute bottom-2 right-2 text-sm"].join(" ")}>
 					{isIddle && (
-						<input
-							type="text"
-							value={guestName}
-							className=" bg-transparent placeholder:font-light placeholder:text-[#656565] focus:outline-none "
-							placeholder="Entrez un pseudo"
-							onChange={(e) => setGuestName(e.target.value)}
-						/>
+						<>
+							{guestNameError && (
+								<div className="animate-skaheX py-1 text-orange-600">Veuillez saisir un nom</div>
+							)}
+							<div
+								className={[
+									"rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition",
+									guestNameError ? "!border-orange-600" : "",
+								].join(" ")}
+							>
+								<input
+									type="text"
+									value={guestName}
+									className=" bg-transparent placeholder:font-light placeholder:text-[#656565] focus:outline-none "
+									placeholder="Entrez un pseudo"
+									onChange={(e) => setGuestName(e.target.value)}
+								/>
+							</div>
+						</>
 					)}
-					{!isIddle && guestName}
+					{!isIddle && <div className="rounded-lg bg-black/70 px-2 py-1">{guestName}</div>}
 				</div>
 			</div>
 		</div>
@@ -563,7 +492,7 @@ const ParticipantGridCell = ({ participant }: { participant: CallParticipant }) 
 	}, []);
 
 	return (
-		<div className="relative h-full w-full">
+		<div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]">
 			{participant.isAudioMute() && (
 				<div className="absolute right-2 top-2 text-2xl">
 					<svg width="1em" height="1em" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
@@ -577,21 +506,23 @@ const ParticipantGridCell = ({ participant }: { participant: CallParticipant }) 
 					</svg>
 				</div>
 			)}
+
 			<img
-				className={[
-					"pointer-events-none h-full w-full rounded-lg object-cover",
-					participant.getAvatarUrl() && participant.isCameraMute() ? "" : "hidden",
-				].join(" ")}
 				src={participant.getAvatarUrl() ?? ""}
 				alt=""
+				className="pointer-events-none z-10 h-full w-full object-cover md:h-48 md:w-48 md:rounded-full md:shadow-lg"
 			/>
+			<img
+				src={participant.getAvatarUrl() ?? ""}
+				alt=""
+				className="pointer-events-none absolute left-0 top-0 h-full w-full object-cover blur"
+			/>
+
 			<video
 				ref={ref}
 				autoPlay
 				id={"videoElement-" + participant.getParticipantId()}
-				className={["h-full w-full rounded-lg object-cover", participant.isCameraMute() ? "hidden" : ""].join(
-					" "
-				)}
+				className={["h-full w-full object-cover", participant.isCameraMute() ? "hidden" : ""].join(" ")}
 			></video>
 			<div
 				className={[
@@ -622,6 +553,7 @@ const CallButtons = ({
 	videoMute: boolean;
 	muteVideoClick: React.MouseEventHandler;
 }) => {
+	const [t] = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
 	const isIddle = CallStatusOps.isIddle(status);
 
@@ -638,7 +570,11 @@ const CallButtons = ({
 					onClick={isIddle ? handleCallClick : hangUpClick}
 				>
 					<img src={phoneCallIcon} alt="" className="mr-3" />
-					{inCall ? <Timer /> : <span className="font-light">{isIddle ? "appeler" : "en cours..."}</span>}
+					{inCall ? (
+						<Timer />
+					) : (
+						<span className="font-light">{isIddle ? t("call") : t("audio_call_activity_calling")}</span>
+					)}
 				</button>
 			</div>
 			<div className="flex items-center justify-end">
@@ -722,8 +658,9 @@ const StoresBadges = () => {
 };
 
 const CallWithParams = () => {
+	const { t } = useTranslation();
 	const { id } = useParams();
-	return <Call id={id!} />;
+	return <Call id={id!} t={t} />;
 };
 
 export default CallWithParams;
