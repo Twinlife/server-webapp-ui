@@ -343,10 +343,10 @@ const TerminateLabel = ({ terminateLabel, contactName }: { terminateLabel: strin
 
 const Header = () => (
 	<div className="flex w-full items-center justify-between">
-		<div className="flex items-center justify-start">
+		<a href="https://twin.me" target="_blank" className="flex items-center justify-start">
 			<img src={twinmeLogo} alt="" className="w-8" />
-			<div className="ml-2 font-light text-grey">{config.appName}</div>
-		</div>
+			<div className="ml-2 font-light text-grey">{import.meta.env.VITE_APP_NAME}</div>
+		</a>
 		{/* <div>Coccinelle d'occasion</div> */}
 	</div>
 );
