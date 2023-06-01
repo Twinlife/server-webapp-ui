@@ -28,7 +28,6 @@ import { CallParticipantEvent } from "../calls/CallParticipantEvent";
 import { CallParticipantObserver } from "../calls/CallParticipantObserver";
 import { CallService } from "../calls/CallService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
-import config from "../config.json";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 
@@ -237,7 +236,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		let twincode: TwincodeInfo = this.state.twincode;
 		let name: string = twincode.name ? twincode.name : "Unknown";
 		let video: boolean = !this.state.videoMute;
-		let avatarUrl: string = config.rest_url + "/images/" + twincode.avatarId;
+		let avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionOutgoingCall(this.twincodeId, video, name, avatarUrl);
 		ev.preventDefault();
 	};
@@ -397,12 +396,12 @@ const ParticipantsGrid = ({
 						{twincode.avatarId && (
 							<>
 								<img
-									src={`${config.rest_url}/images/${twincode.avatarId}`}
+									src={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
 									alt=""
 									className="z-10 h-full w-full object-cover md:h-48 md:w-48 md:rounded-full md:shadow-lg"
 								/>
 								<img
-									src={`${config.rest_url}/images/${twincode.avatarId}`}
+									src={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
 									alt=""
 									className="absolute left-0 top-0 h-full w-full object-cover blur"
 								/>

@@ -8,9 +8,8 @@
  */
 
 import axios from "axios";
-import config from "../config.json";
 
-const url = config.rest_url;
+const url = import.meta.env.VITE_REST_URL;
 
 export type TwincodeInfo = {
 	name: string | null;

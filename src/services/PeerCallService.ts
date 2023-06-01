@@ -7,9 +7,7 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 
-import config from "../config.json";
-
-const url = config.proxy_url;
+const url = import.meta.env.VITE_PROXY_URL;
 
 export type TerminateReason =
 	| "busy"
