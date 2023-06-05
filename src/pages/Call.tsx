@@ -13,10 +13,8 @@ import React, { Component, RefObject, useEffect, useRef, useState } from "react"
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
 import { useParams } from "react-router-dom";
-import appStoreBadge from "../assets/appstore-badge.svg";
 import camOffIcon from "../assets/cam-off.svg";
 import camOnIcon from "../assets/cam-on.svg";
-import androidPlayBadge from "../assets/google-play-badge.png";
 import micOffIcon from "../assets/mic-off.svg";
 import micOnIcon from "../assets/mic-on.svg";
 import phoneCallIcon from "../assets/phone-call.svg";
@@ -28,6 +26,7 @@ import { CallParticipantEvent } from "../calls/CallParticipantEvent";
 import { CallParticipantObserver } from "../calls/CallParticipantObserver";
 import { CallService } from "../calls/CallService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
+import StoresBadges from "../components/StoresBadges";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 
