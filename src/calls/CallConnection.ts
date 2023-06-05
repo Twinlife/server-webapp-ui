@@ -206,6 +206,10 @@ export class CallConnection {
 		this.mParticipants = new Map();
 		this.mMainParticipant = new CallParticipant(this, call.allocateParticipantId());
 
+		this.mTimer = setTimeout(() => {
+			this.mCallService.callTimeout(this);
+		}, CallService.CALL_TIMEOUT);
+
 		if (peerConnectionId != null) {
 			this.mParticipants.set(peerConnectionId.toString(), this.mMainParticipant);
 			this.mCall.onAddParticipant(this.mMainParticipant);

@@ -80,7 +80,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param {CallStatus} status the new call status.
 	 */
 	onUpdateCallStatus(status: CallStatus): void {
-		console.log("New call status " + status);
+		console.log("New call status ", CallStatus[status]);
 
 		this.setState({ status: status });
 	}
