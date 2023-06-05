@@ -56,7 +56,7 @@ export class CallService implements PeerCallServiceObserver {
 
 	static readonly DEBUG: boolean = false;
 	static readonly CALL_TIMEOUT: number = 30 * 1000;
-	static readonly FINISH_TIMEOUT: number = 3;
+	static readonly FINISH_TIMEOUT: number = 3 * 1000;
 
 	private readonly mPeerCallService: PeerCallService;
 	private readonly mObserver: CallObserver;

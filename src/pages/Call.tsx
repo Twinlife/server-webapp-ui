@@ -27,6 +27,7 @@ import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import Header from "../components/Header";
 import ParticipantsGrid from "../components/ParticipantsGrid";
 import StoresBadges from "../components/StoresBadges";
+import Thanks from "../components/Thanks";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 
@@ -45,6 +46,7 @@ interface CallState {
 	videoMute: boolean;
 	terminateReason: TerminateReason | null;
 	participants: Array<CallParticipant>;
+	displayThanks: boolean;
 }
 
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
@@ -69,6 +71,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		videoMute: false,
 		terminateReason: null,
 		participants: [],
+		displayThanks: false,
 	};
 
 	componentDidMount = () => {
@@ -98,6 +101,10 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			terminateReason: reason,
 			status: CallStatus.TERMINATED,
 		});
+
+		setTimeout(() => {
+			this.setState({ displayThanks: true });
+		}, CallService.FINISH_TIMEOUT);
 	}
 
 	/**
@@ -156,7 +163,15 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				.getTwincode(id)
 				.then(async (response: AxiosResponse<TwincodeInfo, any>) => {
 					let twincode = response.data;
-					this.setState({ twincode: twincode, videoMute: true });
+					this.setState({
+						twincode: twincode,
+						videoMute: true,
+						displayThanks: false,
+						status: CallStatus.IDDLE,
+						audioMute: false,
+						terminateReason: null,
+						participants: [],
+					});
 
 					const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 						audio: true,
@@ -280,7 +295,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 	render() {
 		const { t } = this.props;
-		const { guestName, guestNameError, twincode, videoMute, audioMute, status, terminateReason } = this.state;
+		const { guestName, guestNameError, twincode, videoMute, audioMute, status, terminateReason, displayThanks } =
+			this.state;
+
+		if (displayThanks) {
+			return (
+				<Thanks
+					onCallBackClick={() => {
+						this.retrieveInformation();
+					}}
+				/>
+			);
+		}
 
 		return (
 			<div className=" flex h-full w-screen flex-col bg-black p-4">
@@ -377,19 +403,19 @@ const CallButtons = ({
 			<div className="flex items-center justify-end">
 				{inCall && (
 					<button
-						className="mr-3 rounded-full bg-white p-1 hover:bg-white/90 active:bg-white/80"
+						className="rounded-full bg-white p-1 hover:bg-white/90 active:bg-white/80"
 						onClick={muteAudioClick}
 					>
 						<img src={audioMute ? micOffIcon : micOnIcon} alt="" className="w-[37px]" />
 					</button>
 				)}
 				<button
-					className="mr-3 rounded-full bg-white p-1 hover:bg-white/90 active:bg-white/80"
+					className="ml-3 rounded-full bg-white p-1 hover:bg-white/90 active:bg-white/80"
 					onClick={muteVideoClick}
 				>
 					<img src={videoMute ? camOffIcon : camOnIcon} alt="" className="w-[37px]" />
 				</button>
-				{/* <button className="rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 ">
+				{/* <button className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 ">
 					<img src={switchCamIcon} alt="" />
 				</button> */}
 			</div>
