@@ -18,13 +18,13 @@ import camOnIcon from "../assets/cam-on.svg";
 import micOffIcon from "../assets/mic-off.svg";
 import micOnIcon from "../assets/mic-on.svg";
 import phoneCallIcon from "../assets/phone-call.svg";
-import twinmeLogo from "../assets/twinme.png";
 import { CallObserver } from "../calls/CallObserver";
 import { CallParticipant } from "../calls/CallParticipant";
 import { CallParticipantEvent } from "../calls/CallParticipantEvent";
 import { CallParticipantObserver } from "../calls/CallParticipantObserver";
 import { CallService } from "../calls/CallService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
+import Header from "../components/Header";
 import ParticipantsGrid from "../components/ParticipantsGrid";
 import StoresBadges from "../components/StoresBadges";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
@@ -332,15 +332,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		);
 	}
 }
-
-const Header = () => (
-	<div className="flex w-full items-center justify-between">
-		<a href="https://twin.me" target="_blank" className="flex items-center justify-start">
-			<img src={twinmeLogo} alt="" className="w-8" />
-			<div className="ml-2 font-light text-grey">{import.meta.env.VITE_APP_NAME}</div>
-		</a>
-	</div>
-);
 
 const CallButtons = ({
 	status,

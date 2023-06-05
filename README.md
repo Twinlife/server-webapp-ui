@@ -15,9 +15,13 @@ Environment variables should be defined in a **uncommited** file `.env.local` at
 
 ```
 VITE_APP_NAME=twinme
+VITE_APP_WEBSITE=https://twin.me
+VITE_APP_LOGO=twinme.png
+
 VITE_REST_URL=http://localhost:8081/rest
 VITE_INVITE_URL="https://invite.mytwinlife.net?twincodeId="
 VITE_PROXY_URL=ws://localhost:8081/p2p/connect
+
 VITE_STORE_IOS=...
 VITE_STORE_ANDROID=...
 VITE_STORE_MAC=...
@@ -28,9 +32,13 @@ VITE_STORE_WINDOWS=...
 
 ```
 VITE_APP_NAME=twinme
+VITE_APP_WEBSITE=https://twin.me
+VITE_APP_LOGO=twinme.png
+
 VITE_REST_URL=https://call.mytwinlife.net/rest
 VITE_INVITE_URL="https://invite.mytwinlife.net?twincodeId="
 VITE_PROXY_URL=wss://call.mytwinlife.net/p2p/connect
+
 VITE_STORE_IOS=...
 VITE_STORE_ANDROID=...
 VITE_STORE_MAC=...
