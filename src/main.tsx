@@ -13,15 +13,23 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import "./i18n/i18n.ts";
 import "./index.css";
 import Call from "./pages/Call.tsx";
+import ErrorPage from "./pages/ErrorPage.tsx";
 
 const router = createBrowserRouter([
 	{
 		path: "/call",
 		element: <Call />,
+		errorElement: <ErrorPage />,
 	},
 	{
 		path: "/call/:id",
 		element: <Call />,
+		errorElement: <ErrorPage />,
+	},
+	{
+		path: "/",
+		element: <></>,
+		errorElement: <ErrorPage />,
 	},
 ]);
 

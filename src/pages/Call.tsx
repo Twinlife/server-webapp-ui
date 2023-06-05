@@ -12,7 +12,7 @@ import { TFunction } from "i18next";
 import React, { Component, RefObject, useEffect, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
+import { NavigateFunction, useNavigate, useParams } from "react-router-dom";
 import camOffIcon from "../assets/cam-off.svg";
 import camOnIcon from "../assets/cam-on.svg";
 import micOffIcon from "../assets/mic-off.svg";
@@ -33,6 +33,7 @@ import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 interface CallProps {
 	id: string;
 	t: TFunction<"translation", undefined, "translation">;
+	navigate: NavigateFunction;
 }
 
 interface CallState {
@@ -170,6 +171,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				})
 				.catch((e) => {
 					console.error("retrieveInformation", e);
+					this.props.navigate("/error");
 				});
 		}
 	}
@@ -443,7 +445,8 @@ const Timer = () => {
 const CallWithParams = () => {
 	const { t } = useTranslation();
 	const { id } = useParams();
-	return <Call id={id!} t={t} />;
+	const navigate = useNavigate();
+	return <Call id={id!} t={t} navigate={navigate} />;
 };
 
 export default CallWithParams;
