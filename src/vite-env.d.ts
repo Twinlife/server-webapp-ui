@@ -5,6 +5,11 @@ interface ImportMetaEnv {
 	readonly VITE_REST_URL: string;
 	readonly VITE_INVITE_URL: string;
 	readonly VITE_PROXY_URL: string;
+
+	readonly VITE_STORE_IOS: string;
+	readonly VITE_STORE_ANDROID: string;
+	readonly VITE_STORE_MAC: string;
+	readonly VITE_STORE_WINDOWS: string;
 }
 
 interface ImportMeta {
