@@ -749,31 +749,22 @@ export class CallConnection {
 	}
 
 	addRemoteTrack(track: MediaStreamTrack, stream: MediaStream): void {
-		let participant: CallParticipant | null = this.getMainParticipant();
-		if (track != null && track.kind === "video") {
-			try {
-				this.mVideoTrackId = track.id;
-				if (participant) {
-					let remoteRenderer: HTMLVideoElement | null = participant.getRemoteRenderer();
-					if (remoteRenderer) {
-						remoteRenderer.srcObject = stream;
-					}
+		try {
+			let participant: CallParticipant | null = this.getMainParticipant();
+			if (participant) {
+				participant.addTrack(track);
+				if (track != null && track.kind === "video") {
+					this.mVideoTrackId = track.id;
 					participant.setCameraMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_VIDEO_ON);
-				}
-			} catch (ex) {
-				console.log("Error: " + ex);
-			}
-		} else if (track != null && track.kind === "audio") {
-			try {
-				this.mAudioTrackId = track.id;
-				if (participant) {
+				} else if (track != null && track.kind === "audio") {
+					this.mAudioTrackId = track.id;
 					participant.setMicrophoneMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_ON);
 				}
-			} catch (ex) {
-				console.log("Error: " + ex);
 			}
+		} catch (ex) {
+			console.log("Error: " + ex);
 		}
 	}
 

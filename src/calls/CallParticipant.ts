@@ -41,6 +41,7 @@ export class CallParticipant {
 	private mCameraMute: boolean = false;
 	private mVideoWidth: number = 0;
 	private mVideoHeight: number = 0;
+	private mediaStream: MediaStream = new MediaStream();
 
 	/**
 	 * Get the call connection associated with this participant.
@@ -152,9 +153,18 @@ export class CallParticipant {
 		return this.mConnection ? this.mConnection.getPeerConnectionId() : null;
 	}
 
+	/**
+	 * Set the video and audio renderer (HTMLVideoElement) for this participant.
+	 * Then affect the participant mediaStream to its srcObject
+	 */
 	public setRemoteRenderer(remoteRenderer: HTMLVideoElement) {
 		this.mRemoteRenderer = remoteRenderer;
+		this.mRemoteRenderer.srcObject = this.mediaStream;
 		console.log("Set remote renderer for participant");
+	}
+
+	public addTrack(track: MediaStreamTrack) {
+		this.mediaStream.addTrack(track);
 	}
 
 	constructor(callConnection: CallConnection | null, participantId: number) {
