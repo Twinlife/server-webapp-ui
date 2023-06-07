@@ -1,1 +1,13 @@
-{"translation":{"thanks_choosing":"Tack för att du valde twinme!","next_time_app":"Prova mobilappen för hela upplevelsen!","more_information":"Mer information om","website_link":"<strong><a href='https://twin.me' target='_blank'>twinme</a></strong>","call":"Ring upp","call_back":"Ring tillbaka eller återaktivera länken.","activate_camera":"Aktivera din kamera","nickname_placeholder":"Namn","nickname_empty_error":"Välj ett namn","guest":"Gäst"}}
+{
+    "translation": {
+        "thanks_choosing": "Tack för att du valde {{appName}}!",
+        "next_time_app": "Prova mobilappen för hela upplevelsen!",
+        "more_information": "Mer information om",
+        "call": "Ring upp",
+        "call_back": "Ring tillbaka eller återaktivera länken.",
+        "activate_camera": "Aktivera din kamera",
+        "nickname_placeholder": "Namn",
+        "nickname_empty_error": "Välj ett namn",
+        "guest": "Gäst"
+    }
+}

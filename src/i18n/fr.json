@@ -1,1 +1,28 @@
-{"translation":{"thanks_choosing":"Merci d'avoir choisi twinme !","next_time_app":"Essayez l'application mobile pour une expérience complète !","more_information":"Plus d'informations sur","website_link":"<strong><a href='https://twin.me' target='_blank'>twinme</a></strong>","call":"Appel","call_back":"Rappelez ou réactivez le lien.","activate_camera":"Activez votre caméra","nickname_placeholder":"Nom","nickname_empty_error":"Choisissez un nom","guest":"Invité","audio_call_activity_calling":"Appel…","calls_fragment_call_again_title":"Rappeler","audio_call_activity_cannot_call":"Impossible de passer un appel vocal","audio_call_activity_connecting":"Connexion…","audio_call_activity_hangup":"Raccrocher","audio_call_activity_hangup_confirmation":"Voulez-vous terminer l’appel ?","audio_call_activity_terminate":"Appel terminé","audio_call_activity_terminate_busy":"Appel terminé : <strong>{{contactName}}</strong> est occupé(e)","audio_call_activity_terminate_cancel":"Appel annulé par <strong>{{contactName}}</strong>","audio_call_activity_terminate_connectivity_error":"Appel terminé : erreur réseau","audio_call_activity_terminate_decline":"Appel refusé par <strong>{{contactName}}</strong>","audio_call_activity_terminate_gone":"Appel terminé : <strong>{{contactName}}</strong> n’est pas connecté(e)","audio_call_activity_terminate_revoked":"Appel terminé : <strong>{{contactName}}</strong> a révoqué cette identité","audio_call_activity_terminate_success":"Appel terminé par <strong>{{contactName}}</strong>","audio_call_activity_terminate_timeout":"Appel terminé : <strong>{{contactName}}</strong> ne répond pas"}}
+{
+    "translation": {
+        "thanks_choosing": "Merci d'avoir choisi {{appName}} !",
+        "next_time_app": "Essayez l'application mobile pour une expérience complète !",
+        "more_information": "Plus d'informations sur",
+        "call": "Appel",
+        "call_back": "Rappelez ou réactivez le lien.",
+        "activate_camera": "Activez votre caméra",
+        "nickname_placeholder": "Nom",
+        "nickname_empty_error": "Choisissez un nom",
+        "guest": "Invité",
+        "audio_call_activity_calling": "Appel…",
+        "calls_fragment_call_again_title": "Rappeler",
+        "audio_call_activity_cannot_call": "Impossible de passer un appel vocal",
+        "audio_call_activity_connecting": "Connexion…",
+        "audio_call_activity_hangup": "Raccrocher",
+        "audio_call_activity_hangup_confirmation": "Voulez-vous terminer l’appel ?",
+        "audio_call_activity_terminate": "Appel terminé",
+        "audio_call_activity_terminate_busy": "Appel terminé : <strong>{{contactName}}</strong> est occupé(e)",
+        "audio_call_activity_terminate_cancel": "Appel annulé par <strong>{{contactName}}</strong>",
+        "audio_call_activity_terminate_connectivity_error": "Appel terminé : erreur réseau",
+        "audio_call_activity_terminate_decline": "Appel refusé par <strong>{{contactName}}</strong>",
+        "audio_call_activity_terminate_gone": "Appel terminé : <strong>{{contactName}}</strong> n’est pas connecté(e)",
+        "audio_call_activity_terminate_revoked": "Appel terminé : <strong>{{contactName}}</strong> a révoqué cette identité",
+        "audio_call_activity_terminate_success": "Appel terminé par <strong>{{contactName}}</strong>",
+        "audio_call_activity_terminate_timeout": "Appel terminé : <strong>{{contactName}}</strong> ne répond pas"
+    }
+}

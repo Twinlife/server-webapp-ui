@@ -1,1 +1,13 @@
-{"translation":{"thanks_choosing":"Kiitos kun valitsit twinme!","next_time_app":"Kokeile mobiilisovellusta saadaksesi täyden kokemuksen!","more_information":"Lisätietoja aiheesta","website_link":"<strong><a href='https://twin.me' target='_blank'>twinme</a></strong>","call":"Puhelu","call_back":"Soita takaisin tai aktivoi linkki uudelleen.","activate_camera":"Aktivoi kamerasi","nickname_placeholder":"Nimi","nickname_empty_error":"Valitse nimi","guest":"Vieras"}}
+{
+    "translation": {
+        "thanks_choosing": "Kiitos kun valitsit {{appName}}!",
+        "next_time_app": "Kokeile mobiilisovellusta saadaksesi täyden kokemuksen!",
+        "more_information": "Lisätietoja aiheesta",
+        "call": "Puhelu",
+        "call_back": "Soita takaisin tai aktivoi linkki uudelleen.",
+        "activate_camera": "Aktivoi kamerasi",
+        "nickname_placeholder": "Nimi",
+        "nickname_empty_error": "Valitse nimi",
+        "guest": "Vieras"
+    }
+}

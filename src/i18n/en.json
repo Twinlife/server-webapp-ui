@@ -1,1 +1,28 @@
-{"translation":{"thanks_choosing":"Thanks for choosing twinme!","next_time_app":"Try the mobile app for the full experience!","more_information":"More information on","website_link":"<strong><a href='https://twin.me' target='_blank'>twinme</a></strong>","call":"Call","call_back":"Call back or reactivate the link.","activate_camera":"Activate your camera","nickname_placeholder":"Name","nickname_empty_error":"Pick a name","guest":"Guest","audio_call_activity_calling":"Calling…","calls_fragment_call_again_title":"Call back","audio_call_activity_cannot_call":"Cannot make a voice call","audio_call_activity_connecting":"Connecting…","audio_call_activity_hangup":"Hang-up","audio_call_activity_hangup_confirmation":"Do you want to hangup the call?","audio_call_activity_terminate":"Call has been terminated","audio_call_activity_terminate_busy":"Call terminated: <strong>{{contactName}}</strong> is busy","audio_call_activity_terminate_cancel":"Call canceled by <strong>{{contactName}}</strong>","audio_call_activity_terminate_connectivity_error":"Call terminated: network error","audio_call_activity_terminate_decline":"Call declined by <strong>{{contactName}}</strong>","audio_call_activity_terminate_gone":"Call terminated: <strong>{{contactName}}</strong> is off-line","audio_call_activity_terminate_revoked":"Call terminated: <strong>{{contactName}}</strong> has revoked this identity","audio_call_activity_terminate_success":"Call terminated by <strong>{{contactName}}</strong>","audio_call_activity_terminate_timeout":"Call terminated: <strong>{{contactName}}</strong> does not answer"}}
+{
+    "translation": {
+        "thanks_choosing": "Thanks for choosing {{appName}}!",
+        "next_time_app": "Try the mobile app for the full experience!",
+        "more_information": "More information on",
+        "call": "Call",
+        "call_back": "Call back or reactivate the link.",
+        "activate_camera": "Activate your camera",
+        "nickname_placeholder": "Name",
+        "nickname_empty_error": "Pick a name",
+        "guest": "Guest",
+        "audio_call_activity_calling": "Calling…",
+        "calls_fragment_call_again_title": "Call back",
+        "audio_call_activity_cannot_call": "Cannot make a voice call",
+        "audio_call_activity_connecting": "Connecting…",
+        "audio_call_activity_hangup": "Hang-up",
+        "audio_call_activity_hangup_confirmation": "Do you want to hangup the call?",
+        "audio_call_activity_terminate": "Call has been terminated",
+        "audio_call_activity_terminate_busy": "Call terminated: <strong>{{contactName}}</strong> is busy",
+        "audio_call_activity_terminate_cancel": "Call canceled by <strong>{{contactName}}</strong>",
+        "audio_call_activity_terminate_connectivity_error": "Call terminated: network error",
+        "audio_call_activity_terminate_decline": "Call declined by <strong>{{contactName}}</strong>",
+        "audio_call_activity_terminate_gone": "Call terminated: <strong>{{contactName}}</strong> is off-line",
+        "audio_call_activity_terminate_revoked": "Call terminated: <strong>{{contactName}}</strong> has revoked this identity",
+        "audio_call_activity_terminate_success": "Call terminated by <strong>{{contactName}}</strong>",
+        "audio_call_activity_terminate_timeout": "Call terminated: <strong>{{contactName}}</strong> does not answer"
+    }
+}

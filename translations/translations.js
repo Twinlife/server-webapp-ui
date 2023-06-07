@@ -1,17 +1,12 @@
-import { readFile, readdir, unlink, writeFile } from "fs/promises";
+import { readFile, readdir, writeFile } from "fs/promises";
 import { join } from "path";
 
 const dir = "./translations";
-const jsonFilesDir = join(dir, "jsonFiles");
 const jsonFromDesktopFilesDir = join(dir, "jsonFromDesktop");
+const usedTranslationsDir = join(".", "src", "i18n");
 
 const main = async () => {
 	try {
-		const jsonFiles = await readdir(jsonFilesDir);
-		for (const jsonFile of jsonFiles) {
-			await unlink(join(jsonFilesDir, jsonFile));
-		}
-
 		const jsonFromDesktopFiles = await readdir(jsonFromDesktopFilesDir);
 
 		let translations = {};
@@ -41,8 +36,8 @@ const main = async () => {
 			}
 
 			await writeFile(
-				join(jsonFilesDir, translationKey + ".json"),
-				JSON.stringify({ translation: translations[translationKey] })
+				join(usedTranslationsDir, translationKey + ".json"),
+				JSON.stringify({ translation: translations[translationKey] }, null, 4)
 			);
 		}
 	} catch (error) {

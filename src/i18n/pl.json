@@ -1,1 +1,13 @@
-{"translation":{"thanks_choosing":"Dziękujemy za wybranie twinme!","next_time_app":"Wypróbuj aplikację mobilną, aby uzyskać pełne wrażenia!","more_information":"Więcej informacji nt","website_link":"<strong><a href='https://twin.me' target='_blank'>twinme</a></strong>","call":"Dzwonić","call_back":"Oddzwoń lub ponownie aktywuj łącze.","activate_camera":"Aktywuj swój aparat","nickname_placeholder":"Nazwa","nickname_empty_error":"Wybierz imię","guest":"Gość"}}
+{
+    "translation": {
+        "thanks_choosing": "Dziękujemy za wybranie {{appName}}!",
+        "next_time_app": "Wypróbuj aplikację mobilną, aby uzyskać pełne wrażenia!",
+        "more_information": "Więcej informacji nt",
+        "call": "Dzwonić",
+        "call_back": "Oddzwoń lub ponownie aktywuj łącze.",
+        "activate_camera": "Aktywuj swój aparat",
+        "nickname_placeholder": "Nazwa",
+        "nickname_empty_error": "Wybierz imię",
+        "guest": "Gość"
+    }
+}

@@ -1,1 +1,13 @@
-{"translation":{"thanks_choosing":"Спасибо, что выбрали twinme!","next_time_app":"Попробуйте мобильное приложение для полного опыта!","more_information":"Больше информации о","website_link":"<strong><a href='https://twin.me' target='_blank'>twinme</a></strong>","call":"Вызов","call_back":"Перезвоните или повторно активируйте ссылку.","activate_camera":"Активируйте камеру","nickname_placeholder":"Имя","nickname_empty_error":"Выберите имя","guest":"Гость"}}
+{
+    "translation": {
+        "thanks_choosing": "Спасибо, что выбрали {{appName}}!",
+        "next_time_app": "Попробуйте мобильное приложение для полного опыта!",
+        "more_information": "Больше информации о",
+        "call": "Вызов",
+        "call_back": "Перезвоните или повторно активируйте ссылку.",
+        "activate_camera": "Активируйте камеру",
+        "nickname_placeholder": "Имя",
+        "nickname_empty_error": "Выберите имя",
+        "guest": "Гость"
+    }
+}
