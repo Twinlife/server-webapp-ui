@@ -1,6 +1,5 @@
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import phoneCallIcon from "../assets/phone-call.svg";
-import thanksImg from "../assets/thanks.png";
 import Header from "./Header";
 import StoresBadges from "./StoresBadges";
 
@@ -15,14 +14,24 @@ export default function Thanks({ onCallBackClick }: ThanksProps) {
 		<div className=" flex h-full w-screen flex-col items-center bg-black p-4 ">
 			<Header />
 
-			<div className="flex w-full flex-1 flex-col items-center justify-center lg:w-auto lg:flex-row">
-				<img src={thanksImg} alt="" />
+			<div className="grid w-full flex-1 grid-cols-1 lg:grid-cols-2">
+				<div className="flex justify-center lg:items-center lg:justify-end">
+					<img
+						src={"/thanks/" + import.meta.env.VITE_APP_THANKS_IMAGE}
+						alt=""
+						className=" w-full max-w-md object-contain py-3 lg:mr-10 lg:max-w-md"
+					/>
+				</div>
 
-				<div className="flex w-full flex-col items-center lg:items-start">
-					<div className="my-4 text-center text-2xl text-white">{t("thanks_choosing")}</div>
+				<div className="flex w-full flex-col items-center lg:items-start lg:justify-center">
+					<div className="my-4 text-center text-2xl text-white">
+						<Trans i18nKey="thanks_choosing" values={{ appName: import.meta.env.VITE_APP_NAME }} t={t} />
+					</div>
 					<div className="mb-12 w-60 text-center font-light lg:text-left">{t("next_time_app")}</div>
 
-					<StoresBadges />
+					<div className="lg:-ml-4">
+						<StoresBadges />
+					</div>
 
 					<div className="py-6 text-center font-light">
 						{t("more_information")}{" "}

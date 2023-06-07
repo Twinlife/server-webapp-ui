@@ -4,6 +4,7 @@ interface ImportMetaEnv {
 	readonly VITE_APP_NAME: string;
 	readonly VITE_APP_WEBSITE: string;
 	readonly VITE_APP_LOGO: string;
+	readonly VITE_APP_THANKS_IMAGE: string;
 
 	readonly VITE_REST_URL: string;
 	readonly VITE_INVITE_URL: string;

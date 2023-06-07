@@ -6,7 +6,7 @@ const StoresBadges = () => {
 
 	// if (isMobile) {
 	return (
-		<div className="mx-auto grid max-w-md grid-cols-2">
+		<div className="grid max-w-md grid-cols-2">
 			<a href={import.meta.env.VITE_STORE_IOS} target="_blank">
 				<img className="mx-auto" src={appStoreBadge} alt="Download on the App Store" />
 			</a>

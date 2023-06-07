@@ -355,7 +355,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				{CallStatusOps.isIddle(status) && (
 					<>
 						<div className="py-6 text-center font-light">{t("next_time_app")}</div>
-						<StoresBadges />
+						<div className="mx-auto">
+							<StoresBadges />
+						</div>
 					</>
 				)}
 			</div>
