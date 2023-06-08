@@ -194,7 +194,11 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	handleTerminateClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
 		ev.preventDefault();
 
-		this.callService.actionTerminateCall("success");
+		if (CallStatusOps.isActive(this.state.status)) {
+			this.callService.actionTerminateCall("success");
+		} else {
+			this.callService.actionTerminateCall("cancel");
+		}
 	};
 
 	muteAudioClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
