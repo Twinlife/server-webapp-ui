@@ -378,7 +378,7 @@ export class CallService implements PeerCallServiceObserver {
 	 * @private
 	 */
 	getConnections(): Array<CallConnection> {
-		return this.mPeers.values() as any;
+		return Array.from(this.mPeers.values());
 	}
 
 	callTimeout(callConnection: CallConnection): void {

@@ -75,6 +75,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	};
 
 	componentDidMount = () => {
+		this.init();
+	};
+
+	init = () => {
+		if (!this.callService) {
+			this.callService = new CallService(this.peerCallService, this, this);
+		}
 		this.retrieveInformation();
 	};
 
@@ -102,6 +109,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			status: CallStatus.TERMINATED,
 		});
 
+		this.callService = null as any;
+
 		setTimeout(() => {
 			this.setState({ displayThanks: true });
 		}, CallService.FINISH_TIMEOUT);
@@ -113,7 +122,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param {CallParticipant} participant the participant.
 	 */
 	onAddParticipant(participant: CallParticipant): void {
-		console.log("Add new participant " + participant);
+		console.log("Add new participant ", participant);
 
 		let participants: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: participants });
@@ -303,13 +312,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			this.state;
 
 		if (displayThanks) {
-			return (
-				<Thanks
-					onCallBackClick={() => {
-						this.retrieveInformation();
-					}}
-				/>
-			);
+			return <Thanks onCallBackClick={this.init} />;
 		}
 
 		return (
