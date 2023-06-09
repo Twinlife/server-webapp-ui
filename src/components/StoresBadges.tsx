@@ -2,9 +2,7 @@ import appStoreBadge from "../assets/store-badges/appstore-badge.svg";
 import androidPlayBadge from "../assets/store-badges/google-play-badge.png";
 
 const StoresBadges = () => {
-	// let isMobile = window.matchMedia("(any-pointer:coarse)").matches;
-
-	// if (isMobile) {
+	// if (isMobile()) {
 	return (
 		<div className="grid max-w-md grid-cols-2">
 			<a href={import.meta.env.VITE_STORE_IOS} target="_blank">

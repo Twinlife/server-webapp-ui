@@ -25,7 +25,7 @@ import { CallObserver } from "./CallObserver";
 import { CallParticipant } from "./CallParticipant";
 import { CallParticipantObserver } from "./CallParticipantObserver";
 import { CallState } from "./CallState";
-import { CallStatus } from "./CallStatus";
+import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConnectionOperation } from "./ConnectionOperation";
 
 // type Timer = ReturnType<typeof setTimeout>;
@@ -172,8 +172,21 @@ export class CallService implements PeerCallServiceObserver {
 		return this.mLocalStream;
 	}
 
-	addVideoTrack(videoTrack: MediaStreamTrack) {
+	addOrReplaceVideoTrack(videoTrack: MediaStreamTrack) {
 		if (this.mLocalStream) {
+			if (this.hasVideoTrack()) {
+				// Replace track
+				const currentTrack = this.mLocalStream.getVideoTracks()[0];
+				currentTrack.stop();
+				this.mLocalStream.removeTrack(currentTrack);
+				const call = this.mActiveCall;
+				if (call && CallStatusOps.isActive(call.getStatus())) {
+					let connections: Array<CallConnection> = call.getConnections();
+					for (let callConnection of connections) {
+						callConnection.replaceVideoTrack(videoTrack);
+					}
+				}
+			}
 			this.mLocalStream.addTrack(videoTrack);
 		}
 	}

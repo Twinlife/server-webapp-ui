@@ -18,6 +18,7 @@ import camOnIcon from "../assets/cam-on.svg";
 import micOffIcon from "../assets/mic-off.svg";
 import micOnIcon from "../assets/mic-on.svg";
 import phoneCallIcon from "../assets/phone-call.svg";
+import switchCamIcon from "../assets/switch-cam.svg";
 import { CallObserver } from "../calls/CallObserver";
 import { CallParticipant } from "../calls/CallParticipant";
 import { CallParticipantEvent } from "../calls/CallParticipantEvent";
@@ -30,6 +31,9 @@ import StoresBadges from "../components/StoresBadges";
 import Thanks from "../components/Thanks";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
+import IsMobile from "../utils/IsMobile";
+
+type FacingMode = "user" | "environment";
 
 interface CallProps {
 	id: string;
@@ -47,6 +51,8 @@ interface CallState {
 	terminateReason: TerminateReason | null;
 	participants: Array<CallParticipant>;
 	displayThanks: boolean;
+	videoDevices: MediaDeviceInfo[];
+	facingMode: FacingMode;
 }
 
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
@@ -72,6 +78,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		terminateReason: null,
 		participants: [],
 		displayThanks: false,
+		videoDevices: [],
+		facingMode: "user",
 	};
 
 	componentDidMount = () => {
@@ -82,7 +90,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		if (!this.callService) {
 			this.callService = new CallService(this.peerCallService, this, this);
 		}
-		this.retrieveInformation();
+		this.enumerateDevices();
 	};
 
 	/**
@@ -152,17 +160,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.setState({ participants: participants });
 	}
 
-	reverseDisplay: React.MouseEventHandler<HTMLVideoElement> = (ev: React.MouseEvent<HTMLVideoElement>) => {
-		/* if (this.remoteVideoElement && this.localVideoElement) {
-            this.remoteVideoElement.pause();
-            this.localVideoElement.pause();
-
-            const stream = this.remoteVideoElement.srcObject;
-            this.remoteVideoElement.srcObject = this.localVideoElement.srcObject;
-            this.localVideoElement.srcObject = stream;
-        }*/
-	};
-
 	retrieveInformation() {
 		const id = this.props.id;
 
@@ -225,17 +222,19 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			const { videoMute } = this.state;
 
 			this.setState({ videoMute: !videoMute }, async () => {
-				const { status, videoMute } = this.state;
+				const { status, videoMute, facingMode } = this.state;
 				if (!videoMute && !this.callService.hasVideoTrack()) {
 					try {
 						const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 							audio: false,
-							video: true,
+							video: {
+								facingMode,
+							},
 						});
 						const videoTrack = mediaStream.getVideoTracks()[0];
-						this.callService.addVideoTrack(videoTrack);
+						this.callService.addOrReplaceVideoTrack(videoTrack);
 					} catch (error) {
-						console.log("Add video track", error);
+						console.log("Add video track error", error);
 					}
 				}
 
@@ -245,6 +244,45 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			});
 		}
 	};
+
+	switchCameraClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+		ev.preventDefault();
+		if (this.state.twincode.video) {
+			if (IsMobile()) {
+				this.setState(
+					({ facingMode }) => {
+						return { facingMode: facingMode === "user" ? "environment" : "user" };
+					},
+					async () => {
+						const { facingMode, status } = this.state;
+						try {
+							const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
+								audio: false,
+								video: {
+									facingMode,
+								},
+							});
+							const videoTrack = mediaStream.getVideoTracks()[0];
+							this.callService.addOrReplaceVideoTrack(videoTrack);
+						} catch (error) {
+							console.log("Replace video track error", error);
+						}
+					}
+				);
+			}
+		}
+	};
+
+	enumerateDevices(): void {
+		navigator.mediaDevices
+			.enumerateDevices()
+			.then((devices) => {
+				console.log("Available devices", JSON.stringify(devices, null, 2));
+				this.setState({ videoDevices: devices.filter((device) => device.kind === "videoinput") });
+				this.retrieveInformation();
+			})
+			.catch((error) => console.error("Error during enumerateDevices", error));
+	}
 
 	handleCallClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		const id = this.props.id;
@@ -356,6 +394,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						muteAudioClick={this.muteAudioClick}
 						videoMute={videoMute}
 						muteVideoClick={this.muteVideoClick}
+						switchCameraClick={this.switchCameraClick}
 					/>
 				)}
 
@@ -380,6 +419,7 @@ const CallButtons = ({
 	muteAudioClick,
 	videoMute,
 	muteVideoClick,
+	switchCameraClick,
 }: {
 	status: CallStatus;
 	handleCallClick: React.MouseEventHandler;
@@ -388,6 +428,7 @@ const CallButtons = ({
 	muteAudioClick: React.MouseEventHandler;
 	videoMute: boolean;
 	muteVideoClick: React.MouseEventHandler;
+	switchCameraClick: React.MouseEventHandler;
 }) => {
 	const [t] = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
@@ -428,9 +469,14 @@ const CallButtons = ({
 				>
 					<img src={videoMute ? camOffIcon : camOnIcon} alt="" className="w-[37px]" />
 				</button>
-				{/* <button className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 ">
-					<img src={switchCamIcon} alt="" />
-				</button> */}
+				{!videoMute && IsMobile() && (
+					<button
+						className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 "
+						onClick={switchCameraClick}
+					>
+						<img src={switchCamIcon} alt="" />
+					</button>
+				)}
 			</div>
 		</div>
 	);
