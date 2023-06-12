@@ -27,8 +27,10 @@ import { CallService } from "../calls/CallService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import Header from "../components/Header";
 import ParticipantsGrid from "../components/ParticipantsGrid";
+import SelectDevicesButton from "../components/SelectDevicesButton";
 import StoresBadges from "../components/StoresBadges";
 import Thanks from "../components/Thanks";
+import WhiteButton from "../components/WhiteButton";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 import IsMobile from "../utils/IsMobile";
@@ -42,6 +44,7 @@ interface CallProps {
 }
 
 interface CallState {
+	initializing: boolean;
 	guestName: string;
 	guestNameError: boolean;
 	twincode: TwincodeInfo;
@@ -51,8 +54,11 @@ interface CallState {
 	terminateReason: TerminateReason | null;
 	participants: Array<CallParticipant>;
 	displayThanks: boolean;
+	audioDevices: MediaDeviceInfo[];
 	videoDevices: MediaDeviceInfo[];
 	facingMode: FacingMode;
+	usedAudioDevice: string;
+	usedVideoDevice: string;
 }
 
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
@@ -63,6 +69,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	private twincodeId: string | null = null;
 
 	state: CallState = {
+		initializing: true,
 		guestName: this.props.t("guest"),
 		guestNameError: false,
 		status: CallStatus.IDDLE,
@@ -78,8 +85,11 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		terminateReason: null,
 		participants: [],
 		displayThanks: false,
+		audioDevices: [],
 		videoDevices: [],
 		facingMode: "user",
+		usedAudioDevice: "",
+		usedVideoDevice: "",
 	};
 
 	componentDidMount = () => {
@@ -87,6 +97,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	};
 
 	init = () => {
+		this.setState({ initializing: true });
 		if (!this.callService) {
 			this.callService = new CallService(this.peerCallService, this, this);
 		}
@@ -170,6 +181,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				.then(async (response: AxiosResponse<TwincodeInfo, any>) => {
 					let twincode = response.data;
 					this.setState({
+						initializing: false,
 						twincode: twincode,
 						videoMute: true,
 						displayThanks: false,
@@ -182,10 +194,11 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 						audio: true,
 					});
-					const callServiceMediaStream = this.callService.setMediaStream(mediaStream);
+					this.callService.addOrReplaceAudioTrack(mediaStream.getAudioTracks()[0]);
+					this.setUsedDevices();
 
 					if (this.localVideoRef.current) {
-						this.localVideoRef.current.srcObject = callServiceMediaStream;
+						this.localVideoRef.current.srcObject = this.callService.getMediaStream();
 					} else {
 						console.log("There is no local video element");
 					}
@@ -194,6 +207,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					console.error("retrieveInformation", e);
 					this.props.navigate("/error");
 				});
+		}
+	}
+
+	setUsedDevices() {
+		const mediaStream = this.callService.getMediaStream();
+		for (const track of mediaStream.getTracks()) {
+			if (track.kind === "audio") {
+				this.setState({ usedAudioDevice: track.getSettings().deviceId ?? "" });
+			}
+			if (track.kind === "video") {
+				this.setState({ usedVideoDevice: track.getSettings().deviceId ?? "" });
+			}
 		}
 	}
 
@@ -222,17 +247,19 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			const { videoMute } = this.state;
 
 			this.setState({ videoMute: !videoMute }, async () => {
-				const { status, videoMute, facingMode } = this.state;
+				const { status, videoMute, facingMode, usedVideoDevice } = this.state;
 				if (!videoMute && !this.callService.hasVideoTrack()) {
 					try {
 						const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 							audio: false,
 							video: {
-								facingMode,
+								facingMode: IsMobile() ? facingMode : undefined,
+								deviceId: usedVideoDevice,
 							},
 						});
 						const videoTrack = mediaStream.getVideoTracks()[0];
 						this.callService.addOrReplaceVideoTrack(videoTrack);
+						this.setUsedDevices();
 					} catch (error) {
 						console.log("Add video track error", error);
 					}
@@ -269,19 +296,76 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						}
 					}
 				);
+			} else {
+				console.log(this.state.audioDevices);
+				console.log(this.state.videoDevices);
 			}
+		}
+	};
+
+	selectAudioDevice = async (deviceId: string) => {
+		try {
+			this.setState({ usedAudioDevice: deviceId });
+			const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
+				audio: { deviceId },
+				video: false,
+			});
+			const audioTrack = mediaStream.getAudioTracks()[0];
+			this.callService.addOrReplaceAudioTrack(audioTrack);
+			this.setUsedDevices();
+		} catch (error) {
+			console.log("Select audio device error", error);
+		}
+	};
+
+	selectVideoDevice = async (deviceId: string) => {
+		try {
+			this.setState({ usedVideoDevice: deviceId });
+			if (this.callService.hasVideoTrack()) {
+				const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
+					audio: false,
+					video: { deviceId },
+				});
+				const videoTrack = mediaStream.getVideoTracks()[0];
+				this.callService.addOrReplaceVideoTrack(videoTrack);
+				this.setUsedDevices();
+			}
+		} catch (error) {
+			console.log("Select video device error", error);
 		}
 	};
 
 	enumerateDevices(): void {
 		navigator.mediaDevices
-			.enumerateDevices()
-			.then((devices) => {
-				console.log("Available devices", JSON.stringify(devices, null, 2));
-				this.setState({ videoDevices: devices.filter((device) => device.kind === "videoinput") });
-				this.retrieveInformation();
+			// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
+			// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
+			.getUserMedia({ audio: true, video: true })
+			.then((mediaStream) => {
+				for (const track of mediaStream.getTracks()) {
+					if (track.kind === "audio") {
+						this.setState({ usedAudioDevice: track.getSettings().deviceId ?? "" });
+					}
+					if (track.kind === "video") {
+						this.setState({ usedVideoDevice: track.getSettings().deviceId ?? "" });
+					}
+				}
+
+				navigator.mediaDevices.enumerateDevices().then((devices) => {
+					console.log("Available devices", JSON.stringify(devices, null, 2));
+					this.setState({
+						audioDevices: devices.filter((device) => device.kind === "audioinput").slice(),
+						videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
+					});
+
+					for (const track of mediaStream.getTracks()) {
+						track.stop();
+					}
+				});
 			})
-			.catch((error) => console.error("Error during enumerateDevices", error));
+			.catch((error) => console.error("Error during enumerateDevices", error))
+			.finally(() => {
+				this.retrieveInformation();
+			});
 	}
 
 	handleCallClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -346,8 +430,21 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 	render() {
 		const { t } = this.props;
-		const { guestName, guestNameError, twincode, videoMute, audioMute, status, terminateReason, displayThanks } =
-			this.state;
+		const {
+			initializing,
+			guestName,
+			guestNameError,
+			twincode,
+			videoMute,
+			audioMute,
+			status,
+			terminateReason,
+			displayThanks,
+			audioDevices,
+			videoDevices,
+			usedAudioDevice,
+			usedVideoDevice,
+		} = this.state;
 
 		if (displayThanks) {
 			return <Thanks onCallBackClick={this.init} />;
@@ -357,7 +454,32 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			<div className=" flex h-full w-screen flex-col bg-black p-4">
 				<Header />
 
-				{!CallStatusOps.isTerminated(status) && (
+				{initializing && (
+					<div className="flex flex-1 items-center justify-center">
+						<svg
+							className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
+							xmlns="http://www.w3.org/2000/svg"
+							fill="none"
+							viewBox="0 0 24 24"
+						>
+							<circle
+								className="opacity-25"
+								cx="12"
+								cy="12"
+								r="10"
+								stroke="currentColor"
+								strokeWidth="4"
+							></circle>
+							<path
+								className="opacity-75"
+								fill="currentColor"
+								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+							></path>
+						</svg>
+					</div>
+				)}
+
+				{!initializing && !CallStatusOps.isTerminated(status) && (
 					<ParticipantsGrid
 						localVideoRef={this.localVideoRef}
 						videoMute={videoMute}
@@ -373,7 +495,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					/>
 				)}
 
-				{CallStatusOps.isTerminated(status) && terminateReason && (
+				{!initializing && CallStatusOps.isTerminated(status) && terminateReason && (
 					<div className="flex w-full flex-1 items-center justify-center text-center">
 						<span>
 							<Trans
@@ -385,7 +507,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					</div>
 				)}
 
-				{!CallStatusOps.isTerminated(status) && (
+				{!initializing && !CallStatusOps.isTerminated(status) && (
 					<CallButtons
 						status={status}
 						handleCallClick={this.handleCallClick}
@@ -395,6 +517,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						videoMute={videoMute}
 						muteVideoClick={this.muteVideoClick}
 						switchCameraClick={this.switchCameraClick}
+						audioDevices={audioDevices}
+						videoDevices={videoDevices}
+						usedAudioDevice={usedAudioDevice}
+						usedVideoDevice={usedVideoDevice}
+						selectAudioDevice={this.selectAudioDevice}
+						selectVideoDevice={this.selectVideoDevice}
 					/>
 				)}
 
@@ -420,6 +548,12 @@ const CallButtons = ({
 	videoMute,
 	muteVideoClick,
 	switchCameraClick,
+	audioDevices,
+	videoDevices,
+	usedAudioDevice,
+	usedVideoDevice,
+	selectAudioDevice,
+	selectVideoDevice,
 }: {
 	status: CallStatus;
 	handleCallClick: React.MouseEventHandler;
@@ -429,6 +563,12 @@ const CallButtons = ({
 	videoMute: boolean;
 	muteVideoClick: React.MouseEventHandler;
 	switchCameraClick: React.MouseEventHandler;
+	audioDevices: MediaDeviceInfo[];
+	videoDevices: MediaDeviceInfo[];
+	usedAudioDevice: string;
+	usedVideoDevice: string;
+	selectAudioDevice: (deviceId: string) => void;
+	selectVideoDevice: (deviceId: string) => void;
 }) => {
 	const [t] = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
@@ -456,19 +596,13 @@ const CallButtons = ({
 			</div>
 			<div className="flex items-center justify-end">
 				{inCall && (
-					<button
-						className="rounded-full bg-white p-1 hover:bg-white/90 active:bg-white/80"
-						onClick={muteAudioClick}
-					>
+					<WhiteButton onClick={muteAudioClick} className="ml-3 rounded-full ">
 						<img src={audioMute ? micOffIcon : micOnIcon} alt="" className="w-[37px]" />
-					</button>
+					</WhiteButton>
 				)}
-				<button
-					className="ml-3 rounded-full bg-white p-1 hover:bg-white/90 active:bg-white/80"
-					onClick={muteVideoClick}
-				>
+				<WhiteButton onClick={muteVideoClick} className="ml-3">
 					<img src={videoMute ? camOffIcon : camOnIcon} alt="" className="w-[37px]" />
-				</button>
+				</WhiteButton>
 				{!videoMute && IsMobile() && (
 					<button
 						className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 "
@@ -476,6 +610,16 @@ const CallButtons = ({
 					>
 						<img src={switchCamIcon} alt="" />
 					</button>
+				)}
+				{!IsMobile() && (
+					<SelectDevicesButton
+						audioDevices={audioDevices}
+						videoDevices={videoDevices}
+						usedAudioDevice={usedAudioDevice}
+						usedVideoDevice={usedVideoDevice}
+						selectAudioDevice={selectAudioDevice}
+						selectVideoDevice={selectVideoDevice}
+					/>
 				)}
 			</div>
 		</div>

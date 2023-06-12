@@ -740,6 +740,23 @@ export class CallConnection {
 		}
 	}
 
+	replaceAudioTrack(track: MediaStreamTrack): void {
+		if (this.mPeerConnection != null && this.mAudioTrack) {
+			console.log("Replace Audio Track");
+			this.mAudioTrack = track;
+
+			let transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
+			for (let transceiver of transceivers) {
+				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "audio") {
+					let sender: RTCRtpSender = transceiver.sender;
+					this.mRenegotiationNeeded = true;
+					sender.replaceTrack(this.mAudioTrack);
+					break;
+				}
+			}
+		}
+	}
+
 	replaceVideoTrack(track: MediaStreamTrack): void {
 		if (this.mPeerConnection != null && this.mVideoTrack) {
 			console.log("Replace Video Track");

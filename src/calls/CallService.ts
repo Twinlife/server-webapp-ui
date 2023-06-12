@@ -66,7 +66,7 @@ export class CallService implements PeerCallServiceObserver {
 	private mPeers: Map<String, CallConnection> = new Map<any, any>();
 	private mPeerTo: Map<String, CallConnection> = new Map<String, CallConnection>();
 	private mActiveCall: CallState | null = null;
-	private mLocalStream: MediaStream | null = null;
+	private mLocalStream: MediaStream = new MediaStream();
 	private mIdentityName: string = "Unknown";
 	private mIdentityImage: ArrayBuffer = new ArrayBuffer(0);
 
@@ -167,9 +167,27 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-	setMediaStream(mediaStream: MediaStream): MediaStream {
-		this.mLocalStream = mediaStream;
+	getMediaStream(): MediaStream {
 		return this.mLocalStream;
+	}
+
+	addOrReplaceAudioTrack(audioTrack: MediaStreamTrack) {
+		if (this.mLocalStream) {
+			if (this.hasAudioTrack()) {
+				// Replace track
+				const currentTrack = this.mLocalStream.getAudioTracks()[0];
+				currentTrack.stop();
+				this.mLocalStream.removeTrack(currentTrack);
+				const call = this.mActiveCall;
+				if (call && CallStatusOps.isActive(call.getStatus())) {
+					let connections: Array<CallConnection> = call.getConnections();
+					for (let callConnection of connections) {
+						callConnection.replaceAudioTrack(audioTrack);
+					}
+				}
+			}
+			this.mLocalStream.addTrack(audioTrack);
+		}
 	}
 
 	addOrReplaceVideoTrack(videoTrack: MediaStreamTrack) {
@@ -191,11 +209,12 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
+	hasAudioTrack(): boolean {
+		return this.mLocalStream.getAudioTracks().length > 0;
+	}
+
 	hasVideoTrack(): boolean {
-		if (this.mLocalStream) {
-			return this.mLocalStream.getVideoTracks().length > 0;
-		}
-		return false;
+		return this.mLocalStream.getVideoTracks().length > 0;
 	}
 
 	/**

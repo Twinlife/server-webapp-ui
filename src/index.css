@@ -433,28 +433,7 @@ body {
 	background: #e0e0e0;
 	cursor: pointer;
 }
-.call-mute-audio {
-	mask: url(./icons/calls/micOn.svg) no-repeat center;
-}
-.call-mute-video {
-	mask: url(./icons/calls/camOn.svg) no-repeat center;
-}
-.call-audio-muted .call-mute-audio {
-	mask: url(./icons/calls/micOff.svg) no-repeat center;
-}
-.call-video-muted .call-mute-video {
-	mask: url(./icons/calls/camOff.svg) no-repeat center;
-}
-.call-terminate {
-	mask: url(./icons/calls/phone-white.svg) no-repeat center;
-}
-.invitation .call-terminate {
-	display: none;
-}
-.call-video-muted #local-video {
-	display: none;
-}
-.call-active .invitation .call-terminate {
-	display: inline-block;
-	background: red;
+
+.btn-white {
+	@apply rounded-full bg-white p-1 hover:bg-white/90 active:bg-white/80;
 }
