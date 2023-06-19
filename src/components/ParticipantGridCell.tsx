@@ -26,7 +26,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	return (
 		<div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]">
 			{isAudioMute && (
-				<div className="absolute right-2 top-2 z-20 text-2xl">
+				<div className="absolute left-2 top-2 z-20 text-2xl md:left-auto md:right-2">
 					<svg width="1em" height="1em" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
 						<g fill="none" fillRule="evenodd">
 							<circle fill="#FD605D" cx={13} cy={13} r={13} />
