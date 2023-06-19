@@ -514,6 +514,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						handleHangUpClick={this.handleTerminateClick}
 						audioMute={audioMute}
 						muteAudioClick={this.muteAudioClick}
+						hasVideo={twincode.video}
 						videoMute={videoMute}
 						muteVideoClick={this.muteVideoClick}
 						switchCameraClick={this.switchCameraClick}
@@ -545,6 +546,7 @@ const CallButtons = ({
 	handleHangUpClick: hangUpClick,
 	audioMute,
 	muteAudioClick,
+	hasVideo,
 	videoMute,
 	muteVideoClick,
 	switchCameraClick,
@@ -560,6 +562,7 @@ const CallButtons = ({
 	handleHangUpClick: React.MouseEventHandler;
 	audioMute: boolean;
 	muteAudioClick: React.MouseEventHandler;
+	hasVideo: boolean;
 	videoMute: boolean;
 	muteVideoClick: React.MouseEventHandler;
 	switchCameraClick: React.MouseEventHandler;
@@ -600,10 +603,12 @@ const CallButtons = ({
 						<img src={audioMute ? micOffIcon : micOnIcon} alt="" className="w-[37px]" />
 					</WhiteButton>
 				)}
-				<WhiteButton onClick={muteVideoClick} className="ml-3">
-					<img src={videoMute ? camOffIcon : camOnIcon} alt="" className="w-[37px]" />
-				</WhiteButton>
-				{!videoMute && IsMobile() && (
+				{hasVideo && (
+					<WhiteButton onClick={muteVideoClick} className="ml-3">
+						<img src={videoMute ? camOffIcon : camOnIcon} alt="" className="w-[37px]" />
+					</WhiteButton>
+				)}
+				{!videoMute && IsMobile() && hasVideo && (
 					<button
 						className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 "
 						onClick={switchCameraClick}
