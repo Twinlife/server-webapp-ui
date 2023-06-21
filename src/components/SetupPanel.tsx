@@ -239,8 +239,8 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 									Continue withtout camera
 								</div>
 							)}
-						{(!twincode.video && audioGranted === "granted") ||
-							(audioGranted === "granted" && videoGranted === "granted" && <SpinnerIcon />)}
+						{!twincode.video && audioGranted === "granted" && <SpinnerIcon />}
+						{twincode.video && audioGranted === "granted" && videoGranted === "granted" && <SpinnerIcon />}
 					</div>
 				</div>
 			) : twincodeError ? (
