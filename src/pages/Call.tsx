@@ -7,7 +7,6 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  *   Olivier Dupont (olivier.dupont@twin.life)
  */
-import { AxiosResponse } from "axios";
 import { TFunction } from "i18next";
 import React, { Component, RefObject, useEffect, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
@@ -28,10 +27,11 @@ import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import Header from "../components/Header";
 import ParticipantsGrid from "../components/ParticipantsGrid";
 import SelectDevicesButton from "../components/SelectDevicesButton";
+import SetupPanel from "../components/SetupPanel";
 import StoresBadges from "../components/StoresBadges";
 import Thanks from "../components/Thanks";
 import WhiteButton from "../components/WhiteButton";
-import { ContactService, TwincodeInfo } from "../services/ContactService";
+import { TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 import IsMobile from "../utils/IsMobile";
 
@@ -63,10 +63,8 @@ interface CallState {
 
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
 	private localVideoRef: RefObject<HTMLVideoElement> = React.createRef();
-	private contactService: ContactService = new ContactService();
 	private peerCallService: PeerCallService = new PeerCallService();
 	private callService: CallService = new CallService(this.peerCallService, this, this);
-	private twincodeId: string | null = null;
 
 	state: CallState = {
 		initializing: true,
@@ -97,11 +95,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	};
 
 	init = () => {
-		this.setState({ initializing: true });
+		this.setState({
+			initializing: true,
+			videoMute: true,
+			displayThanks: false,
+			status: CallStatus.IDDLE,
+			audioMute: false,
+			terminateReason: null,
+			participants: [],
+		});
 		if (!this.callService) {
 			this.callService = new CallService(this.peerCallService, this, this);
 		}
-		this.enumerateDevices();
 	};
 
 	/**
@@ -171,45 +176,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.setState({ participants: participants });
 	}
 
-	retrieveInformation() {
-		const id = this.props.id;
-
-		if (id) {
-			this.twincodeId = id;
-			this.contactService
-				.getTwincode(id)
-				.then(async (response: AxiosResponse<TwincodeInfo, any>) => {
-					let twincode = response.data;
-					this.setState({
-						initializing: false,
-						twincode: twincode,
-						videoMute: true,
-						displayThanks: false,
-						status: CallStatus.IDDLE,
-						audioMute: false,
-						terminateReason: null,
-						participants: [],
-					});
-
-					const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
-						audio: true,
-					});
-					this.callService.addOrReplaceAudioTrack(mediaStream.getAudioTracks()[0]);
-					this.setUsedDevices();
-
-					if (this.localVideoRef.current) {
-						this.localVideoRef.current.srcObject = this.callService.getMediaStream();
-					} else {
-						console.log("There is no local video element");
-					}
-				})
-				.catch((e) => {
-					console.error("retrieveInformation", e);
-					this.props.navigate("/error");
-				});
-		}
-	}
-
 	setUsedDevices() {
 		const mediaStream = this.callService.getMediaStream();
 		for (const track of mediaStream.getTracks()) {
@@ -253,7 +219,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 							audio: false,
 							video: {
-								facingMode: IsMobile() ? facingMode : undefined,
+								facingMode: facingMode,
 								deviceId: usedVideoDevice,
 							},
 						});
@@ -335,47 +301,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	enumerateDevices(): void {
-		navigator.mediaDevices
-			// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
-			// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
-			.getUserMedia({ audio: true, video: true })
-			.then((mediaStream) => {
-				for (const track of mediaStream.getTracks()) {
-					if (track.kind === "audio") {
-						this.setState({ usedAudioDevice: track.getSettings().deviceId ?? "" });
-					}
-					if (track.kind === "video") {
-						this.setState({ usedVideoDevice: track.getSettings().deviceId ?? "" });
-					}
-				}
-
-				navigator.mediaDevices.enumerateDevices().then((devices) => {
-					console.log("Available devices", JSON.stringify(devices, null, 2));
-					this.setState({
-						audioDevices: devices.filter((device) => device.kind === "audioinput").slice(),
-						videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
-					});
-
-					for (const track of mediaStream.getTracks()) {
-						track.stop();
-					}
-				});
-			})
-			.catch((error) => console.error("Error during enumerateDevices", error))
-			.finally(() => {
-				this.retrieveInformation();
-			});
-	}
-
 	handleCallClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
-		const id = this.props.id;
-
-		if (!this.twincodeId || !id) {
-			return;
-		}
-
-		const { guestName } = this.state;
+		const { twincode, guestName } = this.state;
 		if (guestName === "") {
 			this.setState({ guestNameError: true });
 			console.error("Identity name needed");
@@ -384,11 +311,10 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		this.callService.setIdentity(guestName, new ArrayBuffer(0));
 
-		let twincode: TwincodeInfo = this.state.twincode;
 		let name: string = twincode.name ? twincode.name : "Unknown";
 		let video: boolean = !this.state.videoMute;
 		let avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
-		this.callService.actionOutgoingCall(this.twincodeId, video, name, avatarUrl);
+		this.callService.actionOutgoingCall(this.props.id, video, name, avatarUrl);
 		ev.preventDefault();
 	};
 
@@ -429,7 +355,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	};
 
 	render() {
-		const { t } = this.props;
+		const { id, t } = this.props;
 		const {
 			initializing,
 			guestName,
@@ -455,33 +381,29 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				<Header />
 
 				{initializing && (
-					<div className="flex flex-1 items-center justify-center">
-						<svg
-							className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
-							xmlns="http://www.w3.org/2000/svg"
-							fill="none"
-							viewBox="0 0 24 24"
-						>
-							<circle
-								className="opacity-25"
-								cx="12"
-								cy="12"
-								r="10"
-								stroke="currentColor"
-								strokeWidth="4"
-							></circle>
-							<path
-								className="opacity-75"
-								fill="currentColor"
-								d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-							></path>
-						</svg>
-					</div>
+					<SetupPanel
+						twincodeId={id}
+						twincode={twincode}
+						audioDevices={audioDevices}
+						videoDevices={videoDevices}
+						usedAudioDevice={usedAudioDevice}
+						usedVideoDevice={usedVideoDevice}
+						setTwincode={(twincode) => this.setState({ twincode })}
+						setEnumeratedDevices={(devices) => this.setState(devices)}
+						setUsedAudioDevice={(usedAudioDevice) => this.setState({ usedAudioDevice })}
+						setUsedVideoDevice={(usedVideoDevice) => this.setState({ usedVideoDevice })}
+						onAddOrReplaceAudioTrack={(audioTrack) => {
+							this.callService.addOrReplaceAudioTrack(audioTrack);
+							this.setUsedDevices();
+						}}
+						onComplete={() => this.setState({ initializing: false })}
+					/>
 				)}
 
 				{!initializing && !CallStatusOps.isTerminated(status) && (
 					<ParticipantsGrid
 						localVideoRef={this.localVideoRef}
+						localMediaStream={this.callService.getMediaStream()}
 						videoMute={videoMute}
 						twincode={twincode}
 						participants={this.state.participants}

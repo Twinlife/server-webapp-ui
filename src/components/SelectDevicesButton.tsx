@@ -27,7 +27,7 @@ const SelectDevicesButton: React.FC<{
 				leaveFrom="transform opacity-100 scale-100"
 				leaveTo="transform opacity-0 scale-95"
 			>
-				<Menu.Items className="max-w-screen absolute -top-2 right-0 z-20 mb-2 origin-bottom-right -translate-y-full transform divide-y divide-gray-100 overflow-hidden rounded-md bg-black shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+				<Menu.Items className="max-w-screen absolute -top-2 right-0 z-20 mb-2 origin-bottom-right -translate-y-full transform divide-y divide-gray-100 overflow-hidden rounded-md bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
 					{audioDevices.length > 0 && (
 						<>
 							<div className="flex items-center">

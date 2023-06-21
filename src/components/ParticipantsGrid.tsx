@@ -1,4 +1,4 @@
-import { RefObject } from "react";
+import { RefObject, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { CallParticipant } from "../calls/CallParticipant";
 import { TwincodeInfo } from "../services/ContactService";
@@ -6,6 +6,7 @@ import ParticipantGridCell from "./ParticipantGridCell";
 
 const ParticipantsGrid: React.FC<{
 	localVideoRef: RefObject<HTMLVideoElement>;
+	localMediaStream: MediaStream;
 	videoMute: boolean;
 	twincode: TwincodeInfo;
 	participants: CallParticipant[];
@@ -16,6 +17,7 @@ const ParticipantsGrid: React.FC<{
 	muteVideoClick: (ev: React.MouseEvent<HTMLDivElement>) => void;
 }> = ({
 	localVideoRef,
+	localMediaStream,
 	videoMute,
 	twincode,
 	participants,
@@ -42,6 +44,14 @@ const ParticipantsGrid: React.FC<{
 	} else if (participants.length < 10) {
 		gridClass = "grid-cols-3 grid-rows-3";
 	}
+
+	useEffect(() => {
+		if (localVideoRef.current) {
+			localVideoRef.current.srcObject = localMediaStream;
+		} else {
+			console.log("There is no local video element");
+		}
+	}, [localMediaStream]);
 
 	return (
 		<div className={["grid flex-1 gap-4 overflow-hidden py-4", gridClass].join(" ")}>

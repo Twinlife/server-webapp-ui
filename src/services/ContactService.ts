@@ -23,7 +23,7 @@ export type TwincodeInfo = {
  * Simple service to get the contact information (aka twincode attributes).
  */
 export class ContactService {
-	getTwincode(id: string) {
+	public static getTwincode(id: string) {
 		return axios.get<TwincodeInfo>(url + "/twincodes/" + id);
 	}
 }
