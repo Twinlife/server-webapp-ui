@@ -151,17 +151,15 @@ export interface PeerCallServiceObserver {
  * WebRTC session management to send/receive SDPs.
  */
 export class PeerCallService {
-	private socket: WebSocket;
-	private callConfig: CallConfigMessage | null;
-	private callObserver: PeerCallServiceObserver | null;
+	private socket: WebSocket | null = null;
+	private callConfig: CallConfigMessage | null = null;
+	private callObserver: PeerCallServiceObserver | null = null;
 
-	constructor() {
-		this.callConfig = null;
-		this.callObserver = null;
+	setupWebsocket(): void {
 		this.socket = new WebSocket(url);
 		this.socket.addEventListener("open", (event: Event) => {
 			console.log("Websocket is opened");
-			this.socket.send('{"msg":"session-request"}');
+			this.socket?.send('{"msg":"session-request"}');
 		});
 
 		this.socket.addEventListener("message", (msg: MessageEvent) => {
@@ -171,7 +169,7 @@ export class PeerCallService {
 			} catch (e) {
 				return;
 			}
-			console.log("Received " + req.msg);
+			console.log("Received ", req.msg);
 			if (req.msg === "session-config") {
 				this.callConfig = req as CallConfigMessage;
 			} else if (req.msg === "session-accept") {
@@ -231,7 +229,7 @@ export class PeerCallService {
 					this.callObserver.onMemberJoin(memberJoin.sessionId, memberJoin.memberId, memberJoin.status);
 				}
 			} else {
-				console.log("Unsupported message " + req);
+				console.log("Unsupported message ", req);
 			}
 		});
 
@@ -240,7 +238,7 @@ export class PeerCallService {
 		});
 
 		this.socket.addEventListener("error", (event: Event) => {
-			console.log("Websocket error" + event);
+			console.error("Websocket error", event);
 		});
 	}
 
@@ -289,7 +287,7 @@ export class PeerCallService {
 			sessionId: null,
 		};
 
-		this.socket.send(JSON.stringify(msg));
+		this.socket?.send(JSON.stringify(msg));
 	}
 
 	sessionAccept(sessionId: string, to: string, sdp: string, offer: Offer) {
@@ -302,7 +300,7 @@ export class PeerCallService {
 			offerToReceive: offer,
 		};
 
-		this.socket.send(JSON.stringify(msg));
+		this.socket?.send(JSON.stringify(msg));
 	}
 
 	sessionUpdate(sessionId: string, sdp: string, updateType: string) {
@@ -313,7 +311,7 @@ export class PeerCallService {
 			updateType: updateType,
 		};
 
-		this.socket.send(JSON.stringify(msg));
+		this.socket?.send(JSON.stringify(msg));
 	}
 
 	transportInfo(sessionId: string, candidate: string, label: string, index: number) {
@@ -331,7 +329,7 @@ export class PeerCallService {
 		};
 
 		// console.log("send transport info to " + sessionId + " candidate " + candidate);
-		this.socket.send(JSON.stringify(msg));
+		this.socket?.send(JSON.stringify(msg));
 	}
 
 	sessionTerminate(sessionId: string, reason: TerminateReason) {
@@ -341,6 +339,6 @@ export class PeerCallService {
 			reason: reason,
 		};
 
-		this.socket.send(JSON.stringify(msg));
+		this.socket?.send(JSON.stringify(msg));
 	}
 }

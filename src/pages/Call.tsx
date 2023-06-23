@@ -396,7 +396,15 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 							this.callService.addOrReplaceAudioTrack(audioTrack);
 							this.setUsedDevices();
 						}}
-						onComplete={() => this.setState({ initializing: false })}
+						onComplete={() => {
+							if (
+								!(document as any).webkitVisibilityState ||
+								(document as any).webkitVisibilityState !== "prerender"
+							) {
+								this.peerCallService.setupWebsocket();
+								this.setState({ initializing: false });
+							}
+						}}
 					/>
 				)}
 
