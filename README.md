@@ -51,12 +51,13 @@ VITE_STORE_WINDOWS=...
 
 ## Build Skred and Twinme
 
-With Skred configuration in `.env.skred` and Twinme configuration in `.env.twinme`, run one of:
+With Skred configuration in `.env.skred` and Twinme configuration in `.env.twinme`, run one of the following commands.
+This will copy corresponding favicon assets and manifest as well.
 
 ```
-npm run build -- --mode skred
+npm run build:skred
 ```
 
 ```
-npm run build -- --mode twinme
+npm run build:twinme
 ```
