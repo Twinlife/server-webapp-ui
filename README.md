@@ -61,3 +61,7 @@ npm run build:skred
 ```
 npm run build:twinme
 ```
+
+```
+npm run build:mytwinlife
+```

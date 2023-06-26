@@ -1,11 +1,12 @@
 {
 	"name": "mytwinlife-twinapp-ui",
-	"version": "1.0.5",
+	"version": "1.0.7",
 	"private": true,
 	"type": "module",
 	"scripts": {
 		"start": "vite",
 		"build": "tsc && vite build",
+		"build:mytwinlife": "node scripts/publicAssets.js twinme && npm run build -- --mode mytwinlife",
 		"build:twinme": "node scripts/publicAssets.js twinme && npm run build -- --mode twinme",
 		"build:skred": "node scripts/publicAssets.js skred && npm run build -- --mode skred",
 		"lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
