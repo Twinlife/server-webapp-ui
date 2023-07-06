@@ -22,6 +22,7 @@ import { CallService } from "./CallService";
 import { CallState } from "./CallState";
 import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ParticipantInfoIQ } from "./ParticipantInfoIQ";
+import {TransferDoneIQ} from "./TransferDoneIQ.ts";
 
 type PacketHandler = {
 	serializer: Serializer;
@@ -65,6 +66,23 @@ export class CallConnection {
 				1
 			);
 		return CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER;
+	}
+
+	static TRANSFER_DONE_SCHEMA_ID: UUID;
+	public static TRANSFER_DONE_SCHEMA_ID_$LI$(): UUID {
+		if (CallConnection.TRANSFER_DONE_SCHEMA_ID == null)
+			CallConnection.TRANSFER_DONE_SCHEMA_ID = UUID.fromString("641bf1f6-ebbf-4501-9151-76abc1b9adad");
+		return CallConnection.TRANSFER_DONE_SCHEMA_ID;
+	}
+
+	static IQ_TRANSFER_DONE_SERIALIZER: BinaryPacketIQ.BinaryPacketIQSerializer;
+	public static IQ_TRANSFER_DONE_SERIALIZER_$LI$(): BinaryPacketIQ.BinaryPacketIQSerializer {
+		if (CallConnection.IQ_TRANSFER_DONE_SERIALIZER == null)
+			CallConnection.IQ_TRANSFER_DONE_SERIALIZER = TransferDoneIQ.createSerializer(
+				CallConnection.TRANSFER_DONE_SCHEMA_ID_$LI$(),
+				1
+			);
+		return CallConnection.IQ_TRANSFER_DONE_SERIALIZER;
 	}
 
 	private readonly mCallService: CallService;
@@ -415,6 +433,7 @@ export class CallConnection {
 			video: this.mVideoSourceOn,
 			data: true,
 			group: false,
+			transfer: true,
 			version: "1.0.0",
 		};
 		// this.mVideoSourceOn ? "video" : "audio";
@@ -919,5 +938,19 @@ export class CallConnection {
 
 		this.mMainParticipant.setInformation(participantInfoIQ.name, participantInfoIQ.description, imageUrl);
 		this.mCall.onEventParticipant(this.mMainParticipant, CallParticipantEvent.EVENT_IDENTITY);
+	}
+
+	public sendTransferDoneIQ(): void {
+		if (this.mOutDataChannel == null) {
+			return;
+		}
+		try {
+			let iq: TransferDoneIQ = new TransferDoneIQ(
+				CallConnection.IQ_TRANSFER_DONE_SERIALIZER_$LI$(),
+				1,
+			);
+			let packet: ArrayBuffer = iq.serializeCompact();
+			this.mOutDataChannel.send(packet);
+		} catch (exception) {}
 	}
 }

@@ -36,6 +36,7 @@ export class CallParticipant {
 	private mAvatarUrl: string | null = null;
 	private mName: string | null;
 	private mDescription: string | null;
+	private mTransfer: boolean;
 	private mRemoteRenderer: HTMLVideoElement | null = null;
 	private mAudioMute: boolean = false;
 	private mCameraMute: boolean = false;
@@ -177,6 +178,7 @@ export class CallParticipant {
 		this.mVideoWidth = 0;
 		this.mVideoHeight = 0;
 		this.mParticipantId = participantId;
+		this.mTransfer = false;
 	}
 
 	setMicrophoneMute(mute: boolean): void {
@@ -187,10 +189,15 @@ export class CallParticipant {
 		this.mCameraMute = mute;
 	}
 
-	setInformation(name: string, description: string | null, avatarUrl: string | null): void {
+	setInformation(name: string, description: string | null, avatarUrl: string | null, transfer: boolean = false): void {
 		this.mName = name;
 		this.mDescription = description;
 		this.mAvatarUrl = avatarUrl;
+		this.mTransfer = transfer;
+	}
+
+	isTransfer(): boolean {
+		return this.mTransfer;
 	}
 
 	/* setupVideo(localRenderer: any): boolean {

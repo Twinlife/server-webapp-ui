@@ -77,6 +77,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			avatarId: null,
 			audio: false,
 			video: false,
+			transfer: false
 		},
 		audioMute: false,
 		videoMute: false,
@@ -313,8 +314,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		let name: string = twincode.name ? twincode.name : "Unknown";
 		let video: boolean = !this.state.videoMute;
+		let transfer: boolean = twincode.transfer;
 		let avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
-		this.callService.actionOutgoingCall(this.props.id, video, name, avatarUrl);
+		this.callService.actionOutgoingCall(this.props.id, video, transfer, name, avatarUrl);
 		ev.preventDefault();
 	};
 

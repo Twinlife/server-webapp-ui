@@ -50,6 +50,7 @@ export type Offer = {
 	video: boolean;
 	data: boolean;
 	group: boolean | undefined;
+	transfer: boolean | undefined;
 	version: string;
 };
 

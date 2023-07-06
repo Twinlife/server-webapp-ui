@@ -17,6 +17,7 @@ export type TwincodeInfo = {
 	avatarId: string | null;
 	audio: boolean;
 	video: boolean;
+	transfer: boolean;
 };
 
 /**
