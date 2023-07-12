@@ -204,7 +204,8 @@ export class CallConnection {
 		callStatus: CallStatus,
 		mediaStream: MediaStream | null,
 		memberId: string | null,
-		sdp: string | null
+		sdp: string | null,
+		transfer: boolean = false
 	) {
 		this.mCallService = callService;
 		this.mPeerCallService = peerCallService;
@@ -433,7 +434,7 @@ export class CallConnection {
 			video: this.mVideoSourceOn,
 			data: true,
 			group: false,
-			transfer: true,
+			transfer: transfer,
 			version: "1.0.0",
 		};
 		// this.mVideoSourceOn ? "video" : "audio";

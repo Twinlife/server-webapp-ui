@@ -109,7 +109,8 @@ export class CallService implements PeerCallServiceObserver {
             callStatus,
             this.mLocalStream,
             twincodeId,
-            null
+            null,
+            transfer
         );
         this.mActiveCall = call;
         call.addPeerConnection(callConnection);
