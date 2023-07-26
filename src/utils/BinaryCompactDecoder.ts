@@ -21,6 +21,8 @@ export class BinaryCompactDecoder implements Decoder {
 
 	private mBuffer: ArrayBuffer = new ArrayBuffer(8);
 
+	private textDecoder: TextDecoder = new TextDecoder('utf-8');
+
 	public constructor(inputStream: ByteArrayInputStream) {
 		this.mInputStream = inputStream;
 	}
@@ -211,7 +213,7 @@ export class BinaryCompactDecoder implements Decoder {
 			}
 			let buffer: ArrayBuffer = new ArrayBuffer(length);
 			this.doReadBytes(buffer, 0, length);
-			return Buffer.from(buffer).toString("utf-8");
+			return this.textDecoder.decode(buffer);
 		} catch (exception) {
 			throw new SerializerException(exception);
 		}

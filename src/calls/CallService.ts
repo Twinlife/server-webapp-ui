@@ -302,9 +302,14 @@ export class CallService implements PeerCallServiceObserver {
         console.log("P2P " + sessionId + " is accepted for " + offer);
 
         const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
-        if (!callConnection || !callConnection.onSessionAccept(sdp, offer, offerToReceive)) {
+        if (!callConnection?.onSessionAccept(sdp, offer, offerToReceive)) {
             this.mPeerCallService.sessionTerminate(sessionId, "gone");
-        } else if (this.mActiveCall?.getMainParticipant()?.isTransfer()) {
+        } else if (this.mActiveCall?.getMainParticipant()?.isTransfer()
+            && this.mActiveCall?.getCurrentConnection()?.getPeerConnectionId() != sessionId) {
+            // This is a transfer call
+            // and we're connected with the other participant =>
+            // Tell the transferred device that the transfer is done so that it disconnects
+            // TODO handle group calls (i.e. wait for all connections to be accepted)
             this.mActiveCall?.getCurrentConnection()?.sendTransferDoneIQ();
         }
     }
@@ -313,7 +318,7 @@ export class CallService implements PeerCallServiceObserver {
         console.log("P2P " + sessionId + "update " + updateType);
 
         const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
-        if (!callConnection || !callConnection.onSessionUpdate(updateType, sdp)) {
+        if (!callConnection?.onSessionUpdate(updateType, sdp)) {
             this.mPeerCallService.sessionTerminate(sessionId, "gone");
         }
     }
@@ -322,7 +327,7 @@ export class CallService implements PeerCallServiceObserver {
         // console.log("transport-info " + sessionId + " candidates: " + candidates);
 
         const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
-        if (!callConnection || !callConnection?.onTransportInfo(candidates)) {
+        if (!callConnection?.onTransportInfo(candidates)) {
             this.mPeerCallService.sessionTerminate(sessionId, "gone");
             return;
         }

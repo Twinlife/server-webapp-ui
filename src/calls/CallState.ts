@@ -165,6 +165,10 @@ export class CallState {
 		return this.mCallRoomId;
 	}
 
+	public getCallRoomMemberId(): string | null {
+		return this.mCallRoomMemberId;
+	}
+
 	/**
 	 * Get the maximum number of participants
 	 *
