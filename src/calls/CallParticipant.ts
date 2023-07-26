@@ -189,11 +189,13 @@ export class CallParticipant {
 		this.mCameraMute = mute;
 	}
 
-	setInformation(name: string, description: string | null, avatarUrl: string | null, transfer: boolean = false): void {
+	setInformation(name: string, description: string | null, avatarUrl: string | null, transfer: boolean | undefined = undefined): void {
 		this.mName = name;
 		this.mDescription = description;
 		this.mAvatarUrl = avatarUrl;
-		this.mTransfer = transfer;
+		if (transfer) {
+			this.mTransfer = transfer;
+		}
 	}
 
 	isTransfer(): boolean {
