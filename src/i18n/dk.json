@@ -8,6 +8,17 @@
         "activate_camera": "Aktiver dit kamera",
         "nickname_placeholder": "Navn",
         "nickname_empty_error": "Vælg et navn",
-        "guest": "Gæst"
+        "guest": "Gæst",
+        "microphone_access": "Du skal give adgang til din mikrofon, før du kan bruge den.",
+        "microphone_access_denied": "Opdater dine tilladelser, og opdater derefter siden.",
+        "microphone_access_not_found": "Der blev ikke fundet nogen mikrofon.",
+        "microphone_access_error": "Der opstod en fejl. Kontroller, at mikrofonen ikke er i brug af en anden applikation, og opdater siden.",
+        "camera_access": "Kameraadgang",
+        "camera_access_denied": "Du skal give adgang til dit kamera, før du kan bruge det.",
+        "camera_access_not_found": "Intet kamera blev fundet.",
+        "camera_access_error": "Der opstod en fejl. Kontroller, at kameraet ikke er i brug af et andet program, og opdater siden.",
+        "twincode_error": "Det \"Click-to-Call\"-linket, du indtastede, ser ud til at være ugyldigt.",
+        "general_error_title": "Ups!",
+        "general_error_message": "Undskyld, noget gik galt."
     }
 }

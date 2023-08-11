@@ -1,5 +1,6 @@
 import { AxiosResponse } from "axios";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import CheckIcon from "./icons/CheckIcon";
 import SpinnerIcon from "./icons/SpinnerIcon";
@@ -36,7 +37,8 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 	onAddOrReplaceAudioTrack,
 	onComplete,
 }) => {
-	const [twincodeError, setTwincodeError] = useState(false);
+	const { t } = useTranslation();
+	const [twincodeError, setTwincodeError] = useState<boolean>(false);
 	const [audioGranted, setAudioGranted] = useState<GrantState>("pending");
 	// const [videoGranted, setVideoGranted] = useState<GrantState>("pending");
 
@@ -46,7 +48,11 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 			ContactService.getTwincode(twincodeId)
 				.then(async (response: AxiosResponse<TwincodeInfo, any>) => {
 					let twincode = response.data;
-					setTwincode(twincode);
+					if (twincode.audio) {
+						setTwincode(twincode);
+					} else {
+						setTwincodeError(true);
+					}
 				})
 				.catch((e) => {
 					console.error("retrieveInformation", e);
@@ -128,12 +134,12 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 						break;
 				}
 				kind === "audio" ? setAudioGranted(grantErrorType) : null /* setVideoGranted(grantErrorType) */;
-			})
-			.finally(() => {
-				// if (kind === "audio" && twincode.video) {
-				// 	askForMediaPermission("video");
-				// }
 			});
+		// .finally(() => {
+		// 	if (kind === "audio" && twincode.video) {
+		// 		askForMediaPermission("video");
+		// 	}
+		// });
 	};
 
 	return (
@@ -155,7 +161,7 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 						{twincode.audio && (
 							<li className="py-5">
 								<div className="flex justify-between border-b-8 border-white">
-									<div>Audio</div>
+									<div>{t("audio")}</div>
 									<div>
 										{audioGranted === "pending" ? (
 											<SpinnerIcon />
@@ -177,18 +183,12 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 										</div>
 									)}
 									{(audioGranted === "pending" || audioGranted === "denied") && (
-										<div>Please grant access to your microphone.</div>
+										<div className="mb-2">{t("microphone_access")}</div>
 									)}
-									{audioGranted === "denied" && (
-										<div>Update your permissions, then refresh the page.</div>
-									)}
-									{audioGranted === "notfound" && <div>No microphone were found.</div>}
-									{audioGranted === "error" && (
-										<div>
-											An error occured, ensure sure the microphone is not being used by another
-											application and try refreshing the page.
-										</div>
-									)}
+									{audioGranted === "denied" && <div>{t("microphone_access_denied")}</div>}
+									{audioGranted === "notfound" && <div>{t("microphone_access_not_found")}</div>}
+
+									{audioGranted === "error" && <div>{t("microphone_access_error")}</div>}
 								</div>
 							</li>
 						)}
@@ -249,7 +249,7 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 					</div>
 				</div>
 			) : twincodeError ? (
-				<div className="p-4 text-center">It seems that the Click-to-Call link you entered is invalid.</div>
+				<div className="p-4 text-center">{t("twincode_error")}</div>
 			) : (
 				<SpinnerIcon />
 			)}

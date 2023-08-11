@@ -81,7 +81,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			avatarId: null,
 			audio: false,
 			video: false,
-			transfer: false
+			transfer: false,
 		},
 		audioMute: false,
 		videoMute: false,
@@ -256,31 +256,24 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 							switch (error.name) {
 								case "NotAllowedError":
 									console.log("NOT ALLOWED");
-									alertMessage = (
-										<div>You must authorize access to your camera before you can use it.</div>
-									);
+									alertMessage = <div>{this.props.t("camera_access_denied")}</div>;
 									break;
 								case "NotFoundError":
 									console.log("NOT FOUND");
-									alertMessage = <div>No camera were found.</div>;
+									alertMessage = <div>{this.props.t("camera_access_not_found")}</div>;
 									break;
 								default:
 									console.log("DEFAULT ERROR");
-									alertMessage = (
-										<div>
-											An error occured, ensure sure the camera is not being used by another
-											application and try refreshing the page.
-										</div>
-									);
+									alertMessage = <div>{this.props.t("camera_access_error")}</div>;
 									break;
 							}
 							this.setState({
 								alertOpen: true,
-								alertTitle: "Camera access",
+								alertTitle: this.props.t("camera_access"),
 								alertContent: (
 									<>
 										{alertMessage}
-										<div className="mt-4 text-right">
+										<div className="mt-6 text-right">
 											<button
 												type="button"
 												className="inline-flex w-full justify-center rounded-md bg-white/90 px-2 py-1 text-xs text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
@@ -582,7 +575,7 @@ const CallButtons = ({
 	selectAudioDevice: (deviceId: string) => void;
 	selectVideoDevice: (deviceId: string) => void;
 }) => {
-	const [t] = useTranslation();
+	const { t } = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
 	const isIddle = CallStatusOps.isIddle(status);
 

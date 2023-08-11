@@ -1,4 +1,5 @@
 {
+	"audio": "Audio",
 	"audio_call_activity_calling": "Calling…",
 	"calls_fragment_call_again_title": "Call back",
 	"audio_call_activity_cannot_call": "Cannot make a voice call",

@@ -46,7 +46,7 @@ const Alert: FC<AlertProps> = ({ isOpen, onClose, title, content }) => {
 											{title}
 										</Dialog.Title>
 										<div className="mt-2">
-											<p className="text-sm text-gray-300">{content}</p>
+											<div className="text-sm text-gray-300">{content}</div>
 										</div>
 									</div>
 								</div>
