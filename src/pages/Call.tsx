@@ -228,7 +228,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 			this.setState({ videoMute: !videoMute }, async () => {
 				const { status, videoMute, facingMode, usedVideoDevice } = this.state;
-				let videogranted = false;
 				if (!videoMute && !this.callService.hasVideoTrack()) {
 					try {
 						const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
@@ -247,7 +246,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						const videoTrack = mediaStream.getVideoTracks()[0];
 						this.callService.addOrReplaceVideoTrack(videoTrack);
 						this.setUsedDevices();
-						videogranted = true;
 					} catch (error) {
 						console.log("Add video track error", error);
 						if (error instanceof DOMException) {
@@ -290,7 +288,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					}
 				}
 
-				if (videogranted && CallStatusOps.isActive(status)) {
+				if (this.callService.hasVideoTrack() && CallStatusOps.isActive(status)) {
 					this.callService.actionCameraMute(videoMute);
 				}
 			});
