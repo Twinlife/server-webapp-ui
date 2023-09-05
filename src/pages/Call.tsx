@@ -8,7 +8,7 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  */
 import { TFunction } from "i18next";
-import React, { Component, RefObject, useEffect, useState } from "react";
+import React, { Component, ReactNode, RefObject, useEffect, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
 import { NavigateFunction, useNavigate, useParams } from "react-router-dom";
@@ -24,6 +24,7 @@ import { CallParticipantEvent } from "../calls/CallParticipantEvent";
 import { CallParticipantObserver } from "../calls/CallParticipantObserver";
 import { CallService } from "../calls/CallService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
+import Alert from "../components/Alert";
 import Header from "../components/Header";
 import ParticipantsGrid from "../components/ParticipantsGrid";
 import SelectDevicesButton from "../components/SelectDevicesButton";
@@ -59,6 +60,9 @@ interface CallState {
 	facingMode: FacingMode;
 	usedAudioDevice: string;
 	usedVideoDevice: string;
+	alertOpen: boolean;
+	alertTitle: string;
+	alertContent: ReactNode;
 }
 
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
@@ -77,7 +81,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			avatarId: null,
 			audio: false,
 			video: false,
-			transfer: false
+			transfer: false,
 		},
 		audioMute: false,
 		videoMute: false,
@@ -89,6 +93,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		facingMode: "user",
 		usedAudioDevice: "",
 		usedVideoDevice: "",
+		alertOpen: false,
+		alertTitle: "",
+		alertContent: <></>,
 	};
 
 	componentDidMount = () => {
@@ -104,6 +111,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			audioMute: false,
 			terminateReason: null,
 			participants: [],
+			alertOpen: false,
+			alertTitle: "",
+			alertContent: <></>,
 		});
 		if (!this.callService) {
 			this.callService = new CallService(this.peerCallService, this, this);
@@ -132,6 +142,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.setState({
 			terminateReason: reason,
 			status: CallStatus.TERMINATED,
+			alertOpen: false,
+			alertTitle: "",
+			alertContent: <></>,
 		});
 
 		this.callService = null as any;
@@ -224,15 +237,58 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 								deviceId: usedVideoDevice,
 							},
 						});
+
+						const devices = await navigator.mediaDevices.enumerateDevices();
+						this.setState({
+							videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
+						});
+
 						const videoTrack = mediaStream.getVideoTracks()[0];
 						this.callService.addOrReplaceVideoTrack(videoTrack);
 						this.setUsedDevices();
 					} catch (error) {
 						console.log("Add video track error", error);
+						if (error instanceof DOMException) {
+							console.log("Mute video DOMException", error.name);
+							let alertMessage = <></>;
+							switch (error.name) {
+								case "NotAllowedError":
+									console.log("NOT ALLOWED");
+									alertMessage = <div>{this.props.t("camera_access_denied")}</div>;
+									break;
+								case "NotFoundError":
+									console.log("NOT FOUND");
+									alertMessage = <div>{this.props.t("camera_access_not_found")}</div>;
+									break;
+								default:
+									console.log("DEFAULT ERROR");
+									alertMessage = <div>{this.props.t("camera_access_error")}</div>;
+									break;
+							}
+							this.setState({
+								alertOpen: true,
+								alertTitle: this.props.t("camera_access"),
+								alertContent: (
+									<>
+										{alertMessage}
+										<div className="mt-6 text-right">
+											<button
+												type="button"
+												className="inline-flex w-full justify-center rounded-md bg-white/90 px-2 py-1 text-xs text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+												onClick={() => this.setState({ alertOpen: false })}
+											>
+												OK
+											</button>
+										</div>{" "}
+									</>
+								),
+							});
+						}
+						this.setState({ videoMute: true });
 					}
 				}
 
-				if (CallStatusOps.isActive(status)) {
+				if (this.callService.hasVideoTrack() && CallStatusOps.isActive(status)) {
 					this.callService.actionCameraMute(videoMute);
 				}
 			});
@@ -372,6 +428,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			videoDevices,
 			usedAudioDevice,
 			usedVideoDevice,
+			alertOpen,
+			alertTitle,
+			alertContent,
 		} = this.state;
 
 		if (displayThanks) {
@@ -387,13 +446,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						twincodeId={id}
 						twincode={twincode}
 						audioDevices={audioDevices}
-						videoDevices={videoDevices}
+						// videoDevices={videoDevices}
 						usedAudioDevice={usedAudioDevice}
-						usedVideoDevice={usedVideoDevice}
+						// usedVideoDevice={usedVideoDevice}
 						setTwincode={(twincode) => this.setState({ twincode })}
 						setEnumeratedDevices={(devices) => this.setState(devices)}
 						setUsedAudioDevice={(usedAudioDevice) => this.setState({ usedAudioDevice })}
-						setUsedVideoDevice={(usedVideoDevice) => this.setState({ usedVideoDevice })}
+						// setUsedVideoDevice={(usedVideoDevice) => this.setState({ usedVideoDevice })}
 						onAddOrReplaceAudioTrack={(audioTrack) => {
 							this.callService.addOrReplaceAudioTrack(audioTrack);
 							this.setUsedDevices();
@@ -404,7 +463,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 								(document as any).webkitVisibilityState !== "prerender"
 							) {
 								this.peerCallService.setupWebsocket();
-								this.setState({ initializing: false });
+								setTimeout(() => {
+									this.setState({ initializing: false });
+								}, 2000);
 							}
 						}}
 					/>
@@ -467,6 +528,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						</div>
 					</>
 				)}
+
+				<Alert
+					title={alertTitle}
+					isOpen={alertOpen}
+					content={alertContent}
+					onClose={() => this.setState({ alertOpen: false })}
+				/>
 			</div>
 		);
 	}
@@ -505,7 +573,7 @@ const CallButtons = ({
 	selectAudioDevice: (deviceId: string) => void;
 	selectVideoDevice: (deviceId: string) => void;
 }) => {
-	const [t] = useTranslation();
+	const { t } = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
 	const isIddle = CallStatusOps.isIddle(status);
 

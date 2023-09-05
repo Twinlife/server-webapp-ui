@@ -8,6 +8,17 @@
         "activate_camera": "Aktivoi kamerasi",
         "nickname_placeholder": "Nimi",
         "nickname_empty_error": "Valitse nimi",
-        "guest": "Vieras"
+        "guest": "Vieras",
+        "microphone_access": "Sinun on myönnettävä mikrofonin käyttöoikeus ennen kuin voit käyttää sitä.",
+        "microphone_access_denied": "Päivitä käyttöoikeutesi ja päivitä sitten sivu.",
+        "microphone_access_not_found": "Mikrofonia ei löytynyt.",
+        "microphone_access_error": "Tapahtui virhe, tarkista, ettei mikrofoni ole toisen sovelluksen käytössä, ja päivitä sivu.",
+        "camera_access": "Kameran käyttöoikeus",
+        "camera_access_denied": "Sinun on myönnettävä käyttöoikeus kamerallesi, ennen kuin voit käyttää sitä.",
+        "camera_access_not_found": "Kameraa ei löytynyt.",
+        "camera_access_error": "Tapahtui virhe, tarkista, ettei kamera ole toisen sovelluksen käytössä, ja päivitä sivu.",
+        "twincode_error": "Antamasi \"Click-to-Call\" -linkki vaikuttaa virheelliseltä.",
+        "general_error_title": "Oho!",
+        "general_error_message": "Pahoittelut, jotain meni pieleen."
     }
 }

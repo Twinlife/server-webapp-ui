@@ -1,5 +1,6 @@
 import { AxiosResponse } from "axios";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import CheckIcon from "./icons/CheckIcon";
 import SpinnerIcon from "./icons/SpinnerIcon";
@@ -11,13 +12,13 @@ interface InitializationModalProps {
 	twincodeId: string;
 	twincode: TwincodeInfo;
 	audioDevices: MediaDeviceInfo[];
-	videoDevices: MediaDeviceInfo[];
+	// videoDevices: MediaDeviceInfo[];
 	usedAudioDevice: string;
-	usedVideoDevice: string;
+	// usedVideoDevice: string;
 	setTwincode: (twincode: TwincodeInfo) => void;
 	setEnumeratedDevices: (devices: { audioDevices: MediaDeviceInfo[]; videoDevices: MediaDeviceInfo[] }) => void;
 	setUsedAudioDevice: (deviceId: string) => void;
-	setUsedVideoDevice: (deviceId: string) => void;
+	// setUsedVideoDevice: (deviceId: string) => void;
 	onAddOrReplaceAudioTrack: (audioTrack: MediaStreamTrack) => void;
 	onComplete: () => void;
 }
@@ -26,19 +27,20 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 	twincodeId,
 	twincode,
 	audioDevices,
-	videoDevices,
+	// videoDevices,
 	usedAudioDevice,
-	usedVideoDevice,
+	// usedVideoDevice,
 	setTwincode,
 	setEnumeratedDevices,
 	setUsedAudioDevice,
-	setUsedVideoDevice,
+	// setUsedVideoDevice,
 	onAddOrReplaceAudioTrack,
 	onComplete,
 }) => {
-	const [twincodeError, setTwincodeError] = useState(false);
+	const { t } = useTranslation();
+	const [twincodeError, setTwincodeError] = useState<boolean>(false);
 	const [audioGranted, setAudioGranted] = useState<GrantState>("pending");
-	const [videoGranted, setVideoGranted] = useState<GrantState>("pending");
+	// const [videoGranted, setVideoGranted] = useState<GrantState>("pending");
 
 	useEffect(() => {
 		if (twincodeId) {
@@ -46,7 +48,11 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 			ContactService.getTwincode(twincodeId)
 				.then(async (response: AxiosResponse<TwincodeInfo, any>) => {
 					let twincode = response.data;
-					setTwincode(twincode);
+					if (twincode.audio) {
+						setTwincode(twincode);
+					} else {
+						setTwincodeError(true);
+					}
 				})
 				.catch((e) => {
 					console.error("retrieveInformation", e);
@@ -63,18 +69,21 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 
 	useEffect(() => {
 		if (twincode) {
-			if (!twincode.video && audioGranted === "granted") {
-				setTimeout(() => {
-					onComplete();
-				}, 2000);
-			}
-			if (twincode.video && audioGranted === "granted" && videoGranted === "granted") {
-				setTimeout(() => {
-					onComplete();
-				}, 2000);
+			// if (!twincode.video && audioGranted === "granted") {
+			// 	setTimeout(() => {
+			// 		onComplete();
+			// 	}, 2000);
+			// }
+			// if (twincode.video && audioGranted === "granted" && videoGranted === "granted") {
+			// 	setTimeout(() => {
+			// 		onComplete();
+			// 	}, 2000);
+			// }
+			if (audioGranted === "granted") {
+				onComplete();
 			}
 		}
-	}, [twincode, audioGranted, videoGranted]);
+	}, [twincode, audioGranted]);
 
 	const askForMediaPermission = (kind: "audio" | "video") => {
 		navigator.mediaDevices
@@ -89,10 +98,10 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 						onAddOrReplaceAudioTrack(track);
 						mediaStream.removeTrack(track);
 					}
-					if (track.kind === "video" && kind === "video") {
-						setVideoGranted("granted");
-						setUsedVideoDevice(track.getSettings().deviceId ?? "");
-					}
+					// if (track.kind === "video" && kind === "video") {
+					// 	setVideoGranted("granted");
+					// 	setUsedVideoDevice(track.getSettings().deviceId ?? "");
+					// }
 				}
 
 				navigator.mediaDevices
@@ -100,7 +109,8 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 					.then((devices) => {
 						const enumeratedDevices = {
 							audioDevices: devices.filter((device) => device.kind === "audioinput").slice(),
-							videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
+							// videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
+							videoDevices: [],
 						};
 						setEnumeratedDevices(enumeratedDevices);
 
@@ -123,13 +133,13 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 						grantErrorType = "notfound";
 						break;
 				}
-				kind === "audio" ? setAudioGranted(grantErrorType) : setVideoGranted(grantErrorType);
-			})
-			.finally(() => {
-				if (kind === "audio" && twincode.video) {
-					askForMediaPermission("video");
-				}
+				kind === "audio" ? setAudioGranted(grantErrorType) : null /* setVideoGranted(grantErrorType) */;
 			});
+		// .finally(() => {
+		// 	if (kind === "audio" && twincode.video) {
+		// 		askForMediaPermission("video");
+		// 	}
+		// });
 	};
 
 	return (
@@ -151,7 +161,7 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 						{twincode.audio && (
 							<li className="py-5">
 								<div className="flex justify-between border-b-8 border-white">
-									<div>Audio</div>
+									<div>{t("audio")}</div>
 									<div>
 										{audioGranted === "pending" ? (
 											<SpinnerIcon />
@@ -173,22 +183,16 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 										</div>
 									)}
 									{(audioGranted === "pending" || audioGranted === "denied") && (
-										<div>Please grant access to your microphone.</div>
+										<div className="mb-2">{t("microphone_access")}</div>
 									)}
-									{audioGranted === "denied" && (
-										<div>Update your permissions, then refresh the page.</div>
-									)}
-									{audioGranted === "notfound" && <div>No microphone were found.</div>}
-									{audioGranted === "error" && (
-										<div>
-											An error occured, ensure sure the microphone is not being used by another
-											application and try refreshing the page..
-										</div>
-									)}
+									{audioGranted === "denied" && <div>{t("microphone_access_denied")}</div>}
+									{audioGranted === "notfound" && <div>{t("microphone_access_not_found")}</div>}
+
+									{audioGranted === "error" && <div>{t("microphone_access_error")}</div>}
 								</div>
 							</li>
 						)}
-						{twincode.video && (
+						{/* {twincode.video && (
 							<li className="py-5">
 								<div className="flex justify-between border-b-8 border-white">
 									<div>Video</div>
@@ -222,29 +226,30 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 									{videoGranted === "error" && (
 										<div>
 											An error occured, ensure sure the camera is not being used by another
-											application and try refreshing the page..
+											application and try refreshing the page.
 										</div>
 									)}
 								</div>
 							</li>
-						)}
+						)} */}
 					</ul>
 
 					<div className="flex h-6 w-full justify-center">
-						{twincode.video &&
+						{/* {twincode.video &&
 							audioGranted === "granted" &&
 							videoGranted !== "pending" &&
 							videoGranted !== "granted" && (
 								<div className="w-full cursor-pointer text-center" onClick={onComplete}>
 									Continue withtout camera
 								</div>
-							)}
-						{!twincode.video && audioGranted === "granted" && <SpinnerIcon />}
-						{twincode.video && audioGranted === "granted" && videoGranted === "granted" && <SpinnerIcon />}
+							)} */}
+						{/* {!twincode.video && audioGranted === "granted" && <SpinnerIcon />} */}
+						{/* {twincode.video && audioGranted === "granted" && videoGranted === "granted" && <SpinnerIcon />} */}
+						{audioGranted === "granted" && <SpinnerIcon />}
 					</div>
 				</div>
 			) : twincodeError ? (
-				<div className="p-4 text-center">It seems that the Click-to-Call link you entered is invalid.</div>
+				<div className="p-4 text-center">{t("twincode_error")}</div>
 			) : (
 				<SpinnerIcon />
 			)}

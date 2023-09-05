@@ -8,6 +8,17 @@
         "activate_camera": "カメラを起動します",
         "nickname_placeholder": "名前",
         "nickname_empty_error": "名前を選択してください",
-        "guest": "客"
+        "guest": "客",
+        "microphone_access": "マイクを使用する前に、マイクへのアクセスを許可する必要があります。",
+        "microphone_access_denied": "権限を更新してからページを更新します。",
+        "microphone_access_not_found": "マイクが見つかりませんでした。",
+        "microphone_access_error": "エラーが発生しました。マイクが別のアプリケーションで使用されていないことを確認して、ページを更新してください。",
+        "camera_access": "カメラアクセス",
+        "camera_access_denied": "カメラを使用する前に、カメラへのアクセスを許可する必要があります。",
+        "camera_access_not_found": "カメラが見つかりませんでした。",
+        "camera_access_error": "エラーが発生しました。カメラが別のアプリケーションで使用されていないことを確認して、ページを更新してください。",
+        "twincode_error": "入力した「Click-to-Call」リンクは無効のようです。",
+        "general_error_title": "おっとっと！",
+        "general_error_message": "申し訳ありませんが、問題が発生しました。"
     }
 }

@@ -8,6 +8,17 @@
         "activate_camera": "Aktywuj swój aparat",
         "nickname_placeholder": "Nazwa",
         "nickname_empty_error": "Wybierz imię",
-        "guest": "Gość"
+        "guest": "Gość",
+        "microphone_access": "Musisz przyznać dostęp do swojego mikrofonu, zanim będziesz mógł go używać.",
+        "microphone_access_denied": "Zaktualizuj swoje uprawnienia, a następnie odśwież stronę.",
+        "microphone_access_not_found": "Nie znaleziono mikrofonu.",
+        "microphone_access_error": "Wystąpił błąd, sprawdź, czy mikrofon nie jest używany przez inną aplikację i odśwież stronę.",
+        "camera_access": "Dostęp do aparatu",
+        "camera_access_denied": "Musisz przyznać dostęp do swojego kamery, zanim będziesz mógł go używać.",
+        "camera_access_not_found": "Nie znaleziono kamery.",
+        "camera_access_error": "Wystąpił błąd, sprawdź, czy kamera nie jest używana przez inną aplikację i odśwież stronę.",
+        "twincode_error": "Wprowadzony link „Click-to-Call” wydaje się nieprawidłowy.",
+        "general_error_title": "Ups!",
+        "general_error_message": "Przepraszam, coś poszło nie tak."
     }
 }
