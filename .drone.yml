@@ -1,0 +1,37 @@
+kind: pipeline
+type: ssh
+name: build-fm-alpha-apk
+
+server:
+  host: wp.skred.mobi
+  user: drone-ci
+  ssh_key:
+       from_secret: private_key
+
+steps:
+
+  - name: start docker-compose
+    commands:
+      - HOME=/home/drone-ci && docker pull harbor.skyrock.net/twinlife/usine-nodejs-webapp:latest && docker compose up
+
+  - name: Verify docker status
+    commands: 
+      - bash check_container_exit_code.sh
+
+  - name: remove docker container
+    commands:
+      - docker rm usine-webapp-twinlife
+
+  - name: Backup old folder
+    commands: 
+      - mv /srv/call.skred.mobi/* /srv/call.skred.mobi.old && mv /srv/call.twin.me/* /srv/call.twin.me.old
+
+  - name: MEP
+    commands: 
+      - mv server-webapp-ui/skred-webapp-ui/* /srv/call.skred.mobi/ && chown -R 1000:1000 /srv/call.skred.mobi && mv server-webapp-ui/twinme-webapp-ui/* /srv/call.twin.me/ && chown -R 1000:1000 /srv/call.twin.me
+
+trigger:
+   branch:
+     - master
+   event:
+     - tag
