@@ -7,6 +7,7 @@
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 import {
@@ -27,6 +28,7 @@ import {CallParticipantObserver} from "./CallParticipantObserver";
 import {CallState} from "./CallState";
 import {CallStatus, CallStatusOps} from "./CallStatus";
 import {ConnectionOperation} from "./ConnectionOperation";
+import TransferDirection = CallState.TransferDirection;
 
 // type Timer = ReturnType<typeof setTimeout>;
 
@@ -99,7 +101,7 @@ export class CallService implements PeerCallServiceObserver {
             return;
         }
 
-        call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage);
+        call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage, transfer);
         let callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
         let callConnection: CallConnection = new CallConnection(
             this,
@@ -114,7 +116,46 @@ export class CallService implements PeerCallServiceObserver {
         );
         this.mActiveCall = call;
         call.addPeerConnection(callConnection);
-        callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL, transfer);
+        callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
+        if (transfer) {
+            call.transferDirection = TransferDirection.TO_BROWSER;
+            call.transferToConnection = callConnection;
+        }
+        this.mPeerTo.set(twincodeId, callConnection);
+        this.mObserver.onUpdateCallStatus(callStatus);
+    }
+
+    actionAddCallParticipant(twincodeId: string, transfer: boolean, contactName: string, contactURL: string): void {
+        if(!this.mActiveCall){
+            return;
+        }
+
+        let call = this.mActiveCall;
+        if (!CallStatusOps.isActive(call.getStatus())) {
+            console.error("actionAddCallParticipant call status invalid, call=");
+            console.error(call);
+            return;
+        }
+
+        let callStatus = call.isVideo() ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
+        let callConnection: CallConnection = new CallConnection(
+            this,
+            this.mPeerCallService,
+            call,
+            null,
+            callStatus,
+            this.mLocalStream,
+            twincodeId,
+            null,
+            transfer
+        );
+
+        call.addPeerConnection(callConnection);
+        callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
+        if (transfer) {
+            call.transferDirection = TransferDirection.TO_DEVICE;
+            call.transferToConnection = callConnection;
+        }
         this.mPeerTo.set(twincodeId, callConnection);
         this.mObserver.onUpdateCallStatus(callStatus);
     }
@@ -282,7 +323,7 @@ export class CallService implements PeerCallServiceObserver {
         this.mPeers.set(sessionId, callConnection);
         call.addPeerConnection(callConnection);
 
-        if (call.getMainParticipant()?.isTransfer()) {
+        if (call.getMainParticipant()?.transfer && call.transferDirection === TransferDirection.TO_BROWSER) {
             call.getCurrentConnection()?.sendTransferDoneIQ();
         }
     }
@@ -299,18 +340,36 @@ export class CallService implements PeerCallServiceObserver {
     }
 
     onSessionAccept(sessionId: string, sdp: string, offer: Offer, offerToReceive: Offer): void {
-        console.log("P2P " + sessionId + " is accepted for " + offer);
+        console.log("P2P " + sessionId + " is accepted for:", offer);
 
         const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
         if (!callConnection?.onSessionAccept(sdp, offer, offerToReceive)) {
             this.mPeerCallService.sessionTerminate(sessionId, "gone");
-        } else if (this.mActiveCall?.getMainParticipant()?.isTransfer()
-            && this.mActiveCall?.getCurrentConnection()?.getPeerConnectionId() != sessionId) {
-            // This is a transfer call
-            // and we're connected with the other participant =>
-            // Tell the transferred device that the transfer is done so that it disconnects
-            // TODO handle group calls (i.e. wait for all connections to be accepted)
-            this.mActiveCall?.getCurrentConnection()?.sendTransferDoneIQ();
+            return;
+        }
+
+        if (callConnection?.getCall().transfer) {
+            switch (callConnection.getCall().transferDirection) {
+                case TransferDirection.TO_BROWSER:
+                    if (callConnection.getCall().getCurrentConnection()?.getPeerConnectionId() != sessionId) {
+                        // We're transferring the call to this browser
+                        // and we're connected with the other participant =>
+                        // Tell the transferred device that the transfer is done so that it disconnects
+                        // TODO handle group calls (i.e. wait for all connections to be accepted)
+                        callConnection.getCall().getCurrentConnection()?.sendTransferDoneIQ();
+                    }
+                    break;
+                case TransferDirection.TO_DEVICE:
+                    for (const connection of callConnection.getCall().getConnections()) {
+                        const peerConnectionId = connection.getPeerConnectionId();
+
+                        if (peerConnectionId && peerConnectionId != sessionId) {
+                            connection.sendPrepareTransferIQ();
+                            callConnection.getCall().addPendingPrepareTransfer(peerConnectionId);
+                        }
+                    }
+                    break;
+            }
         }
     }
 
@@ -377,6 +436,26 @@ export class CallService implements PeerCallServiceObserver {
 
     onMemberJoin(sessionId: string | null, memberId: string, status: MemberStatus): void {
         console.log("Member join sessionId: " + sessionId + " memberId: " + memberId + " status: " + status);
+
+        if(sessionId == null || memberId == null){
+            return;
+        }
+
+        const callConnection = this.mPeers.get(sessionId);
+
+        if(!callConnection){
+            return;
+        }
+
+        if(callConnection.getMainParticipant()?.transfer && callConnection.getCall().transferDirection === TransferDirection.TO_DEVICE){
+            // We're transferring our call, and the transfer target has joined the call room.
+            // Tell the other participants that they need to transfer us.
+            for(const connection of this.mPeers.values()){
+                if(connection.getPeerConnectionId() && connection.getPeerConnectionId() !== sessionId){
+                    connection.sendParticipantTransferIQ(memberId);
+                }
+            }
+        }
     }
 
     onChangeConnectionState(callConnection: CallConnection, state: RTCIceConnectionState): void {
@@ -413,6 +492,32 @@ export class CallService implements PeerCallServiceObserver {
 
         this.mObserver.onTerminateCall(terminateReason);
         this.mActiveCall = null;
+    }
+
+    onOnPrepareTransfer(callConnection: CallConnection): void {
+        const call = callConnection.getCall();
+        const peerConnectionId = callConnection.getPeerConnectionId();
+
+        if (!peerConnectionId) {
+            console.error("onOnPrepareTransfer: no peerConnectionId for CallConnection:", callConnection);
+            return;
+        }
+
+        console.log("onOnPrepareTransfer");
+        call.removePendingPrepareTransfer(peerConnectionId);
+
+        if (!call.hasPendingPrepareTransfer()) {
+            if(!call.transferToConnection){
+                console.error("onOnPrepareTransfer: call.transferToConnection not set, aborting transfer");
+                return;
+            }
+
+            call.transferToConnection.inviteCallRoom();
+        }
+    }
+
+    onTransferDone(callConnection: CallConnection) {
+        this.actionTerminateCall("transfer-done");
     }
 
     /**
