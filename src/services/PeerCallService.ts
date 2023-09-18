@@ -5,6 +5,7 @@
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 
 const url = import.meta.env.VITE_PROXY_URL;
@@ -20,6 +21,7 @@ export type TerminateReason =
 	| "success"
 	| "expired"
 	| "not-authorized"
+	| "transfer-done"
 	| "unknown";
 
 export type TurnServer = {
@@ -106,6 +108,15 @@ export type SessionTerminateMessage = {
 	sessionId: string;
 	reason: TerminateReason;
 };
+
+export type InviteCallRoomMessage = {
+	msg: "invite-call-room";
+	sessionId: string;
+	twincodeOutboundId: string;
+	callRoomId: string;
+	mode: 0;
+	maxMemberCount: 0;
+}
 
 export type MemberStatus = "member-new" | "member-need-session" | "member-delete";
 
@@ -338,6 +349,19 @@ export class PeerCallService {
 			msg: "session-terminate",
 			sessionId: sessionId,
 			reason: reason,
+		};
+
+		this.socket?.send(JSON.stringify(msg));
+	}
+
+	inviteCallRoom(sessionId: string, callRoomId: string, twincodeOutboundId: string){
+		const msg: InviteCallRoomMessage = {
+			msg: "invite-call-room",
+			sessionId: sessionId,
+			callRoomId: callRoomId,
+			twincodeOutboundId: twincodeOutboundId,
+			mode: 0,
+			maxMemberCount: 0
 		};
 
 		this.socket?.send(JSON.stringify(msg));

@@ -7,6 +7,7 @@
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
 import { CallConnection } from "./CallConnection";
 
@@ -31,12 +32,12 @@ export class CallParticipant {
 
 	static readonly DEBUG: boolean = false;
 
-	private mParticipantId: number = 0;
-	private mConnection: CallConnection | null;
+	private readonly mParticipantId: number;
+	private readonly mConnection: CallConnection;
 	private mAvatarUrl: string | null = null;
 	private mName: string | null;
 	private mDescription: string | null;
-	private mTransfer: boolean;
+	public readonly transfer: boolean;
 	private mRemoteRenderer: HTMLVideoElement | null = null;
 	private mAudioMute: boolean = false;
 	private mCameraMute: boolean = false;
@@ -168,7 +169,7 @@ export class CallParticipant {
 		this.mediaStream.addTrack(track);
 	}
 
-	constructor(callConnection: CallConnection | null, participantId: number) {
+	constructor(callConnection: CallConnection, participantId: number, transfer: boolean = false) {
 		this.mConnection = callConnection;
 		this.mAvatarUrl = null;
 		this.mName = null;
@@ -178,7 +179,7 @@ export class CallParticipant {
 		this.mVideoWidth = 0;
 		this.mVideoHeight = 0;
 		this.mParticipantId = participantId;
-		this.mTransfer = false;
+		this.transfer = transfer;
 	}
 
 	setMicrophoneMute(mute: boolean): void {
@@ -189,17 +190,10 @@ export class CallParticipant {
 		this.mCameraMute = mute;
 	}
 
-	setInformation(name: string, description: string | null, avatarUrl: string | null, transfer: boolean | undefined = undefined): void {
+	setInformation(name: string, description: string | null, avatarUrl: string | null): void {
 		this.mName = name;
 		this.mDescription = description;
 		this.mAvatarUrl = avatarUrl;
-		if (transfer) {
-			this.mTransfer = transfer;
-		}
-	}
-
-	isTransfer(): boolean {
-		return this.mTransfer;
 	}
 
 	/* setupVideo(localRenderer: any): boolean {

@@ -7,26 +7,27 @@
  *   Christian Jacquemot (Christian.Jacquemot@twinlife-systems.com)
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
+ *   Romain Kolb (romain.kolb@skyrock.com)
  */
-import { Offer, PeerCallService, TerminateReason, TransportCandidate } from "../services/PeerCallService";
-import { BinaryCompactDecoder } from "../utils/BinaryCompactDecoder";
-import { BinaryPacketIQ } from "../utils/BinaryPacketIQ";
-import { ByteArrayInputStream } from "../utils/ByteArrayInputStream";
-import { SchemaKey } from "../utils/SchemaKey";
-import { Serializer } from "../utils/Serializer";
-import { UUID } from "../utils/UUID";
-import { Version } from "../utils/Version";
-import { CallParticipant } from "./CallParticipant";
-import { CallParticipantEvent } from "./CallParticipantEvent";
-import { CallService } from "./CallService";
-import { CallState } from "./CallState";
-import { CallStatus, CallStatusOps } from "./CallStatus";
-import { ParticipantInfoIQ } from "./ParticipantInfoIQ";
-import {TransferDoneIQ} from "./TransferDoneIQ.ts";
+import {Offer, PeerCallService, TerminateReason, TransportCandidate} from "../services/PeerCallService";
+import {BinaryCompactDecoder} from "../utils/BinaryCompactDecoder";
+import {BinaryPacketIQ} from "../utils/BinaryPacketIQ";
+import {ByteArrayInputStream} from "../utils/ByteArrayInputStream";
+import {SchemaKey} from "../utils/SchemaKey";
+import {Serializer} from "../utils/Serializer";
+import {UUID} from "../utils/UUID";
+import {Version} from "../utils/Version";
+import {CallParticipant} from "./CallParticipant";
+import {CallParticipantEvent} from "./CallParticipantEvent";
+import {CallService} from "./CallService";
+import {CallState} from "./CallState";
+import {CallStatus, CallStatusOps} from "./CallStatus";
+import {ParticipantInfoIQ} from "./ParticipantInfoIQ";
+import {ParticipantTransferIQ} from "./ParticipantTransferIQ.ts";
 
 type PacketHandler = {
-	serializer: Serializer;
-	handler: (this: PacketHandler, callConnection: CallConnection, packet: BinaryPacketIQ) => any;
+    serializer: Serializer;
+    handler: (this: PacketHandler, callConnection: CallConnection, packet: BinaryPacketIQ) => any;
 };
 
 type Timer = ReturnType<typeof setTimeout>;
@@ -47,47 +48,30 @@ export class CallConnection {
 
     static DEBUG: boolean = false;
 
-    static DATA_VERSION: string = "CallService:1.0.0";
+    static DATA_VERSION: string = "CallService:1.2.0";
 
     static CONNECT_TIMEOUT: number = 15000; // 15 second timeout between accept and connection.
 
-    static PARTICIPANT_INFO_SCHEMA_ID: UUID;
+    private static readonly PARTICIPANT_INFO_SCHEMA_ID = UUID.fromString("a8aa7e0d-c495-4565-89bb-0c5462b54dd0");
+    private static readonly IQ_PARTICIPANT_INFO_SERIALIZER =
+        ParticipantInfoIQ.createSerializer(CallConnection.PARTICIPANT_INFO_SCHEMA_ID, 1);
 
-    public static PARTICIPANT_INFO_SCHEMA_ID_$LI$(): UUID {
-        if (CallConnection.PARTICIPANT_INFO_SCHEMA_ID == null)
-            CallConnection.PARTICIPANT_INFO_SCHEMA_ID = UUID.fromString("a8aa7e0d-c495-4565-89bb-0c5462b54dd0");
-        return CallConnection.PARTICIPANT_INFO_SCHEMA_ID;
-    }
+    private static readonly TRANSFER_DONE_SCHEMA_ID = UUID.fromString("641bf1f6-ebbf-4501-9151-76abc1b9adad");
+    private static readonly IQ_TRANSFER_DONE_SERIALIZER =
+        BinaryPacketIQ.createDefaultSerializer(CallConnection.TRANSFER_DONE_SCHEMA_ID, 1);
 
-    static IQ_PARTICIPANT_INFO_SERIALIZER: BinaryPacketIQ.BinaryPacketIQSerializer;
+    private static readonly PREPARE_TRANSFER_SCHEMA_ID = UUID.fromString("9eaa4ad1-3404-4bcc-875d-dc75c748e188");
+    private static readonly IQ_PREPARE_TRANSFER_SERIALIZER =
+        BinaryPacketIQ.createDefaultSerializer(CallConnection.PREPARE_TRANSFER_SCHEMA_ID, 1);
 
-    public static IQ_PARTICIPANT_INFO_SERIALIZER_$LI$(): BinaryPacketIQ.BinaryPacketIQSerializer {
-        if (CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER == null)
-            CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER = ParticipantInfoIQ.createSerializer(
-                CallConnection.PARTICIPANT_INFO_SCHEMA_ID_$LI$(),
-                1
-            );
-        return CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER;
-    }
+    private static readonly ON_PREPARE_TRANSFER_SCHEMA_ID = UUID.fromString("a17516a2-4bd2-4284-9535-726b6eb1a211");
+    private static readonly IQ_ON_PREPARE_TRANSFER_SERIALIZER =
+        BinaryPacketIQ.createDefaultSerializer(CallConnection.ON_PREPARE_TRANSFER_SCHEMA_ID, 1);
 
-    static TRANSFER_DONE_SCHEMA_ID: UUID;
+    private static readonly PARTICIPANT_TRANSFER_SCHEMA_ID = UUID.fromString("800fd629-83c4-4d42-8910-1b4256d19eb8");
+    private static readonly IQ_PARTICIPANT_TRANSFER_SERIALIZER =
+        ParticipantTransferIQ.createSerializer(CallConnection.PARTICIPANT_TRANSFER_SCHEMA_ID, 1);
 
-    public static TRANSFER_DONE_SCHEMA_ID_$LI$(): UUID {
-        if (CallConnection.TRANSFER_DONE_SCHEMA_ID == null)
-            CallConnection.TRANSFER_DONE_SCHEMA_ID = UUID.fromString("641bf1f6-ebbf-4501-9151-76abc1b9adad");
-        return CallConnection.TRANSFER_DONE_SCHEMA_ID;
-    }
-
-    static IQ_TRANSFER_DONE_SERIALIZER: BinaryPacketIQ.BinaryPacketIQSerializer;
-
-    public static IQ_TRANSFER_DONE_SERIALIZER_$LI$(): BinaryPacketIQ.BinaryPacketIQSerializer {
-        if (CallConnection.IQ_TRANSFER_DONE_SERIALIZER == null)
-            CallConnection.IQ_TRANSFER_DONE_SERIALIZER = TransferDoneIQ.createSerializer(
-                CallConnection.TRANSFER_DONE_SCHEMA_ID_$LI$(),
-                1
-            );
-        return CallConnection.IQ_TRANSFER_DONE_SERIALIZER;
-    }
 
     private readonly mCallService: CallService;
     private readonly mPeerCallService: PeerCallService;
@@ -109,10 +93,10 @@ export class CallConnection {
     private mAudioTrack: MediaStreamTrack | null = null;
     private mVideoTrack: MediaStreamTrack | null = null;
     private mConnectionState: RTCIceConnectionState = "closed";
-    private mParticipants: Map<String, CallParticipant>;
-    private mBinaryListeners: Map<String, PacketHandler> = new Map();
+    private readonly mParticipants: Map<string, CallParticipant>;
+    private mBinaryListeners: Map<string, PacketHandler> = new Map();
 
-    private mMainParticipant: CallParticipant;
+    private readonly mMainParticipant: CallParticipant;
 
     private mVideoTrackId: string | null = null;
     private mAudioTrackId: string | null = null;
@@ -121,12 +105,12 @@ export class CallConnection {
     private mTimer: Timer | null = null;
 
     private mVideo: boolean = false;
-    private mAudioSourceOn: boolean = false;
-    private mVideoSourceOn: boolean = false;
+    private readonly mAudioSourceOn: boolean = false;
+    private readonly mVideoSourceOn: boolean = false;
     private mPeerConnected: boolean = false;
     private mPeerVersion: Version | null = null;
 
-    mStatus: CallStatus = CallStatus.TERMINATED;
+    private mStatus: CallStatus = CallStatus.TERMINATED;
 
     private mCallMemberId: string | null = null;
 
@@ -142,7 +126,7 @@ export class CallConnection {
     /**
      * Get the peer connection id or null.
      *
-     * @return {String} the peer connectin id or null.
+     * @return {String} the peer connection id or null.
      */
     public getPeerConnectionId(): string | null {
         return this.mPeerConnectionId;
@@ -193,7 +177,7 @@ export class CallConnection {
      * @return {boolean} NULL if we don't know, TRUE if P2P group calls are supported.
      */
     public isGroupSupported(): boolean | null {
-        let v: Version | null = this.mPeerVersion;
+        const v: Version | null = this.mPeerVersion;
         if (v == null) {
             return null;
         }
@@ -214,7 +198,7 @@ export class CallConnection {
         this.mCallService = callService;
         this.mPeerCallService = peerCallService;
         this.mCall = call;
-        this.mTo = memberId ? memberId : "";
+        this.mTo = memberId ?? "";
         this.mState = 0;
         this.mStatus = callStatus;
         this.mPeerConnectionId = peerConnectionId;
@@ -227,7 +211,7 @@ export class CallConnection {
         this.mVideo = CallStatusOps.isVideo(callStatus);
         this.mCallMemberId = memberId;
         this.mParticipants = new Map();
-        this.mMainParticipant = new CallParticipant(this, call.allocateParticipantId());
+        this.mMainParticipant = new CallParticipant(this, call.allocateParticipantId(), transfer);
 
         this.mTimer = setTimeout(() => {
             this.mCallService.callTimeout(this);
@@ -238,19 +222,32 @@ export class CallConnection {
             this.mCall.onAddParticipant(this.mMainParticipant);
         }
         this.addListener({
-            serializer: CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER_$LI$(),
+            serializer: CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER,
             handler: (callConnection: CallConnection, iq: BinaryPacketIQ) => {
                 return callConnection.onParticipantInfoIQ(iq);
             },
         });
+        this.addListener({
+            serializer: CallConnection.IQ_ON_PREPARE_TRANSFER_SERIALIZER,
+            handler: (callConnection: CallConnection, _: BinaryPacketIQ) => {
+                callConnection.onOnPrepareTransferIQ();
+            },
+        });
+        this.addListener({
+            serializer: CallConnection.IQ_TRANSFER_DONE_SERIALIZER,
+            handler: (callConnection: CallConnection, _: BinaryPacketIQ) => {
+                callConnection.onTransferDoneIQ();
+            },
+        });
 
-        let config: RTCConfiguration = peerCallService.getConfiguration();
+
+        const config: RTCConfiguration = peerCallService.getConfiguration();
         const pc: RTCPeerConnection = new RTCPeerConnection(config);
         this.mPeerConnection = pc;
 
         // Handle ICE connection state.
         pc.oniceconnectionstatechange = (event: Event) => {
-            console.log("oniceconnection state event=" + event);
+            console.log("oniceconnection state event=", event);
             if (this.mPeerConnection) {
                 const state = pc.iceConnectionState;
                 console.log("IceConnectionState: " + state + " state=" + state);
@@ -290,13 +287,13 @@ export class CallConnection {
         };
 
         pc.onicecandidateerror = (event: Event) => {
-            console.log("ice candidate error: " + event);
+            console.log("ice candidate error: ", event);
         };
 
         // Handle signaling state errors.
         pc.onsignalingstatechange = (event: Event) => {
             if (this.mPeerConnection) {
-                let signalingState = this.mPeerConnection.signalingState;
+                const signalingState = this.mPeerConnection.signalingState;
                 if (signalingState === "closed" && this.mPeerConnectionId) {
                     this.mPeerCallService.sessionTerminate(this.mPeerConnectionId, "connectivity-error");
                 }
@@ -316,7 +313,7 @@ export class CallConnection {
                 .then(() => {
                     this.mMakingOffer = false;
                     if (this.mPeerConnection && this.mPeerConnectionId) {
-                        let description: RTCSessionDescription | null = this.mPeerConnection.localDescription;
+                        const description: RTCSessionDescription | null = this.mPeerConnection.localDescription;
                         if (description) {
                             this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "offer");
                         }
@@ -329,9 +326,9 @@ export class CallConnection {
         pc.ontrack = (event: RTCTrackEvent) => {
             console.log("Received on track event");
 
-            for (let stream of event.streams) {
+            for (const stream of event.streams) {
                 stream.onremovetrack = (ev: MediaStreamTrackEvent) => {
-                    let trackId: string = ev.track.id;
+                    const trackId: string = ev.track.id;
 
                     this.removeRemoteTrack(trackId);
                 };
@@ -342,27 +339,25 @@ export class CallConnection {
         // Setup the input data channel to handle incoming data messages.
         this.mInDataChannel = null;
         pc.ondatachannel = (event: RTCDataChannelEvent): void => {
-            let channel: RTCDataChannel = event.channel;
+            const channel: RTCDataChannel = event.channel;
             channel.onopen = (event: Event): any => {
-                let label: string = channel.label;
+                const label: string = channel.label;
 
                 console.log("Input data channel " + label + " is opened");
             };
             channel.onmessage = async (event: MessageEvent<Blob>): Promise<any> => {
-                let schemaId: UUID | null = null;
-                let schemaVersion: number = 0;
                 console.log("Received a data channel message");
 
                 try {
                     const data = await event.data.arrayBuffer();
-                    let inputStream: ByteArrayInputStream = new ByteArrayInputStream(data);
-                    let binaryDecoder: BinaryCompactDecoder = new BinaryCompactDecoder(inputStream);
-                    schemaId = binaryDecoder.readUUID();
-                    schemaVersion = binaryDecoder.readInt();
-                    let key: SchemaKey = new SchemaKey(schemaId, schemaVersion);
-                    let listener: PacketHandler | undefined = this.mBinaryListeners.get(key.toString());
+                    const inputStream: ByteArrayInputStream = new ByteArrayInputStream(data);
+                    const binaryDecoder: BinaryCompactDecoder = new BinaryCompactDecoder(inputStream);
+                    const schemaId = binaryDecoder.readUUID();
+                    const schemaVersion = binaryDecoder.readInt();
+                    const key: SchemaKey = new SchemaKey(schemaId, schemaVersion);
+                    const listener: PacketHandler | undefined = this.mBinaryListeners.get(key.toString());
                     if (listener !== undefined) {
-                        let iq: BinaryPacketIQ = listener.serializer.deserialize(binaryDecoder) as BinaryPacketIQ;
+                        const iq: BinaryPacketIQ = listener.serializer.deserialize(binaryDecoder) as BinaryPacketIQ;
                         listener.handler(this, iq);
                     } else {
                         console.log("Schema " + key + " is not recognized");
@@ -470,10 +465,10 @@ export class CallConnection {
                             this.mMakingOffer = false;
                             if (this.mTo && description.sdp) {
                                 if (description.type === "offer" || !this.mPeerConnectionId) {
-                                    console.log("sending session-initiate with " + offer);
+                                    console.log("sending session-initiate with offer:", offer);
                                     this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
                                 } else {
-                                    console.log("sending session-accept with " + offer);
+                                    console.log("sending session-accept with offer:", offer);
                                     this.mPeerCallService.sessionAccept(
                                         this.mPeerConnectionId,
                                         this.mTo,
@@ -508,7 +503,7 @@ export class CallConnection {
         this.mCall.onAddParticipant(this.mMainParticipant);
         if (this.mIcePending && this.mIcePending.length > 0) {
             console.log("Flush " + this.mIcePending.length + " candidates");
-            for (var candidate of this.mIcePending) {
+            for (const candidate of this.mIcePending) {
                 if (candidate.candidate && candidate.sdpMid != null && candidate.sdpMLineIndex != null) {
                     this.mPeerCallService.transportInfo(
                         sessionId,
@@ -620,19 +615,19 @@ export class CallConnection {
             return false;
         }
 
-        for (var candidate of candidates) {
+        for (const candidate of candidates) {
             if (!candidate.removed) {
-                let startPos: number = candidate.candidate.indexOf(" ufrag ") + 7;
-                let endPos: number = candidate.candidate.indexOf(" ", startPos);
-                let ufrag: string = candidate.candidate.substring(startPos, endPos);
-                let c: RTCIceCandidateInit = {
+                const startPos: number = candidate.candidate.indexOf(" ufrag ") + 7;
+                const endPos: number = candidate.candidate.indexOf(" ", startPos);
+                const ufrag: string = candidate.candidate.substring(startPos, endPos);
+                const c: RTCIceCandidateInit = {
                     candidate: candidate.candidate,
                     sdpMid: candidate.sdpMid,
                     sdpMLineIndex: candidate.sdpMLineIndex,
                     usernameFragment: ufrag,
                 };
 
-                let ice: RTCIceCandidate = new RTCIceCandidate(c);
+                const ice: RTCIceCandidate = new RTCIceCandidate(c);
                 // console.log("Adding candidate " + c.candidate + " label=" + c.sdpMid + " id=" + c.sdpMLineIndex
                 // + " ufrag=" + ice.usernameFragment);
                 this.mPeerConnection.addIceCandidate(ice).then(
@@ -649,7 +644,7 @@ export class CallConnection {
     }
 
     private addListener(handler: PacketHandler): void {
-        let key: SchemaKey = new SchemaKey(handler.serializer.schemaId, handler.serializer.schemaVersion);
+        const key: SchemaKey = new SchemaKey(handler.serializer.schemaId, handler.serializer.schemaVersion);
         this.mBinaryListeners.set(key.toString(), handler);
     }
 
@@ -660,6 +655,7 @@ export class CallConnection {
     setCallMemberId(memberId: string): void {
         this.mCallMemberId = memberId;
     }
+
 
     checkOperation(operation: number): boolean {
         if ((this.mState & operation) === 0) {
@@ -711,10 +707,10 @@ export class CallConnection {
                 console.log("Enable audio track");
                 this.mAudioTrack.enabled = direction === "sendrecv";
             }
-            let transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
-            for (let transceiver of transceivers) {
+            const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
+            for (const transceiver of transceivers) {
                 if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "audio") {
-                    let sender: RTCRtpSender = transceiver.sender;
+                    const sender: RTCRtpSender = transceiver.sender;
                     this.mRenegotiationNeeded = true;
                     if (direction !== "sendrecv") {
                         sender.replaceTrack(null);
@@ -743,11 +739,11 @@ export class CallConnection {
                 " dir=" +
                 direction
             );
-            let transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
-            for (let transceiver of transceivers) {
+            const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
+            for (const transceiver of transceivers) {
                 console.log("TRANSIEVER", transceiver.receiver.track.kind, transceiver);
                 if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
-                    let sender: RTCRtpSender = transceiver.sender;
+                    const sender: RTCRtpSender = transceiver.sender;
                     this.mRenegotiationNeeded = true;
                     if (direction !== "sendrecv") {
                         sender.replaceTrack(null);
@@ -766,10 +762,10 @@ export class CallConnection {
             console.log("Replace Audio Track");
             this.mAudioTrack = track;
 
-            let transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
-            for (let transceiver of transceivers) {
+            const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
+            for (const transceiver of transceivers) {
                 if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "audio") {
-                    let sender: RTCRtpSender = transceiver.sender;
+                    const sender: RTCRtpSender = transceiver.sender;
                     this.mRenegotiationNeeded = true;
                     sender.replaceTrack(this.mAudioTrack);
                     break;
@@ -783,11 +779,11 @@ export class CallConnection {
             console.log("Replace Video Track");
             this.mVideoTrack = track;
 
-            let transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
-            for (let transceiver of transceivers) {
+            const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
+            for (const transceiver of transceivers) {
                 console.log("TRANSIEVER", transceiver.receiver.track.kind, transceiver);
                 if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
-                    let sender: RTCRtpSender = transceiver.sender;
+                    const sender: RTCRtpSender = transceiver.sender;
                     this.mRenegotiationNeeded = true;
                     sender.replaceTrack(this.mVideoTrack);
                     break;
@@ -810,7 +806,7 @@ export class CallConnection {
 
     addRemoteTrack(track: MediaStreamTrack, stream: MediaStream): void {
         try {
-            let participant: CallParticipant | null = this.getMainParticipant();
+            const participant: CallParticipant | null = this.getMainParticipant();
             if (participant) {
                 participant.addTrack(track);
                 if (track != null && track.kind === "video") {
@@ -834,7 +830,7 @@ export class CallConnection {
      * @param {string} trackId the track id that was removed.
      */
     removeRemoteTrack(trackId: string): void {
-        let participant: CallParticipant | null = this.getMainParticipant();
+        const participant: CallParticipant | null = this.getMainParticipant();
         if (trackId === this.mVideoTrackId) {
             this.mVideoTrackId = null;
             if (participant) {
@@ -884,28 +880,28 @@ export class CallConnection {
             clearTimeout(this.mTimer);
             this.mTimer = null;
         }
-        let participants: Array<CallParticipant> = Object.values(this.mParticipants);
+        const participants: Array<CallParticipant> = Object.values(this.mParticipants);
         if (participants.length === 0 && this.mMainParticipant) {
             participants.push(this.mMainParticipant);
         }
-        for (let participant of participants) {
+        for (const participant of participants) {
             participant.release();
         }
         return participants;
     }
 
     private sendParticipantInfoIQ(): void {
-        let name: string = this.mCall.getIdentityName();
+        const name: string = this.mCall.getIdentityName();
         console.log("Sending participant with name=" + name);
         if (name == null || this.mOutDataChannel == null) {
             return;
         }
-        let thumbnailData: ArrayBuffer = this.mCall.getIdentityAvatarData();
-        let description: string = "";
-        let memberId: string = this.mCall.getCallRoomMemberId() ?? "";
+        const thumbnailData: ArrayBuffer = this.mCall.getIdentityAvatarData();
+        const description: string = "";
+        const memberId: string = this.mCall.getCallRoomMemberId() ?? "";
         try {
             let iq: ParticipantInfoIQ = new ParticipantInfoIQ(
-                CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER_$LI$(),
+                CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER,
                 1,
                 memberId,
                 name,
@@ -929,17 +925,16 @@ export class CallConnection {
             return;
         }
 
-        let participantInfoIQ: ParticipantInfoIQ = iq as ParticipantInfoIQ;
         let imageUrl: string | null = null;
-        const buffer: ArrayBuffer | null = participantInfoIQ.thumbnailData;
+        const buffer: ArrayBuffer | null = iq.thumbnailData;
         if (buffer) {
             const data: Uint8Array = new Uint8Array(buffer, 0, buffer.byteLength);
-            var blob = new Blob([data], {type: "image/jpeg"});
-            var urlCreator = window.URL || window.webkitURL;
+            const blob = new Blob([data], {type: "image/jpeg"});
+            const urlCreator = window.URL || window.webkitURL;
             imageUrl = urlCreator.createObjectURL(blob);
         }
 
-        this.mMainParticipant.setInformation(participantInfoIQ.name, participantInfoIQ.description, imageUrl);
+        this.mMainParticipant.setInformation(iq.name, iq.description, imageUrl);
         this.mCall.onEventParticipant(this.mMainParticipant, CallParticipantEvent.EVENT_IDENTITY);
     }
 
@@ -948,15 +943,69 @@ export class CallConnection {
             return;
         }
         try {
-            let iq: TransferDoneIQ = new TransferDoneIQ(
-                CallConnection.IQ_TRANSFER_DONE_SERIALIZER_$LI$(),
+            const iq = new BinaryPacketIQ(
+                CallConnection.IQ_TRANSFER_DONE_SERIALIZER,
                 1,
             );
-            let packet: ArrayBuffer = iq.serializeCompact();
+            const packet: ArrayBuffer = iq.serializeCompact();
             this.mOutDataChannel.send(packet);
         } catch (exception) {
-            console.error("Could not send TransferDoneIQ:");
-            console.error(exception);
+            console.error("Could not send TransferDoneIQ:", exception);
+        }
+    }
+
+
+    public sendPrepareTransferIQ(): void {
+        console.log("sending PrepareTransferIQ to: ", this.mMainParticipant);
+        if (this.mOutDataChannel == null) {
+            return;
+        }
+        try {
+            const iq = new BinaryPacketIQ(
+                CallConnection.IQ_PREPARE_TRANSFER_SERIALIZER,
+                1,
+            );
+            const packet: ArrayBuffer = iq.serializeCompact();
+            this.mOutDataChannel.send(packet);
+        } catch (exception) {
+            console.error("Could not send PrepareTransferIQ:", exception);
+        }
+    }
+
+    public onOnPrepareTransferIQ(): void {
+        console.log("received OnPrepareTransferIQ from: ", this.mMainParticipant);
+        this.mCallService.onOnPrepareTransfer(this);
+    }
+
+    public onTransferDoneIQ(): void {
+        console.log("received TransferDoneIQ from: ", this.mMainParticipant);
+
+        this.mCallService.onTransferDone(this);
+    }
+
+    public inviteCallRoom(): void {
+        console.log("sending InviteCallRoomMessage");
+        const callRoomId = this.getCall().getCallRoomId();
+        if (this.mPeerConnectionId && callRoomId) {
+            this.mPeerCallService.inviteCallRoom(this.mPeerConnectionId, callRoomId.toString(), this.mTo);
+        }
+    }
+
+    public sendParticipantTransferIQ(memberId: string) {
+        console.log("sending ParticipantTransferIQ to: ", this.mMainParticipant);
+        if (this.mOutDataChannel == null) {
+            return;
+        }
+        try {
+            const iq = new ParticipantTransferIQ(
+                CallConnection.IQ_PARTICIPANT_TRANSFER_SERIALIZER,
+                1,
+                memberId
+            );
+            const packet: ArrayBuffer = iq.serializeCompact();
+            this.mOutDataChannel.send(packet);
+        } catch (exception) {
+            console.error("Could not send ParticipantTransferIQ:", exception);
         }
     }
 }
