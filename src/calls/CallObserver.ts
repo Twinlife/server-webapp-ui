@@ -25,4 +25,13 @@ export interface CallObserver {
 	 * @param reason the call termination reason.
 	 */
 	onTerminateCall(reason: string): void;
+
+	/**
+	 * Overrides the current audio and video setting.
+	 * Used during a transfer to copy the source device's state.
+	 *
+	 * @param audio whether the audio must be enabled.
+	 * @param video whether the video must be enabled.
+	 */
+	onOverrideAudioVideo(audio: boolean, video: boolean) : void;
 }

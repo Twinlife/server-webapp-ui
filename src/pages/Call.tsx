@@ -132,6 +132,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
         this.setState({status: status});
     }
 
+    onOverrideAudioVideo(audio: boolean, video: boolean): void {
+        const videoChanged = video ? this.state.videoMute : !this.state.videoMute;
+        if(videoChanged){
+            this.toggleVideo();
+        }
+
+        const audioChanged = audio ? this.state.audioMute : !this.state.audioMute;
+        if(audioChanged){
+            this.toggleAudio();
+        }
+    }
+
     /**
      * Called when the call is terminated.
      *
@@ -215,6 +227,11 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
     muteAudioClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
         ev.preventDefault();
+        this.toggleAudio();
+    };
+
+
+    private toggleAudio = () => {
         const {audioMute} = this.state;
         this.setState({audioMute: !audioMute}, () => {
             const {audioMute} = this.state;
@@ -224,6 +241,10 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
     muteVideoClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
         ev.preventDefault();
+        this.toggleVideo();
+    };
+
+    private toggleVideo = () => {
         if (this.state.twincode.video) {
             const {videoMute} = this.state;
 

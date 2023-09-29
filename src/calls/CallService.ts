@@ -114,6 +114,8 @@ export class CallService implements PeerCallServiceObserver {
             null,
             transfer
         );
+        callConnection.setAudioDirection(this.getAudioDirection());
+
         this.mActiveCall = call;
         call.addPeerConnection(callConnection);
         callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
@@ -149,6 +151,7 @@ export class CallService implements PeerCallServiceObserver {
             null,
             transfer
         );
+        callConnection.setAudioDirection(this.getAudioDirection());
 
         call.addPeerConnection(callConnection);
         callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
@@ -184,7 +187,7 @@ export class CallService implements PeerCallServiceObserver {
         this.mAudioMute = audioMute;
         let connections: Array<CallConnection> = call.getConnections();
         for (let callConnection of connections) {
-            callConnection.setAudioDirection(this.mAudioMute ? "recvonly" : "sendrecv");
+            callConnection.setAudioDirection(this.getAudioDirection());
         }
     }
 
@@ -319,6 +322,7 @@ export class CallService implements PeerCallServiceObserver {
             peerId,
             sdp
         );
+        callConnection.setAudioDirection(this.getAudioDirection());
         callConnection.setPeerVersion(new Version(offer.version));
         this.mPeers.set(sessionId, callConnection);
         call.addPeerConnection(callConnection);
@@ -351,7 +355,11 @@ export class CallService implements PeerCallServiceObserver {
         if (callConnection?.getCall().transfer) {
             switch (callConnection.getCall().transferDirection) {
                 case TransferDirection.TO_BROWSER:
-                    if (callConnection.getCall().getCurrentConnection()?.getPeerConnectionId() != sessionId) {
+                    if (callConnection.getCall().getCurrentConnection()?.getPeerConnectionId() == sessionId) {
+                        // We're transferring the call to this browser and we're connected to the transferred device =>
+                        // copy the audio/video setting from the device as we want the browser to be in the same mode as the device.
+                        this.mObserver.onOverrideAudioVideo(offer.audio, offer.video);
+                    } else {
                         // We're transferring the call to this browser
                         // and we're connected with the other participant =>
                         // Tell the transferred device that the transfer is done so that it disconnects
@@ -406,20 +414,20 @@ export class CallService implements PeerCallServiceObserver {
             return;
         }
 
-        let video: boolean = this.mActiveCall.isVideo();
-        let mode: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
+        const video: boolean = !this.mIsCameraMute;
+        const mode: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
         this.mActiveCall.updateCallRoom(callRoomId, memberId);
-        for (let member of members) {
+        for (const member of members) {
             if (member.status !== "member-need-session" && member.sessionId) {
-                let callConnection: CallConnection | undefined = this.mPeers.get(member.sessionId);
+                const callConnection: CallConnection | undefined = this.mPeers.get(member.sessionId);
                 if (callConnection) {
                     callConnection.setCallMemberId(member.memberId);
                     callConnection.checkOperation(ConnectionOperation.INVITE_CALL_ROOM);
                 }
                 continue;
             }
-            let peerId: string = member.memberId;
-            let callConnection: CallConnection = new CallConnection(
+            const peerId: string = member.memberId;
+            const callConnection: CallConnection = new CallConnection(
                 this,
                 this.mPeerCallService,
                 this.mActiveCall,
@@ -429,6 +437,7 @@ export class CallService implements PeerCallServiceObserver {
                 peerId,
                 null
             );
+            callConnection.setAudioDirection(this.getAudioDirection());
             this.mActiveCall.addPeerConnection(callConnection);
             this.mPeerTo.set(peerId, callConnection);
         }
@@ -533,5 +542,9 @@ export class CallService implements PeerCallServiceObserver {
     callTimeout(callConnection: CallConnection): void {
         callConnection.terminate("expired");
         this.onTerminatePeerConnection(callConnection, "expired");
+    }
+
+    private getAudioDirection(): RTCRtpTransceiverDirection {
+        return this.mAudioMute ? "recvonly" : "sendrecv";
     }
 }
