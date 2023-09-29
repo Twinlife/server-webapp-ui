@@ -13,6 +13,16 @@ dist-ssr
 *.local
 src/config.json
 
+# Files installed by scripts/publicAssets.js
+public/android-chrome-192x192.png
+public/android-chrome-512x512.png
+public/apple-touch-icon.png
+public/favicon-16x16.png
+public/favicon-32x32.png
+public/favicon.ico
+public/site.webmanifest
+
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -25,3 +35,8 @@ src/config.json
 *.sw?
 *~
 .env.local
+
+# Build target files
+mytwinlife-webapp-ui
+skred-webapp-ui
+twinme-webapp-ui
