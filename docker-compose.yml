@@ -4,6 +4,6 @@ services:
         volumes:
             - './server-webapp-ui:/opt/server-webapp-ui'
         entrypoint: /bin/bash
-        command: "-c 'npm install typescript && npm audit fix && npm run build:skred && mv dist skred-webapp-ui && npm run build:twinme && mv dist twinme-webapp-ui'"
+        command: "-c 'npm install typescript && npm audit fix && npm run build:skred && npm run build:twinme'"
         container_name: usine-webapp-twinlife
         image: 'harbor.skyrock.net/twinlife/usine-nodejs-webapp:latest'
