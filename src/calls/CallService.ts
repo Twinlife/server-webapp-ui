@@ -326,10 +326,6 @@ export class CallService implements PeerCallServiceObserver {
         callConnection.setPeerVersion(new Version(offer.version));
         this.mPeers.set(sessionId, callConnection);
         call.addPeerConnection(callConnection);
-
-        if (call.getMainParticipant()?.transfer && call.transferDirection === TransferDirection.TO_BROWSER) {
-            call.getCurrentConnection()?.sendTransferDoneIQ();
-        }
     }
 
     onSessionInitiate(to: string, sessionId: string): void {
@@ -359,12 +355,6 @@ export class CallService implements PeerCallServiceObserver {
                         // We're transferring the call to this browser and we're connected to the transferred device =>
                         // copy the audio/video setting from the device as we want the browser to be in the same mode as the device.
                         this.mObserver.onOverrideAudioVideo(offer.audio, offer.video);
-                    } else {
-                        // We're transferring the call to this browser
-                        // and we're connected with the other participant =>
-                        // Tell the transferred device that the transfer is done so that it disconnects
-                        // TODO handle group calls (i.e. wait for all connections to be accepted)
-                        callConnection.getCall().getCurrentConnection()?.sendTransferDoneIQ();
                     }
                     break;
                 case TransferDirection.TO_DEVICE:
@@ -477,6 +467,17 @@ export class CallService implements PeerCallServiceObserver {
         } else if (status === CallState.UpdateState.NEW_CONNECTION && callConnection.getCallMemberId() == null) {
             // this.stopRingtone();
         }
+
+        if (state === "connected" &&
+            call.getMainParticipant()?.transfer && call.transferDirection === TransferDirection.TO_BROWSER &&
+            call.getCurrentConnection()?.getPeerConnectionId() !== callConnection.getPeerConnectionId()) {
+            // We're transferring the call to this browser
+            // and we're connected with the other participant =>
+            // Tell the transferred device that the transfer is done so that it disconnects
+            // TODO handle group calls (i.e. wait for all connections to be accepted)
+            call.getCurrentConnection()?.sendTransferDoneIQ();
+        }
+
         console.log("Connection state=" + state);
         this.mObserver.onUpdateCallStatus(call.getStatus());
     }
