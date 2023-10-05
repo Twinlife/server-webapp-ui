@@ -2,7 +2,7 @@ version: '3.3'
 services:
     usine-webapp-twinlife:
         volumes:
-            - './server-webapp-ui:/opt/server-webapp-ui'
+            - '.:/opt/server-webapp-ui'
         entrypoint: /bin/bash
         command: "-c 'npm install typescript && npm audit fix && npm run build:skred && npm run build:twinme'"
         container_name: usine-webapp-twinlife
