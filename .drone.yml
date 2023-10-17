@@ -1,6 +1,6 @@
 kind: pipeline
 type: ssh
-name: build-fm-alpha-apk
+name: MEP twin/skred UI
 
 server:
   host: wp.skred.mobi
