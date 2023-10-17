@@ -31,7 +31,7 @@ steps:
       - sudo mv server-webapp-ui/skred-webapp-ui/* /srv/call.skred.mobi/ && sudo chown -R 1000:1000 /srv/call.skred.mobi && sudo mv server-webapp-ui/twinme-webapp-ui/* /srv/call.twin.me/ && sudo chown -R 1000:1000 /srv/call.twin.me
 
 trigger:
-   branch:
-     - master
-   event:
-     - tag
+  event:
+  - tag
+  branch:
+  - master
