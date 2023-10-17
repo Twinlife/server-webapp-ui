@@ -9,6 +9,11 @@ server:
        from_secret: private_key
 
 steps:
+
+  - name: remove old configuration folder
+    commands:
+      - sudo rm -rf /srv/call.skred.mobi.old && sudo rm -rf /srv/call.twin.me.old
+
   - name: start docker-compose
     commands:
       - HOME=/home/drone-ci && docker pull harbor.skyrock.net/twinlife/usine-nodejs-webapp:latest && docker compose up
