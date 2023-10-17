@@ -33,4 +33,4 @@ trigger:
   event:
   - tag
   branch:
-  - main
+  - master
