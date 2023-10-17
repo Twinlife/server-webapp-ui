@@ -9,7 +9,6 @@ server:
        from_secret: private_key
 
 steps:
-
   - name: start docker-compose
     commands:
       - HOME=/home/drone-ci && docker pull harbor.skyrock.net/twinlife/usine-nodejs-webapp:latest && docker compose up
@@ -34,4 +33,4 @@ trigger:
   event:
   - tag
   branch:
-  - master
+  - main
