@@ -6,9 +6,12 @@
 	"scripts": {
 		"start": "vite",
 		"build": "tsc && vite build",
-		"build:mytwinlife": "node scripts/publicAssets.js twinme && npm run build -- --mode mytwinlife && mv dist mytwinlife-webapp-ui",
-		"build:twinme": "node scripts/publicAssets.js twinme && npm run build -- --mode twinme && mv dist twinme-webapp-ui",
-		"build:skred": "node scripts/publicAssets.js skred && npm run build -- --mode skred && mv dist skred-webapp-ui",
+		"build:mytwinlife": "node scripts/publicAssets.js twinme && npm run build -- --mode mytwinlife --outDir mytwinlife-webapp-ui",
+		"build:twinme": "node scripts/publicAssets.js twinme && npm run build -- --mode twinme --outDir twinme-webapp-ui",
+		"build:skred": "node scripts/publicAssets.js skred && npm run build -- --mode skred --outDir skred-webapp-ui",
+		"build:mytwinlife:transfer": "node scripts/publicAssets.js twinme && npm run build -- --mode mytwinlife-transfer --outDir mytwinlife-webapp-transfer",
+		"build:twinme:transfer": "node scripts/publicAssets.js twinme && npm run build -- --mode twinme-transfer --outDir twinme-webapp-transfer",
+		"build:skred:transfer": "node scripts/publicAssets.js skred && npm run build -- --mode skred-transfer --outDir skred-webapp-transfer",
 		"lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
 		"preview": "vite preview",
 		"translate": "node ./translations/translations.js"
