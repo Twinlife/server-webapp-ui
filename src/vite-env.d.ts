@@ -6,6 +6,7 @@ interface ImportMetaEnv {
 	readonly VITE_APP_LOGO: string;
 	readonly VITE_APP_LOGO_BIG: string;
 	readonly VITE_APP_THANKS_IMAGE: string;
+	readonly VITE_APP_TRANSFER: string;
 
 	readonly VITE_REST_URL: string;
 	readonly VITE_INVITE_URL: string;
@@ -15,6 +16,7 @@ interface ImportMetaEnv {
 	readonly VITE_STORE_ANDROID: string;
 	readonly VITE_STORE_MAC: string;
 	readonly VITE_STORE_WINDOWS: string;
+
 }
 
 interface ImportMeta {

@@ -66,6 +66,8 @@ interface CallState {
     alertContent: ReactNode;
 }
 
+const APP_TRANSFER : boolean = import.meta.env.VITE_APP_TRANSFER === 'true';
+
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
     private localVideoRef: RefObject<HTMLVideoElement> = React.createRef();
     private peerCallService: PeerCallService = new PeerCallService();
@@ -619,6 +621,7 @@ const CallButtons = ({
     const {t} = useTranslation();
     const inCall = CallStatusOps.isActive(status);
     const isIddle = CallStatusOps.isIddle(status);
+    const inTransfer = APP_TRANSFER && inCall;
 
     return (
         <div
@@ -641,7 +644,7 @@ const CallButtons = ({
                     )}
                 </button>
             </div>
-            {inCall &&
+            {inTransfer &&
                 <div>
                     <button
                         className="flex items-center justify-center rounded-full px-6 py-3 text-white transition bg-blue hover:bg-blue/90 active:bg-blue/80"
