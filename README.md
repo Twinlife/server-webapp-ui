@@ -65,3 +65,13 @@ npm run build:twinme
 ```
 npm run build:mytwinlife
 ```
+
+## Debug
+
+Debug mobile chrome from desktop application:
+
+* Connect define on Desktop through USB (enable debugging mode on Android),
+* In desktop Chrome type `chrome://inspect`
+
+This displays a page where we can see the mobile chrome console with all Chrome debugging windows.
+
