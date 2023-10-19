@@ -112,9 +112,9 @@ export class CallService implements PeerCallServiceObserver {
             this.mLocalStream,
             twincodeId,
             null,
+            this.getAudioDirection(),
             transfer
         );
-        callConnection.setAudioDirection(this.getAudioDirection());
 
         this.mActiveCall = call;
         call.addPeerConnection(callConnection);
@@ -149,9 +149,9 @@ export class CallService implements PeerCallServiceObserver {
             this.mLocalStream,
             twincodeId,
             null,
+            this.getAudioDirection(),
             transfer
         );
-        callConnection.setAudioDirection(this.getAudioDirection());
 
         call.addPeerConnection(callConnection);
         callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
@@ -320,9 +320,9 @@ export class CallService implements PeerCallServiceObserver {
             status,
             this.mLocalStream,
             peerId,
-            sdp
+            sdp,
+            this.getAudioDirection()
         );
-        callConnection.setAudioDirection(this.getAudioDirection());
         callConnection.setPeerVersion(new Version(offer.version));
         this.mPeers.set(sessionId, callConnection);
         call.addPeerConnection(callConnection);
@@ -425,9 +425,9 @@ export class CallService implements PeerCallServiceObserver {
                 mode,
                 this.mLocalStream,
                 peerId,
-                null
+                null,
+                this.getAudioDirection()
             );
-            callConnection.setAudioDirection(this.getAudioDirection());
             this.mActiveCall.addPeerConnection(callConnection);
             this.mPeerTo.set(peerId, callConnection);
         }

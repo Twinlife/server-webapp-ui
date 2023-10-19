@@ -105,7 +105,6 @@ export class CallConnection {
     private mTimer: Timer | null = null;
 
     private mVideo: boolean = false;
-    private readonly mAudioSourceOn: boolean = false;
     private readonly mVideoSourceOn: boolean = false;
     private mPeerConnected: boolean = false;
     private mPeerVersion: Version | null = null;
@@ -193,7 +192,8 @@ export class CallConnection {
         mediaStream: MediaStream | null,
         memberId: string | null,
         sdp: string | null,
-        transfer: boolean = false
+        audioDirection: RTCRtpTransceiverDirection,
+        transfer: boolean = false,
     ) {
         this.mCallService = callService;
         this.mPeerCallService = peerCallService;
@@ -319,7 +319,9 @@ export class CallConnection {
                         }
                     }
                 })
-                .catch();
+                .catch((reason: any) => {
+                    console.log("setLocalDescription failed after onnegotiationneeded: " + reason);
+                });
         };
 
         // Handle the audio/video track.
@@ -393,30 +395,24 @@ export class CallConnection {
 
         switch (callStatus) {
             case CallStatus.OUTGOING_VIDEO_BELL:
-                this.mAudioSourceOn = false;
                 this.mVideoSourceOn = true;
                 break;
             case CallStatus.OUTGOING_CALL:
             case CallStatus.INCOMING_CALL:
             case CallStatus.ACCEPTED_INCOMING_CALL:
-                this.mAudioSourceOn = true;
                 this.mVideoSourceOn = false;
                 break;
             case CallStatus.OUTGOING_VIDEO_CALL:
             case CallStatus.INCOMING_VIDEO_CALL:
             case CallStatus.ACCEPTED_INCOMING_VIDEO_CALL:
-                this.mAudioSourceOn = true;
                 this.mVideoSourceOn = true;
                 break;
             case CallStatus.INCOMING_VIDEO_BELL:
             default:
-                this.mAudioSourceOn = false;
                 this.mVideoSourceOn = false;
                 break;
         }
-        if (this.mAudioSourceOn) {
-            this.mAudioDirection = "sendrecv";
-        }
+        this.mAudioDirection = audioDirection;
         if (this.mVideoSourceOn) {
             this.mVideoDirection = "sendrecv";
         }
@@ -433,7 +429,6 @@ export class CallConnection {
             transfer: false ,
             version: "1.0.0",
         };
-        // this.mVideoSourceOn ? "video" : "audio";
         if (sdp) {
             this.mMakingOffer = false;
             this.mPeerConnection
