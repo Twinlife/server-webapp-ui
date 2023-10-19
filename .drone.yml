@@ -12,7 +12,7 @@ steps:
 
   - name: remove old configuration folder
     commands:
-      - sudo rm -rf /srv/call.skred.mobi.old && sudo rm -rf /srv/call.twin.me.old
+      - sudo rm -rf /srv/call.skred.mobi.old/* && sudo rm -rf /srv/call.twin.me.old/*
 
   - name: start docker-compose
     commands:
