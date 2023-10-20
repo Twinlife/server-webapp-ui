@@ -37,5 +37,6 @@ steps:
 trigger:
   event:
   - tag
-  #branch:
-  #- master
+  branch:
+   include:
+    - master
