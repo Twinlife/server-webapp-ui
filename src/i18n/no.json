@@ -1,24 +1,24 @@
 {
-    "translation": {
-        "thanks_choosing": "Takk for at du valgte {{appName}}!",
-        "next_time_app": "Prøv mobilappen for hele opplevelsen!",
-        "more_information": "Mer informasjon om",
-        "call": "Anrop",
-        "call_back": "Ring tilbake eller reaktiver koblingen.",
-        "activate_camera": "Aktiver kameraet ditt",
-        "nickname_placeholder": "Navn",
-        "nickname_empty_error": "Velg et navn",
-        "guest": "Gjest",
-        "microphone_access": "Du må gi tilgang til mikrofonen din før du kan bruke den.",
-        "microphone_access_denied": "Oppdater tillatelsene dine, og oppdater deretter siden.",
-        "microphone_access_not_found": "Ingen mikrofon ble funnet.",
-        "microphone_access_error": "Det oppsto en feil, sjekk at mikrofonen ikke er i bruk av et annet program og oppdater siden.",
-        "camera_access": "Kameratilgang",
-        "camera_access_denied": "Du må gi tilgang til kameraet før du kan bruke det.",
-        "camera_access_not_found": "Ingen kamera ble funnet.",
-        "camera_access_error": "Det oppstod en feil, sjekk at kameraet ikke er i bruk av et annet program og oppdater siden.",
-        "twincode_error": "Click-to-Call-koblingen du skrev inn, ser ut til å være ugyldig.",
-        "general_error_title": "Oops!",
-        "general_error_message": "Beklager, noe gikk galt."
-    }
+	"translation": {
+		"thanks_choosing": "Takk for at du valgte {{appName}}!",
+		"next_time_app": "Prøv mobilappen for hele opplevelsen!",
+		"more_information": "Mer informasjon om",
+		"call": "Anrop",
+		"call_back": "Ring tilbake eller reaktiver koblingen.",
+		"activate_camera": "Aktiver kameraet ditt",
+		"nickname_placeholder": "Navn",
+		"nickname_empty_error": "Velg et navn",
+		"guest": "Gjest",
+		"microphone_access": "Du må gi tilgang til mikrofonen din før du kan bruke den.",
+		"microphone_access_denied": "Oppdater tillatelsene dine, og oppdater deretter siden.",
+		"microphone_access_not_found": "Ingen mikrofon ble funnet.",
+		"microphone_access_error": "Det oppsto en feil, sjekk at mikrofonen ikke er i bruk av et annet program og oppdater siden.",
+		"camera_access": "Kameratilgang",
+		"camera_access_denied": "Du må gi tilgang til kameraet før du kan bruke det.",
+		"camera_access_not_found": "Ingen kamera ble funnet.",
+		"camera_access_error": "Det oppstod en feil, sjekk at kameraet ikke er i bruk av et annet program og oppdater siden.",
+		"twincode_error": "Click-to-Call-koblingen du skrev inn, ser ut til å være ugyldig.",
+		"general_error_title": "Oops!",
+		"general_error_message": "Beklager, noe gikk galt."
+	}
 }

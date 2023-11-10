@@ -14,7 +14,8 @@
 		"build:skred:transfer": "node scripts/publicAssets.js skred && npm run build -- --mode skred-transfer --outDir skred-webapp-transfer",
 		"lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
 		"preview": "vite preview",
-		"translate": "node ./translations/translations.js"
+		"translate": "node ./translations/translations.js",
+		"prettier": "prettier --config ./.prettierrc --write \"src/**/*.{ts,tsx,json}\""
 	},
 	"dependencies": {
 		"@headlessui/react": "^1.7.15",

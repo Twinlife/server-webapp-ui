@@ -116,7 +116,7 @@ export type InviteCallRoomMessage = {
 	callRoomId: string;
 	mode: 0;
 	maxMemberCount: 0;
-}
+};
 
 export type MemberStatus = "member-new" | "member-need-session" | "member-delete";
 
@@ -354,14 +354,14 @@ export class PeerCallService {
 		this.socket?.send(JSON.stringify(msg));
 	}
 
-	inviteCallRoom(sessionId: string, callRoomId: string, twincodeOutboundId: string){
+	inviteCallRoom(sessionId: string, callRoomId: string, twincodeOutboundId: string) {
 		const msg: InviteCallRoomMessage = {
 			msg: "invite-call-room",
 			sessionId: sessionId,
 			callRoomId: callRoomId,
 			twincodeOutboundId: twincodeOutboundId,
 			mode: 0,
-			maxMemberCount: 0
+			maxMemberCount: 0,
 		};
 
 		this.socket?.send(JSON.stringify(msg));

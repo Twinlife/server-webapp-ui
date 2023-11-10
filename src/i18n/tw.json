@@ -1,24 +1,24 @@
 {
-    "translation": {
-        "thanks_choosing": "感謝您選擇{{appName}}！",
-        "next_time_app": "試試移動應用程序以獲得完整體驗！",
-        "more_information": "有關更多信息",
-        "call": "稱呼",
-        "call_back": "回撥或重新激活鏈接。",
-        "activate_camera": "激活你的相機",
-        "nickname_placeholder": "姓名",
-        "nickname_empty_error": "選擇一個名字",
-        "guest": "客人",
-        "microphone_access": "您必須先授予對麥克風的訪問權限，然後才能使用它。",
-        "microphone_access_denied": "更新您的權限，然後刷新頁面。",
-        "microphone_access_not_found": "沒有找到麥克風。",
-        "microphone_access_error": "發生錯誤，請檢查麥克風是否被其他應用程序使用並刷新頁面。",
-        "camera_access": "相機訪問",
-        "camera_access_denied": "您必須先授予對相機的訪問權限，然後才能使用它。",
-        "camera_access_not_found": "沒有找到相機。",
-        "camera_access_error": "發生錯誤，請檢查相機是否被其他應用程序使用並刷新頁面。",
-        "twincode_error": "您輸入的“點擊通話”鏈接似乎無效。",
-        "general_error_title": "哎呀！",
-        "general_error_message": "抱歉，出了一些問題。"
-    }
+	"translation": {
+		"thanks_choosing": "感謝您選擇{{appName}}！",
+		"next_time_app": "試試移動應用程序以獲得完整體驗！",
+		"more_information": "有關更多信息",
+		"call": "稱呼",
+		"call_back": "回撥或重新激活鏈接。",
+		"activate_camera": "激活你的相機",
+		"nickname_placeholder": "姓名",
+		"nickname_empty_error": "選擇一個名字",
+		"guest": "客人",
+		"microphone_access": "您必須先授予對麥克風的訪問權限，然後才能使用它。",
+		"microphone_access_denied": "更新您的權限，然後刷新頁面。",
+		"microphone_access_not_found": "沒有找到麥克風。",
+		"microphone_access_error": "發生錯誤，請檢查麥克風是否被其他應用程序使用並刷新頁面。",
+		"camera_access": "相機訪問",
+		"camera_access_denied": "您必須先授予對相機的訪問權限，然後才能使用它。",
+		"camera_access_not_found": "沒有找到相機。",
+		"camera_access_error": "發生錯誤，請檢查相機是否被其他應用程序使用並刷新頁面。",
+		"twincode_error": "您輸入的“點擊通話”鏈接似乎無效。",
+		"general_error_title": "哎呀！",
+		"general_error_message": "抱歉，出了一些問題。"
+	}
 }

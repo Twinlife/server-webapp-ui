@@ -1,24 +1,24 @@
 {
-    "translation": {
-        "thanks_choosing": "¡Gracias por elegir {{appName}}!",
-        "next_time_app": "¡Prueba la aplicación móvil para disfrutar de la experiencia completa!",
-        "more_information": "Más información sobre",
-        "call": "Llamar",
-        "call_back": "Vuelva a llamar o reactive el enlace.",
-        "activate_camera": "Activa tu camara",
-        "nickname_placeholder": "Nombre",
-        "nickname_empty_error": "Elige un nombre",
-        "guest": "Invitado",
-        "microphone_access": "Debe otorgar acceso a su micrófono antes de poder usarlo.",
-        "microphone_access_denied": "Actualice sus permisos, luego actualice la página.",
-        "microphone_access_not_found": "No se encontró ningún micrófono.",
-        "microphone_access_error": "Ocurrió un error, verifique que otra aplicación no esté usando el micrófono y actualice la página.",
-        "camera_access": "Acceso a la cámara",
-        "camera_access_denied": "Debe otorgar acceso a su cámara antes de poder usarla.",
-        "camera_access_not_found": "No se encontró ninguna cámara.",
-        "camera_access_error": "Ocurrió un error, verifique que otra aplicación no esté usando la cámara y actualice la página.",
-        "twincode_error": "El vínculo \"Click-to-Call\" que ingresó parece no ser válido.",
-        "general_error_title": "¡Ups!",
-        "general_error_message": "Perdón, algo salió mal."
-    }
+	"translation": {
+		"thanks_choosing": "¡Gracias por elegir {{appName}}!",
+		"next_time_app": "¡Prueba la aplicación móvil para disfrutar de la experiencia completa!",
+		"more_information": "Más información sobre",
+		"call": "Llamar",
+		"call_back": "Vuelva a llamar o reactive el enlace.",
+		"activate_camera": "Activa tu camara",
+		"nickname_placeholder": "Nombre",
+		"nickname_empty_error": "Elige un nombre",
+		"guest": "Invitado",
+		"microphone_access": "Debe otorgar acceso a su micrófono antes de poder usarlo.",
+		"microphone_access_denied": "Actualice sus permisos, luego actualice la página.",
+		"microphone_access_not_found": "No se encontró ningún micrófono.",
+		"microphone_access_error": "Ocurrió un error, verifique que otra aplicación no esté usando el micrófono y actualice la página.",
+		"camera_access": "Acceso a la cámara",
+		"camera_access_denied": "Debe otorgar acceso a su cámara antes de poder usarla.",
+		"camera_access_not_found": "No se encontró ninguna cámara.",
+		"camera_access_error": "Ocurrió un error, verifique que otra aplicación no esté usando la cámara y actualice la página.",
+		"twincode_error": "El vínculo \"Click-to-Call\" que ingresó parece no ser válido.",
+		"general_error_title": "¡Ups!",
+		"general_error_message": "Perdón, algo salió mal."
+	}
 }

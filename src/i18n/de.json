@@ -1,24 +1,24 @@
 {
-    "translation": {
-        "thanks_choosing": "Vielen Dank, dass Sie sich für {{appName}} entschieden haben!",
-        "next_time_app": "Probieren Sie die mobile App aus, um das volle Erlebnis zu genießen!",
-        "more_information": "Weitere Informationen zu",
-        "call": "Rufen",
-        "call_back": "Rufen Sie zurück oder aktivieren Sie den Link erneut.",
-        "activate_camera": "Aktivieren Sie Ihre Kamera",
-        "nickname_placeholder": "Name",
-        "nickname_empty_error": "Wählen Sie einen Namen",
-        "guest": "Gast",
-        "microphone_access": "Sie müssen Zugriff auf Ihr Mikrofon gewähren, bevor Sie es verwenden können.",
-        "microphone_access_denied": "Aktualisieren Sie Ihre Berechtigungen und aktualisieren Sie dann die Seite.",
-        "microphone_access_not_found": "Es wurde kein Mikrofon gefunden.",
-        "microphone_access_error": "Es ist ein Fehler aufgetreten. Überprüfen Sie, ob das Mikrofon nicht von einer anderen Anwendung verwendet wird, und aktualisieren Sie die Seite.",
-        "camera_access": "Kamerazugriff",
-        "camera_access_denied": "Sie müssen Zugriff auf Ihre Kamera gewähren, bevor Sie sie verwenden können.",
-        "camera_access_not_found": "Es wurde keine Kamera gefunden.",
-        "camera_access_error": "Es ist ein Fehler aufgetreten. Überprüfen Sie, ob die Kamera nicht von einer anderen Anwendung verwendet wird, und aktualisieren Sie die Seite.",
-        "twincode_error": "Der von Ihnen eingegebene „Click-to-Call“-Link scheint ungültig zu sein.",
-        "general_error_title": "Hoppla!",
-        "general_error_message": "Entschuldigung, etwas ist schief gelaufen."
-    }
+	"translation": {
+		"thanks_choosing": "Vielen Dank, dass Sie sich für {{appName}} entschieden haben!",
+		"next_time_app": "Probieren Sie die mobile App aus, um das volle Erlebnis zu genießen!",
+		"more_information": "Weitere Informationen zu",
+		"call": "Rufen",
+		"call_back": "Rufen Sie zurück oder aktivieren Sie den Link erneut.",
+		"activate_camera": "Aktivieren Sie Ihre Kamera",
+		"nickname_placeholder": "Name",
+		"nickname_empty_error": "Wählen Sie einen Namen",
+		"guest": "Gast",
+		"microphone_access": "Sie müssen Zugriff auf Ihr Mikrofon gewähren, bevor Sie es verwenden können.",
+		"microphone_access_denied": "Aktualisieren Sie Ihre Berechtigungen und aktualisieren Sie dann die Seite.",
+		"microphone_access_not_found": "Es wurde kein Mikrofon gefunden.",
+		"microphone_access_error": "Es ist ein Fehler aufgetreten. Überprüfen Sie, ob das Mikrofon nicht von einer anderen Anwendung verwendet wird, und aktualisieren Sie die Seite.",
+		"camera_access": "Kamerazugriff",
+		"camera_access_denied": "Sie müssen Zugriff auf Ihre Kamera gewähren, bevor Sie sie verwenden können.",
+		"camera_access_not_found": "Es wurde keine Kamera gefunden.",
+		"camera_access_error": "Es ist ein Fehler aufgetreten. Überprüfen Sie, ob die Kamera nicht von einer anderen Anwendung verwendet wird, und aktualisieren Sie die Seite.",
+		"twincode_error": "Der von Ihnen eingegebene „Click-to-Call“-Link scheint ungültig zu sein.",
+		"general_error_title": "Hoppla!",
+		"general_error_message": "Entschuldigung, etwas ist schief gelaufen."
+	}
 }

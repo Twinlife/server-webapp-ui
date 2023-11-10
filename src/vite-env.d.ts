@@ -16,7 +16,6 @@ interface ImportMetaEnv {
 	readonly VITE_STORE_ANDROID: string;
 	readonly VITE_STORE_MAC: string;
 	readonly VITE_STORE_WINDOWS: string;
-
 }
 
 interface ImportMeta {

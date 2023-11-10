@@ -1,24 +1,24 @@
 {
-    "translation": {
-        "thanks_choosing": "شكرا لاختيارك {{appName}}!",
-        "next_time_app": "جرب تطبيق الهاتف لتجربة كاملة!",
-        "more_information": "مزيد من المعلومات حول",
-        "call": "اتصل",
-        "call_back": "اتصل مرة أخرى أو أعد تنشيط الرابط.",
-        "activate_camera": "قم بتنشيط الكاميرا الخاصة بك",
-        "nickname_placeholder": "اسم",
-        "nickname_empty_error": "اختر اسمًا",
-        "guest": "ضيف",
-        "microphone_access": "يجب أن تمنح حق الوصول إلى الميكروفون الخاص بك قبل أن تتمكن من استخدامه.",
-        "microphone_access_denied": "قم بتحديث أذوناتك ، ثم قم بتحديث الصفحة.",
-        "microphone_access_not_found": "لم يتم العثور على ميكروفون.",
-        "microphone_access_error": "حدث خطأ ، تحقق من أن الميكروفون ليس قيد الاستخدام بواسطة تطبيق آخر وقم بتحديث الصفحة.",
-        "camera_access": "الوصول إلى الكاميرا",
-        "camera_access_denied": "يجب أن تمنح حق الوصول إلى الكاميرا الخاصة بك قبل أن تتمكن من استخدامها.",
-        "camera_access_not_found": "لم يتم العثور على كاميرا.",
-        "camera_access_error": "حدث خطأ ، تحقق من أن الكاميرا ليست قيد الاستخدام بواسطة تطبيق آخر وقم بتحديث الصفحة.",
-        "twincode_error": "يبدو أن رابط \"Click-to-Call\" الذي أدخلته غير صالح.",
-        "general_error_title": "أُووبس!",
-        "general_error_message": "عذرا، هناك خطأ ما."
-    }
+	"translation": {
+		"thanks_choosing": "شكرا لاختيارك {{appName}}!",
+		"next_time_app": "جرب تطبيق الهاتف لتجربة كاملة!",
+		"more_information": "مزيد من المعلومات حول",
+		"call": "اتصل",
+		"call_back": "اتصل مرة أخرى أو أعد تنشيط الرابط.",
+		"activate_camera": "قم بتنشيط الكاميرا الخاصة بك",
+		"nickname_placeholder": "اسم",
+		"nickname_empty_error": "اختر اسمًا",
+		"guest": "ضيف",
+		"microphone_access": "يجب أن تمنح حق الوصول إلى الميكروفون الخاص بك قبل أن تتمكن من استخدامه.",
+		"microphone_access_denied": "قم بتحديث أذوناتك ، ثم قم بتحديث الصفحة.",
+		"microphone_access_not_found": "لم يتم العثور على ميكروفون.",
+		"microphone_access_error": "حدث خطأ ، تحقق من أن الميكروفون ليس قيد الاستخدام بواسطة تطبيق آخر وقم بتحديث الصفحة.",
+		"camera_access": "الوصول إلى الكاميرا",
+		"camera_access_denied": "يجب أن تمنح حق الوصول إلى الكاميرا الخاصة بك قبل أن تتمكن من استخدامها.",
+		"camera_access_not_found": "لم يتم العثور على كاميرا.",
+		"camera_access_error": "حدث خطأ ، تحقق من أن الكاميرا ليست قيد الاستخدام بواسطة تطبيق آخر وقم بتحديث الصفحة.",
+		"twincode_error": "يبدو أن رابط \"Click-to-Call\" الذي أدخلته غير صالح.",
+		"general_error_title": "أُووبس!",
+		"general_error_message": "عذرا، هناك خطأ ما."
+	}
 }
