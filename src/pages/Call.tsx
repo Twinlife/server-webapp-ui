@@ -27,9 +27,9 @@ import { CallService } from "../calls/CallService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import Alert from "../components/Alert";
 import Header from "../components/Header";
+import InitializationPanel from "../components/InitializationPanel";
 import ParticipantsGrid from "../components/ParticipantsGrid";
 import SelectDevicesButton from "../components/SelectDevicesButton";
-import SetupPanel from "../components/SetupPanel";
 import StoresBadges from "../components/StoresBadges";
 import Thanks from "../components/Thanks";
 import WhiteButton from "../components/WhiteButton";
@@ -250,65 +250,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			const { videoMute } = this.state;
 
 			this.setState({ videoMute: !videoMute }, async () => {
-				const { status, videoMute, facingMode, usedVideoDevice } = this.state;
+				const { status, videoMute } = this.state;
 				if (!videoMute && !this.callService.hasVideoTrack()) {
-					try {
-						const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
-							audio: false,
-							video: {
-								facingMode: facingMode,
-								deviceId: usedVideoDevice,
-							},
-						});
-
-						const devices = await navigator.mediaDevices.enumerateDevices();
-						this.setState({
-							videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
-						});
-
-						const videoTrack = mediaStream.getVideoTracks()[0];
-						this.callService.addOrReplaceVideoTrack(videoTrack);
-						this.setUsedDevices();
-					} catch (error) {
-						console.log("Add video track error", error);
-						if (error instanceof DOMException) {
-							console.log("Mute video DOMException", error.name);
-							let alertMessage = <></>;
-							switch (error.name) {
-								case "NotAllowedError":
-									console.log("NOT ALLOWED");
-									alertMessage = <div>{this.props.t("camera_access_denied")}</div>;
-									break;
-								case "NotFoundError":
-									console.log("NOT FOUND");
-									alertMessage = <div>{this.props.t("camera_access_not_found")}</div>;
-									break;
-								default:
-									console.log("DEFAULT ERROR");
-									alertMessage = <div>{this.props.t("camera_access_error")}</div>;
-									break;
-							}
-							this.setState({
-								alertOpen: true,
-								alertTitle: this.props.t("camera_access"),
-								alertContent: (
-									<>
-										{alertMessage}
-										<div className="mt-6 text-right">
-											<button
-												type="button"
-												className="inline-flex w-full justify-center rounded-md bg-white/90 px-2 py-1 text-xs text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-												onClick={() => this.setState({ alertOpen: false })}
-											>
-												OK
-											</button>
-										</div>{" "}
-									</>
-								),
-							});
-						}
-						this.setState({ videoMute: true });
-					}
+					await this.askForMediaPermission("video");
 				}
 
 				if (this.callService.hasVideoTrack() && CallStatusOps.isActive(status)) {
@@ -381,12 +325,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	handleCallClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
+	handleCallClick: React.MouseEventHandler<HTMLButtonElement> = async (ev: React.MouseEvent<HTMLButtonElement>) => {
 		const { twincode, guestName } = this.state;
 		if (guestName === "") {
 			this.setState({ guestNameError: true });
 			console.error("Identity name needed");
 			return;
+		}
+
+		if (!this.callService.hasAudioTrack()) {
+			if (!(await this.askForMediaPermission("audio"))) {
+				return;
+			}
 		}
 
 		this.callService.setIdentity(guestName, new ArrayBuffer(0));
@@ -397,6 +347,98 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		const avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionOutgoingCall(this.props.id, video, transfer, name, avatarUrl);
 		ev.preventDefault();
+	};
+
+	askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
+		const { facingMode } = this.state;
+
+		try {
+			// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
+			// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
+			const mediaStream = await navigator.mediaDevices.getUserMedia({
+				audio: kind === "audio",
+				video: kind === "video" ? { facingMode } : false,
+			});
+			for (const track of mediaStream.getTracks()) {
+				if (track.kind === "audio" && kind === "audio") {
+					this.callService.addOrReplaceAudioTrack(track);
+					this.setUsedDevices();
+				}
+				if (track.kind === "video" && kind === "video") {
+					this.callService.addOrReplaceVideoTrack(track);
+					this.setUsedDevices();
+				}
+				mediaStream.removeTrack(track);
+			}
+
+			const devices = await navigator.mediaDevices.enumerateDevices();
+			const enumeratedDevices = {
+				audioDevices: devices.filter((device) => device.kind === "audioinput").slice(),
+				videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
+			};
+			this.setState(enumeratedDevices);
+
+			for (const track of mediaStream.getTracks()) {
+				track.stop();
+			}
+			return true;
+		} catch (error: unknown) {
+			if (error instanceof DOMException) {
+				// Inside this block, err is known to be a ValidationError
+				console.error("Error during permissions granting", kind, error.name);
+				let alertMessage = <></>;
+				switch (error.name) {
+					case "NotAllowedError":
+						console.log("NOT ALLOWED");
+						alertMessage = (
+							<div>
+								{this.props.t(kind === "audio" ? "microphone_access_denied" : "camera_access_denied")}
+							</div>
+						);
+						break;
+					case "NotFoundError":
+						console.log("NOT FOUND");
+						alertMessage = (
+							<div>
+								{this.props.t(
+									kind === "audio" ? "microphone_access_not_found" : "camera_access_not_found"
+								)}
+							</div>
+						);
+						break;
+					default:
+						console.log("DEFAULT ERROR");
+						alertMessage = (
+							<div>
+								{this.props.t(kind === "audio" ? "microphone_access_error" : "camera_access_error")}
+							</div>
+						);
+						break;
+				}
+				this.setState({
+					videoMute: kind === "video" || this.state.videoMute,
+					alertOpen: true,
+					alertTitle: this.props.t(kind === "audio" ? "microphone_access" : "camera_access"),
+					alertContent: (
+						<>
+							{alertMessage}
+							<div className="mt-6 text-right">
+								<button
+									type="button"
+									className="inline-flex w-full justify-center rounded-md bg-white/90 px-2 py-1 text-xs text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+									onClick={() => this.setState({ alertOpen: false })}
+								>
+									OK
+								</button>
+							</div>
+						</>
+					),
+				});
+			} else {
+				console.error(error);
+			}
+		}
+		return false;
 	};
 
 	handleTransferClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -487,30 +529,16 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				<Header />
 
 				{initializing && (
-					<SetupPanel
+					<InitializationPanel
 						twincodeId={id}
 						twincode={twincode}
-						audioDevices={audioDevices}
-						// videoDevices={videoDevices}
-						usedAudioDevice={usedAudioDevice}
-						// usedVideoDevice={usedVideoDevice}
-						setTwincode={(twincode) => this.setState({ twincode })}
-						setEnumeratedDevices={(devices) => this.setState(devices)}
-						setUsedAudioDevice={(usedAudioDevice) => this.setState({ usedAudioDevice })}
-						// setUsedVideoDevice={(usedVideoDevice) => this.setState({ usedVideoDevice })}
-						onAddOrReplaceAudioTrack={(audioTrack) => {
-							this.callService.addOrReplaceAudioTrack(audioTrack);
-							this.setUsedDevices();
-						}}
-						onComplete={() => {
+						onComplete={(twincode) => {
+							this.setState({ twincode, initializing: false });
 							if (
 								!(document as any).webkitVisibilityState ||
 								(document as any).webkitVisibilityState !== "prerender"
 							) {
 								this.peerCallService.setupWebsocket();
-								setTimeout(() => {
-									this.setState({ initializing: false });
-								}, 2000);
 							}
 						}}
 					/>
