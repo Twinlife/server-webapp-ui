@@ -21,7 +21,7 @@ export class BinaryCompactDecoder implements Decoder {
 
 	private mBuffer: ArrayBuffer = new ArrayBuffer(8);
 
-	private textDecoder: TextDecoder = new TextDecoder('utf-8');
+	private textDecoder: TextDecoder = new TextDecoder("utf-8");
 
 	public constructor(inputStream: ByteArrayInputStream) {
 		this.mInputStream = inputStream;

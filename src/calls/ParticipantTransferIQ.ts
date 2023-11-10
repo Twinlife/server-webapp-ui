@@ -41,11 +41,7 @@ export class ParticipantTransferIQ extends BinaryPacketIQ {
 
 	readonly memberId: string;
 
-	constructor(
-		serializer: BinaryPacketIQ.BinaryPacketIQSerializer,
-		requestId: number,
-		memberId: string
-	) {
+	constructor(serializer: BinaryPacketIQ.BinaryPacketIQSerializer, requestId: number, memberId: string) {
 		super(serializer, requestId);
 		this.memberId = memberId;
 	}
@@ -66,11 +62,7 @@ export namespace ParticipantTransferIQ {
 		public deserialize(decoder: Decoder): any {
 			let serviceRequestIQ: BinaryPacketIQ = super.deserialize(decoder) as BinaryPacketIQ;
 			let memberId: string = decoder.readString();
-			return new ParticipantTransferIQ(
-				this,
-				serviceRequestIQ.getRequestId(),
-				memberId
-			);
+			return new ParticipantTransferIQ(this, serviceRequestIQ.getRequestId(), memberId);
 		}
 	}
 }
