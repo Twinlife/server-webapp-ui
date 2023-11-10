@@ -50,7 +50,7 @@ export class BinaryCompactEncoder implements Encoder {
 
 	public writeInt(value: number): void {
 		try {
-			let lValue: number = (value << 1) ^ (value >> 31);
+			const lValue: number = (value << 1) ^ (value >> 31);
 			if ((lValue & ~127) === 0) {
 				this.mOutputStream.write$int(lValue);
 				return;
@@ -60,7 +60,7 @@ export class BinaryCompactEncoder implements Encoder {
 				this.mOutputStream.write$int(lValue >>> 7);
 				return;
 			}
-			let length: number = BinaryCompactEncoder.encodeInt(value, this.mBuffer);
+			const length: number = BinaryCompactEncoder.encodeInt(value, this.mBuffer);
 			this.mOutputStream.writeBuffer(this.mBuffer, 0, length);
 		} catch (exception) {
 			throw new SerializerException(exception);
@@ -68,14 +68,14 @@ export class BinaryCompactEncoder implements Encoder {
 	}
 
 	public writeLong(value: number): void {
-		let buffer: ArrayBuffer = new ArrayBuffer(8);
-		let srcBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
+		const buffer: ArrayBuffer = new ArrayBuffer(8);
+		const srcBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
 		for (let i: number = 7; i >= 0; i--) {
-			let byte: number = value & 0xff;
+			const byte: number = value & 0xff;
 			srcBuffer[i] = byte;
 			value = (value - byte) / 256; // do not use shift operator (done on int32)
 		}
-		let length: number = BinaryCompactEncoder.encodeLongArrayBuffer(buffer, this.mBuffer);
+		const length: number = BinaryCompactEncoder.encodeLongArrayBuffer(buffer, this.mBuffer);
 		this.mOutputStream.writeBuffer(this.mBuffer, 0, length);
 	}
 
@@ -98,7 +98,7 @@ export class BinaryCompactEncoder implements Encoder {
 				this.writeZero();
 				return;
 			}
-			let bytes: ArrayBuffer | null = Utf8.getBytes(value);
+			const bytes: ArrayBuffer | null = Utf8.getBytes(value);
 			if (bytes) {
 				this.writeInt(bytes.byteLength);
 				this.mOutputStream.writeBuffer(bytes, 0, bytes.byteLength);
@@ -159,7 +159,7 @@ export class BinaryCompactEncoder implements Encoder {
 		try {
 			const least = new Uint8Array(value.getLeastSignificantBits());
 			const most = new Uint8Array(value.getMostSignificantBits());
-			let dstBuffer: Uint8Array = new Uint8Array(this.mBuffer, 0, 16);
+			const dstBuffer: Uint8Array = new Uint8Array(this.mBuffer, 0, 16);
 			for (let index = 0; index < 8; index++) {
 				dstBuffer[index] = least[7 - index];
 			}
@@ -176,7 +176,7 @@ export class BinaryCompactEncoder implements Encoder {
 
 	private static encodeInt(value: number, buffer: ArrayBuffer): number {
 		value = (value << 1) ^ (value >> 31);
-		let dstBuffer: Uint8Array = new Uint8Array(buffer, 0, buffer.byteLength);
+		const dstBuffer: Uint8Array = new Uint8Array(buffer, 0, buffer.byteLength);
 		let position: number = 0;
 		if ((value & ~127) !== 0) {
 			dstBuffer[position++] = (value | 128) & 255;
@@ -200,13 +200,13 @@ export class BinaryCompactEncoder implements Encoder {
 
 	private static encodeLongArrayBuffer(value: ArrayBuffer, buffer: ArrayBuffer): number {
 		let srcBuffer: Uint8Array = new Uint8Array(value, 0, value.byteLength);
-		let rightShitf1 = new ArrayBuffer(8);
+		const rightShitf1 = new ArrayBuffer(8);
 		let dstBuffer: Uint8Array = new Uint8Array(rightShitf1, 0, 8);
 		for (let i: number = 0; i < 7; i++) {
 			dstBuffer[i] = (srcBuffer[i] << 1) | ((srcBuffer[i + 1] >>> 7) & 0x1);
 		}
 		dstBuffer[7] = srcBuffer[7] << 1;
-		let leftShitf63 = new ArrayBuffer(8);
+		const leftShitf63 = new ArrayBuffer(8);
 		dstBuffer = new Uint8Array(leftShitf63, 0, 8);
 		if (srcBuffer[0] >>> 7 !== 0) {
 			for (let i: number = 0; i < 8; i++) {
@@ -217,9 +217,9 @@ export class BinaryCompactEncoder implements Encoder {
 				dstBuffer[i] = 0;
 			}
 		}
-		let zigzag = new ArrayBuffer(8);
-		let srcBuffer1: Uint8Array = new Uint8Array(rightShitf1, 0, rightShitf1.byteLength);
-		let srcBuffer2: Uint8Array = new Uint8Array(leftShitf63, 0, leftShitf63.byteLength);
+		const zigzag = new ArrayBuffer(8);
+		const srcBuffer1: Uint8Array = new Uint8Array(rightShitf1, 0, rightShitf1.byteLength);
+		const srcBuffer2: Uint8Array = new Uint8Array(leftShitf63, 0, leftShitf63.byteLength);
 		dstBuffer = new Uint8Array(zigzag, 0, zigzag.byteLength);
 		for (let i: number = 0; i < 8; i++) {
 			dstBuffer[i] = srcBuffer1[i] ^ srcBuffer2[i];

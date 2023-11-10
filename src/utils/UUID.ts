@@ -47,12 +47,12 @@ export class UUID {
 			this.value = value1;
 		} else if (value1 !== null && value1 instanceof Buffer && value1.byteLength === 16 && value2 === undefined) {
 			this.value = new ArrayBuffer(16);
-			let srcBuffer: Uint8Array = new Uint8Array(value1);
-			let dstBuffer: Uint8Array = new Uint8Array(this.value);
+			const srcBuffer: Uint8Array = new Uint8Array(value1);
+			const dstBuffer: Uint8Array = new Uint8Array(this.value);
 			dstBuffer.set(srcBuffer);
 		} else if (value1 === 0 && value2 === 0) {
 			this.value = new ArrayBuffer(16);
-			let dstBuffer: Uint8Array = new Uint8Array(this.value);
+			const dstBuffer: Uint8Array = new Uint8Array(this.value);
 			for (let i = 0; i < 16; i++) {
 				dstBuffer[i] = 0;
 			}
@@ -66,8 +66,8 @@ export class UUID {
 	}
 
 	public static fromString(name: string): UUID {
-		let buffer: ArrayBuffer = new ArrayBuffer(16);
-		let dstBuffer: Uint8Array = new Uint8Array(buffer);
+		const buffer: ArrayBuffer = new ArrayBuffer(16);
+		const dstBuffer: Uint8Array = new Uint8Array(buffer);
 		for (let i = 0, index = 0; i < name.length && index < 16; i++) {
 			if (name[i] === "-") {
 				continue;
@@ -167,23 +167,23 @@ export class UUID {
 	}
 
 	public getLeastSignificantBits(): ArrayBuffer {
-		let srcBuffer: Uint8Array = new Uint8Array(this.value, 8, 8);
-		let buffer: ArrayBuffer = new ArrayBuffer(8);
-		let dstBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
+		const srcBuffer: Uint8Array = new Uint8Array(this.value, 8, 8);
+		const buffer: ArrayBuffer = new ArrayBuffer(8);
+		const dstBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
 		dstBuffer.set(srcBuffer);
 		return buffer;
 	}
 
 	public getMostSignificantBits(): ArrayBuffer {
-		let srcBuffer: Uint8Array = new Uint8Array(this.value, 0, 8);
-		let buffer: ArrayBuffer = new ArrayBuffer(8);
-		let dstBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
+		const srcBuffer: Uint8Array = new Uint8Array(this.value, 0, 8);
+		const buffer: ArrayBuffer = new ArrayBuffer(8);
+		const dstBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
 		dstBuffer.set(srcBuffer);
 		return buffer;
 	}
 
 	public hashCode(): number {
-		let srcBuffer: Uint8Array = new Uint8Array(this.value);
+		const srcBuffer: Uint8Array = new Uint8Array(this.value);
 		let result: number = 1;
 		for (let i = 0; i < 16; i++) {
 			result = 31 * result + srcBuffer[i];
@@ -199,8 +199,8 @@ export class UUID {
 			return false;
 		}
 		for (let i = 0; i < 16; i++) {
-			let srcBuffer1: Uint8Array = new Uint8Array(this.value);
-			let srcBuffer2: Uint8Array = new Uint8Array(obj.getValue());
+			const srcBuffer1: Uint8Array = new Uint8Array(this.value);
+			const srcBuffer2: Uint8Array = new Uint8Array(obj.getValue());
 			if (srcBuffer1[i] !== srcBuffer2[i]) {
 				return false;
 			}
@@ -210,7 +210,7 @@ export class UUID {
 
 	public isNull(): boolean {
 		for (let i = 0; i < 16; i++) {
-			let srcBuffer: Uint8Array = new Uint8Array(this.value);
+			const srcBuffer: Uint8Array = new Uint8Array(this.value);
 			if (srcBuffer[i] !== 0) {
 				return false;
 			}
@@ -220,8 +220,8 @@ export class UUID {
 
 	public compareTo(val: UUID): number {
 		for (let i = 0; i < 16; i++) {
-			let srcBuffer1: Uint8Array = new Uint8Array(this.value);
-			let srcBuffer2: Uint8Array = new Uint8Array(val.getValue());
+			const srcBuffer1: Uint8Array = new Uint8Array(this.value);
+			const srcBuffer2: Uint8Array = new Uint8Array(val.getValue());
 			if (srcBuffer1[i] === srcBuffer2[i]) {
 				continue;
 			}
@@ -231,7 +231,7 @@ export class UUID {
 	}
 
 	public toString(): string {
-		let srcBuffer: Uint8Array = new Uint8Array(this.value);
+		const srcBuffer: Uint8Array = new Uint8Array(this.value);
 		let string: string = "";
 		for (let i = 0; i < 16; i++) {
 			for (let j = 0; j < 2; j++) {

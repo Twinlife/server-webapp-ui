@@ -65,8 +65,8 @@ export class CallService implements PeerCallServiceObserver {
 	private mParticipantObserver: CallParticipantObserver | null = null;
 	private mAudioMute: boolean = false;
 	private mIsCameraMute: boolean = false;
-	private mPeers: Map<String, CallConnection> = new Map<any, any>();
-	private mPeerTo: Map<String, CallConnection> = new Map<String, CallConnection>();
+	private mPeers: Map<string, CallConnection> = new Map<any, any>();
+	private mPeerTo: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private mActiveCall: CallState | null = null;
 	private mLocalStream: MediaStream = new MediaStream();
 	private mIdentityName: string = "Unknown";
@@ -108,8 +108,8 @@ export class CallService implements PeerCallServiceObserver {
 		}
 
 		call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage, transfer);
-		let callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
-		let callConnection: CallConnection = new CallConnection(
+		const callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
+		const callConnection: CallConnection = new CallConnection(
 			this,
 			this.mPeerCallService,
 			call,
@@ -138,15 +138,15 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		let call = this.mActiveCall;
+		const call = this.mActiveCall;
 		if (!CallStatusOps.isActive(call.getStatus())) {
 			console.error("actionAddCallParticipant call status invalid, call=");
 			console.error(call);
 			return;
 		}
 
-		let callStatus = call.isVideo() ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
-		let callConnection: CallConnection = new CallConnection(
+		const callStatus = call.isVideo() ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
+		const callConnection: CallConnection = new CallConnection(
 			this,
 			this.mPeerCallService,
 			call,
@@ -170,13 +170,13 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	actionTerminateCall(terminateReason: TerminateReason): void {
-		let call: CallState | null = this.mActiveCall;
+		const call: CallState | null = this.mActiveCall;
 		if (!call) {
 			return;
 		}
 
-		let connections: Array<CallConnection> = call.getConnections();
-		for (let callConnection of connections) {
+		const connections: Array<CallConnection> = call.getConnections();
+		for (const callConnection of connections) {
 			if (callConnection.getStatus() !== CallStatus.TERMINATED) {
 				callConnection.terminate(terminateReason);
 				this.onTerminatePeerConnection(callConnection, terminateReason);
@@ -185,27 +185,27 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	actionAudioMute(audioMute: boolean): void {
-		let call: CallState | null = this.mActiveCall;
+		const call: CallState | null = this.mActiveCall;
 		if (!call) {
 			return;
 		}
 
 		this.mAudioMute = audioMute;
-		let connections: Array<CallConnection> = call.getConnections();
-		for (let callConnection of connections) {
+		const connections: Array<CallConnection> = call.getConnections();
+		for (const callConnection of connections) {
 			callConnection.setAudioDirection(this.getAudioDirection());
 		}
 	}
 
 	actionCameraMute(cameraMute: boolean): void {
-		let call: CallState | null = this.mActiveCall;
+		const call: CallState | null = this.mActiveCall;
 		if (!call) {
 			return;
 		}
 
 		this.mIsCameraMute = cameraMute;
-		let connections: Array<CallConnection> = call.getConnections();
-		for (let connection of connections) {
+		const connections: Array<CallConnection> = call.getConnections();
+		for (const connection of connections) {
 			if (!this.mIsCameraMute && !connection.isVideo()) {
 				console.log("NEED ACTIVATE CAMERA");
 				const track = this.mLocalStream!.getVideoTracks()[0];
@@ -231,8 +231,8 @@ export class CallService implements PeerCallServiceObserver {
 				this.mLocalStream.removeTrack(currentTrack);
 				const call = this.mActiveCall;
 				if (call && CallStatusOps.isActive(call.getStatus())) {
-					let connections: Array<CallConnection> = call.getConnections();
-					for (let callConnection of connections) {
+					const connections: Array<CallConnection> = call.getConnections();
+					for (const callConnection of connections) {
 						callConnection.replaceAudioTrack(audioTrack);
 					}
 				}
@@ -250,8 +250,8 @@ export class CallService implements PeerCallServiceObserver {
 				this.mLocalStream.removeTrack(currentTrack);
 				const call = this.mActiveCall;
 				if (call && CallStatusOps.isActive(call.getStatus())) {
-					let connections: Array<CallConnection> = call.getConnections();
-					for (let callConnection of connections) {
+					const connections: Array<CallConnection> = call.getConnections();
+					for (const callConnection of connections) {
 						callConnection.replaceVideoTrack(videoTrack);
 					}
 				}
@@ -274,9 +274,9 @@ export class CallService implements PeerCallServiceObserver {
 	 * @return the list of participants are returned.
 	 */
 	getParticipants(): Array<CallParticipant> {
-		let participants: Array<CallParticipant> = [];
-		let connections: Array<CallConnection> = this.getConnections();
-		for (let callConnection of connections) {
+		const participants: Array<CallParticipant> = [];
+		const connections: Array<CallConnection> = this.getConnections();
+		for (const callConnection of connections) {
 			callConnection.getParticipants(participants);
 		}
 		return participants;
@@ -292,20 +292,20 @@ export class CallService implements PeerCallServiceObserver {
 	onIncomingSessionInitiate(sessionId: string, peerId: string, sdp: string, offer: Offer): void {
 		console.log("session-initiate received " + sessionId);
 
-		let call: CallState | null = this.mActiveCall;
+		const call: CallState | null = this.mActiveCall;
 		let pos: number = peerId.indexOf("@");
 		if (!call || pos < 0) {
 			this.mPeerCallService.sessionTerminate(sessionId, "not-authorized");
 			return;
 		}
 
-		let domain: string = peerId.substring(pos + 1);
+		const domain: string = peerId.substring(pos + 1);
 		pos = domain.indexOf(".");
 		if (pos < 0 || !domain.substring(pos).startsWith(".callroom.")) {
 			this.mPeerCallService.sessionTerminate(sessionId, "not-authorized");
 			return;
 		}
-		let callRoomId: UUID = UUID.fromString(domain.substring(0, pos));
+		const callRoomId: UUID = UUID.fromString(domain.substring(0, pos));
 		if (callRoomId == null) {
 			this.mPeerCallService.sessionTerminate(sessionId, "not-authorized");
 			return;
@@ -315,10 +315,10 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		let status: CallStatus = offer.video
+		const status: CallStatus = offer.video
 			? CallStatus.ACCEPTED_INCOMING_VIDEO_CALL
 			: CallStatus.ACCEPTED_INCOMING_CALL;
-		let callConnection: CallConnection = new CallConnection(
+		const callConnection: CallConnection = new CallConnection(
 			this,
 			this.mPeerCallService,
 			call,
@@ -337,7 +337,7 @@ export class CallService implements PeerCallServiceObserver {
 	onSessionInitiate(to: string, sessionId: string): void {
 		console.log("session-initiate created " + sessionId);
 
-		let callConnection: CallConnection | undefined = this.mPeerTo.get(to);
+		const callConnection: CallConnection | undefined = this.mPeerTo.get(to);
 		if (callConnection) {
 			callConnection.onSessionInitiate(sessionId);
 			this.mPeers.set(sessionId, callConnection);
@@ -467,8 +467,8 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onChangeConnectionState(callConnection: CallConnection, state: RTCIceConnectionState): void {
-		let call: CallState = callConnection.getCall();
-		let status: CallState.UpdateState = call.updateConnectionState(callConnection, state);
+		const call: CallState = callConnection.getCall();
+		const status: CallState.UpdateState = call.updateConnectionState(callConnection, state);
 		if (status === CallState.UpdateState.FIRST_CONNECTION) {
 			// this.stopRingtone();
 		} else if (status === CallState.UpdateState.FIRST_GROUP) {
@@ -495,8 +495,8 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onTerminatePeerConnection(callConnection: CallConnection, terminateReason: TerminateReason): void {
-		let call: CallState = callConnection.getCall();
-		let sessionId: string | null = callConnection.getPeerConnectionId();
+		const call: CallState = callConnection.getCall();
+		const sessionId: string | null = callConnection.getPeerConnectionId();
 		if (sessionId) {
 			console.log("Remove peer session " + sessionId);
 			this.mPeers.delete(sessionId);

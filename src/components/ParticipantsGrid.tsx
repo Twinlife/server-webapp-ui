@@ -36,8 +36,6 @@ const ParticipantsGrid: React.FC<{
 			"md:grid-cols-2 md:grid-rows-1",
 		].join(" ");
 	} else if (participants.length < 5) {
-		gridClass = "grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-2";
-	} else if (participants.length < 5) {
 		gridClass = "grid-cols-2 grid-rows-2";
 	} else if (participants.length < 7) {
 		gridClass = "grid-cols-3 grid-rows-2";

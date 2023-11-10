@@ -60,8 +60,8 @@ export namespace ParticipantTransferIQ {
 		}
 
 		public deserialize(decoder: Decoder): any {
-			let serviceRequestIQ: BinaryPacketIQ = super.deserialize(decoder) as BinaryPacketIQ;
-			let memberId: string = decoder.readString();
+			const serviceRequestIQ: BinaryPacketIQ = super.deserialize(decoder) as BinaryPacketIQ;
+			const memberId: string = decoder.readString();
 			return new ParticipantTransferIQ(this, serviceRequestIQ.getRequestId(), memberId);
 		}
 	}

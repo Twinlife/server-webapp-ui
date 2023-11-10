@@ -177,7 +177,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	onAddParticipant(participant: CallParticipant): void {
 		console.log("Add new participant ", participant);
 
-		let participants: Array<CallParticipant> = this.callService.getParticipants();
+		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: participants });
 	}
 
@@ -188,7 +188,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 */
 	onRemoveParticipants(participants: Array<CallParticipant>): void {
 		console.log("Remove participants ");
-		let list: Array<CallParticipant> = this.callService.getParticipants();
+		const list: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: list });
 	}
 
@@ -201,7 +201,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	onEventParticipant(participant: CallParticipant, event: CallParticipantEvent): void {
 		console.log("Participant event: " + event);
 
-		let participants: Array<CallParticipant> = this.callService.getParticipants();
+		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: participants });
 	}
 
@@ -391,10 +391,10 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		this.callService.setIdentity(guestName, new ArrayBuffer(0));
 
-		let name: string = twincode.name ? twincode.name : "Unknown";
-		let video: boolean = !this.state.videoMute;
-		let transfer: boolean = twincode.transfer;
-		let avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
+		const name: string = twincode.name ? twincode.name : "Unknown";
+		const video: boolean = !this.state.videoMute;
+		const transfer: boolean = twincode.transfer;
+		const avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionOutgoingCall(this.props.id, video, transfer, name, avatarUrl);
 		ev.preventDefault();
 	};
@@ -414,9 +414,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		this.callService.setIdentity(guestName, new ArrayBuffer(0));
 
-		let name: string = twincode.name ? twincode.name : "Unknown";
-		let transfer: boolean = twincode.transfer;
-		let avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
+		const name: string = twincode.name ? twincode.name : "Unknown";
+		const transfer: boolean = twincode.transfer;
+		const avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionAddCallParticipant(this.props.id, transfer, name, avatarUrl);
 		ev.preventDefault();
 	};
@@ -704,19 +704,19 @@ const Timer = () => {
 	useEffect(() => {
 		let difference = seconds * 1000;
 
-		let daysDifference = Math.floor(difference / 1000 / 60 / 60 / 24);
+		const daysDifference = Math.floor(difference / 1000 / 60 / 60 / 24);
 		difference -= daysDifference * 1000 * 60 * 60 * 24;
 
-		let hoursDifference = Math.floor(difference / 1000 / 60 / 60);
+		const hoursDifference = Math.floor(difference / 1000 / 60 / 60);
 		difference -= hoursDifference * 1000 * 60 * 60;
-		let h = hoursDifference >= 10 ? hoursDifference : "0" + hoursDifference;
+		const h = hoursDifference >= 10 ? hoursDifference : "0" + hoursDifference;
 
-		let minutesDifference = Math.floor(difference / 1000 / 60);
+		const minutesDifference = Math.floor(difference / 1000 / 60);
 		difference -= minutesDifference * 1000 * 60;
-		let m = minutesDifference >= 10 ? minutesDifference : "0" + minutesDifference;
+		const m = minutesDifference >= 10 ? minutesDifference : "0" + minutesDifference;
 
-		let secondsDifference = Math.floor(difference / 1000);
-		let s = secondsDifference >= 10 ? secondsDifference : "0" + secondsDifference;
+		const secondsDifference = Math.floor(difference / 1000);
+		const s = secondsDifference >= 10 ? secondsDifference : "0" + secondsDifference;
 
 		setTime(h != "00" ? h + ":" : "" + m + ":" + s);
 	}, [seconds]);

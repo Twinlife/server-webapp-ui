@@ -99,7 +99,7 @@ export class ByteArrayOutputStream {
 	 * @private
 	 */
 	private grow(minCapacity: number) {
-		let oldCapacity: number = this.buf.byteLength;
+		const oldCapacity: number = this.buf.byteLength;
 		let newCapacity: number = oldCapacity << 1;
 		if (newCapacity - minCapacity < 0) newCapacity = minCapacity;
 		if (newCapacity - ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$() > 0)
@@ -108,9 +108,9 @@ export class ByteArrayOutputStream {
 	}
 
 	public static copyOf(original: ArrayBuffer, newLength: number): ArrayBuffer {
-		let srcBuffer: Uint8Array = new Uint8Array(original, 0);
-		let buffer: ArrayBuffer = new ArrayBuffer(newLength);
-		let dstBuffer: Uint8Array = new Uint8Array(buffer, 0);
+		const srcBuffer: Uint8Array = new Uint8Array(original, 0);
+		const buffer: ArrayBuffer = new ArrayBuffer(newLength);
+		const dstBuffer: Uint8Array = new Uint8Array(buffer, 0);
 		for (let i: number = 0; i < srcBuffer.byteLength && i < dstBuffer.byteLength; i++) {
 			dstBuffer[i] = srcBuffer[i];
 		}
@@ -136,7 +136,7 @@ export class ByteArrayOutputStream {
 
 	public write$int(b: number) {
 		this.ensureCapacity(this.count + 1);
-		let dstBuffer: Uint8Array = new Uint8Array(this.buf, this.count, 1);
+		const dstBuffer: Uint8Array = new Uint8Array(this.buf, this.count, 1);
 		dstBuffer[0] = b;
 		this.count += 1;
 	}
@@ -155,8 +155,8 @@ export class ByteArrayOutputStream {
 			});
 		}
 		this.ensureCapacity(this.count + len);
-		let srcBuffer: Uint8Array = new Uint8Array(b, off, len);
-		let dstBuffer: Uint8Array = new Uint8Array(this.buf, this.count, len);
+		const srcBuffer: Uint8Array = new Uint8Array(b, off, len);
+		const dstBuffer: Uint8Array = new Uint8Array(this.buf, this.count, len);
 		dstBuffer.set(srcBuffer);
 		this.count += len;
 	}
