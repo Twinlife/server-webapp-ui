@@ -35,6 +35,9 @@ const router = createBrowserRouter([
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 	<React.StrictMode>
-		<RouterProvider router={router} />
+		<>
+			<input type="hidden" name="app-version" value={__APP_VERSION__} />
+			<RouterProvider router={router} />
+		</>
 	</React.StrictMode>
 );
