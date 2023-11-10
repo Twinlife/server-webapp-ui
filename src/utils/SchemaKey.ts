@@ -21,7 +21,7 @@ export class SchemaKey {
 		if (!(object != null && object instanceof SchemaKey)) {
 			return false;
 		}
-		let key: SchemaKey = object as SchemaKey;
+		const key: SchemaKey = object as SchemaKey;
 		return this.schemaId.equals(key.schemaId) && this.version === key.version;
 	}
 

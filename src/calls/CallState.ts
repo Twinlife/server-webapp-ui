@@ -147,7 +147,7 @@ export class CallState {
 	 * @return {CallParticipant[]} the current frozen list of participants.
 	 */
 	public getParticipants(): Array<CallParticipant> {
-		let result: Array<CallParticipant> = [];
+		const result: Array<CallParticipant> = [];
 		for (const connection of this.mPeers) {
 			connection.getParticipants(result);
 		}
@@ -189,7 +189,7 @@ export class CallState {
 	 * @param {CallParticipant} participant the participant.
 	 */
 	onAddParticipant(participant: CallParticipant): void {
-		let observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
+		const observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
 		if (observer != null) {
 			observer.onAddParticipant(participant);
 		}
@@ -201,7 +201,7 @@ export class CallState {
 	 * @param {CallParticipant[]} participants the list of participants being removed.
 	 */
 	onRemoveParticipants(participants: Array<CallParticipant>): void {
-		let observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
+		const observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
 		if (observer != null) {
 			observer.onRemoveParticipants(participants);
 		}
@@ -214,7 +214,7 @@ export class CallState {
 	 * @param {CallParticipantEvent} event the event that occurred.
 	 */
 	onEventParticipant(participant: CallParticipant, event: CallParticipantEvent): void {
-		let observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
+		const observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
 		if (observer != null) {
 			observer.onEventParticipant(participant, event);
 		}
@@ -272,7 +272,7 @@ export class CallState {
 	 * @return {CallState.UpdateState} the update state of this connection.
 	 */
 	updateConnectionState(callConnection: CallConnection, state: RTCIceConnectionState): CallState.UpdateState {
-		let status: CallStatus = callConnection.getStatus();
+		const status: CallStatus = callConnection.getStatus();
 		if (!callConnection.updateConnectionState(state)) {
 			return CallState.UpdateState.IGNORE;
 		}
@@ -332,11 +332,11 @@ export class CallState {
 	 * @return {boolean} true if the call has no peer connection.
 	 */
 	remove(callConnection: CallConnection): boolean {
-		let index = this.mPeers.indexOf(callConnection);
+		const index = this.mPeers.indexOf(callConnection);
 		if (index >= 0) {
 			this.mPeers.splice(index, 1);
 		}
-		let empty: boolean = this.mPeers.length === 0;
+		const empty: boolean = this.mPeers.length === 0;
 		this.onRemoveParticipants(callConnection.release());
 		return empty;
 	}
@@ -345,7 +345,7 @@ export class CallState {
 	 * Release all the resources used by the call participants.
 	 */
 	release(): void {
-		for (let callConnection of this.mPeers) {
+		for (const callConnection of this.mPeers) {
 			callConnection.release();
 		}
 		this.mPeers = [];

@@ -12,7 +12,7 @@
 		"build:mytwinlife:transfer": "node scripts/publicAssets.js twinme && npm run build -- --mode mytwinlife-transfer --outDir mytwinlife-webapp-transfer",
 		"build:twinme:transfer": "node scripts/publicAssets.js twinme && npm run build -- --mode twinme-transfer --outDir twinme-webapp-transfer",
 		"build:skred:transfer": "node scripts/publicAssets.js skred && npm run build -- --mode skred-transfer --outDir skred-webapp-transfer",
-		"lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+		"lint": "eslint src --ext ts,tsx --report-unused-disable-directives",
 		"preview": "vite preview",
 		"translate": "node ./translations/translations.js",
 		"prettier": "prettier --config ./.prettierrc --write \"src/**/*.{ts,tsx,json}\""

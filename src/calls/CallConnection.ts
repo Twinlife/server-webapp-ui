@@ -524,6 +524,7 @@ export class CallConnection {
 	onSessionAccept(sdp: string, offer: Offer, offerToReceive: Offer): boolean {
 		if (!this.mPeerConnection) {
 			if (this.mPeerConnectionId) {
+				// empty
 			}
 			return false;
 		}
@@ -902,7 +903,7 @@ export class CallConnection {
 		const description: string = "";
 		const memberId: string = this.mCall.getCallRoomMemberId() ?? "";
 		try {
-			let iq: ParticipantInfoIQ = new ParticipantInfoIQ(
+			const iq: ParticipantInfoIQ = new ParticipantInfoIQ(
 				CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER,
 				1,
 				memberId,
@@ -910,9 +911,11 @@ export class CallConnection {
 				description,
 				thumbnailData
 			);
-			let packet: ArrayBuffer = iq.serializeCompact();
+			const packet: ArrayBuffer = iq.serializeCompact();
 			this.mOutDataChannel.send(packet);
-		} catch (exception) {}
+		} catch (exception) {
+			// empty
+		}
 	}
 
 	/**

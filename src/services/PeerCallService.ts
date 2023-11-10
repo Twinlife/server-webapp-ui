@@ -186,7 +186,7 @@ export class PeerCallService {
 				this.callConfig = req as CallConfigMessage;
 			} else if (req.msg === "session-accept") {
 				if (this.callObserver) {
-					let sessionAccept: SessionAcceptMessage = req as SessionAcceptMessage;
+					const sessionAccept: SessionAcceptMessage = req as SessionAcceptMessage;
 					this.callObserver.onSessionAccept(
 						sessionAccept.sessionId,
 						sessionAccept.sdp,
@@ -196,7 +196,7 @@ export class PeerCallService {
 				}
 			} else if (req.msg === "session-update") {
 				if (this.callObserver) {
-					let sessionUpdate: SessionUpdateMessage = req as SessionUpdateMessage;
+					const sessionUpdate: SessionUpdateMessage = req as SessionUpdateMessage;
 					this.callObserver.onSessionUpdate(
 						sessionUpdate.sessionId,
 						sessionUpdate.updateType,
@@ -205,22 +205,22 @@ export class PeerCallService {
 				}
 			} else if (req.msg === "transport-info") {
 				if (this.callObserver) {
-					let transportInfo: TransportInfoMessage = req as TransportInfoMessage;
+					const transportInfo: TransportInfoMessage = req as TransportInfoMessage;
 					this.callObserver.onTransportInfo(transportInfo.sessionId, transportInfo.candidates);
 				}
 			} else if (req.msg === "session-terminate") {
 				if (this.callObserver) {
-					let sessionTerminate: SessionTerminateMessage = req as SessionTerminateMessage;
+					const sessionTerminate: SessionTerminateMessage = req as SessionTerminateMessage;
 					this.callObserver.onSessionTerminate(sessionTerminate.sessionId, sessionTerminate.reason);
 				}
 			} else if (req.msg === "session-initiate-response") {
 				if (this.callObserver) {
-					let initResponse: SessionInitiateResponseMessage = req as SessionInitiateResponseMessage;
+					const initResponse: SessionInitiateResponseMessage = req as SessionInitiateResponseMessage;
 					this.callObserver.onSessionInitiate(initResponse.to, initResponse.sessionId, initResponse.status);
 				}
 			} else if (req.msg === "session-initiate") {
 				if (this.callObserver) {
-					let sessionInitiate: SessionInitiateMessage = req as SessionInitiateMessage;
+					const sessionInitiate: SessionInitiateMessage = req as SessionInitiateMessage;
 					if (sessionInitiate.sessionId) {
 						this.callObserver.onIncomingSessionInitiate(
 							sessionInitiate.sessionId,
@@ -232,12 +232,12 @@ export class PeerCallService {
 				}
 			} else if (req.msg === "join-callroom") {
 				if (this.callObserver) {
-					let joinRoom: JoinCallRoomMessage = req as JoinCallRoomMessage;
+					const joinRoom: JoinCallRoomMessage = req as JoinCallRoomMessage;
 					this.callObserver.onJoinCallRoom(joinRoom.callRoomId, joinRoom.memberId, joinRoom.members);
 				}
 			} else if (req.msg === "member-join") {
 				if (this.callObserver) {
-					let memberJoin: MemberJoinMessage = req as MemberJoinMessage;
+					const memberJoin: MemberJoinMessage = req as MemberJoinMessage;
 					this.callObserver.onMemberJoin(memberJoin.sessionId, memberJoin.memberId, memberJoin.status);
 				}
 			} else {
@@ -264,10 +264,10 @@ export class PeerCallService {
 	 * @returns  the WebRTC configuration with turn servers.
 	 */
 	getConfiguration(): any {
-		let iceServers: Array<RTCIceServer> = [];
+		const iceServers: Array<RTCIceServer> = [];
 		if (this.callConfig) {
 			for (let i = 0; i < this.callConfig.turnServers.length; i++) {
-				let turnServer = this.callConfig.turnServers[i];
+				const turnServer = this.callConfig.turnServers[i];
 				iceServers.push({
 					urls: turnServer.url,
 					username: turnServer.username,
@@ -277,7 +277,7 @@ export class PeerCallService {
 			}
 		}
 
-		let result = {
+		const result = {
 			iceServers: iceServers,
 			// bundlePolicy: "balanced",
 			// sdpSemantics: 'unified-plan'
