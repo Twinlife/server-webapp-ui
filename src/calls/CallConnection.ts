@@ -351,38 +351,38 @@ export class CallConnection {
 		pc.ondatachannel = (event: RTCDataChannelEvent): void => {
 			const channel: RTCDataChannel = event.channel;
 			// Firefox defaults to "blob", but it's not supported by Chromium
-            channel.binaryType = "arraybuffer";
-            channel.onopen = (event: Event): any => {
-                const label: string = channel.label;
+			channel.binaryType = "arraybuffer";
+			channel.onopen = (event: Event): any => {
+				const label: string = channel.label;
 
 				console.log("Input data channel " + label + " is opened");
 			};
 			channel.onmessage = (event: MessageEvent<ArrayBuffer>): any => {
 				console.log("Received a data channel message");
 
-                if(!event.data){
-                    console.error("Event contains no data:", event);
-                    return;
-                }
+				if (!event.data) {
+					console.error("Event contains no data:", event);
+					return;
+				}
 
-                try {
-                    const inputStream: ByteArrayInputStream = new ByteArrayInputStream(event.data);
-                    const binaryDecoder: BinaryCompactDecoder = new BinaryCompactDecoder(inputStream);
-                    const schemaId = binaryDecoder.readUUID();
-                    const schemaVersion = binaryDecoder.readInt();
-                    const key: SchemaKey = new SchemaKey(schemaId, schemaVersion);
-                    const listener: PacketHandler | undefined = this.mBinaryListeners.get(key.toString());
-                    if (listener !== undefined) {
-                        const iq: BinaryPacketIQ = listener.serializer.deserialize(binaryDecoder) as BinaryPacketIQ;
-                        listener.handler(this, iq);
-                    } else {
-                        console.log("Schema " + key + " is not recognized");
-                    }
-                } catch (exception) {
-                    console.error("Exception raised when handling data channel message", exception);
-                }
-            };
-        };
+				try {
+					const inputStream: ByteArrayInputStream = new ByteArrayInputStream(event.data);
+					const binaryDecoder: BinaryCompactDecoder = new BinaryCompactDecoder(inputStream);
+					const schemaId = binaryDecoder.readUUID();
+					const schemaVersion = binaryDecoder.readInt();
+					const key: SchemaKey = new SchemaKey(schemaId, schemaVersion);
+					const listener: PacketHandler | undefined = this.mBinaryListeners.get(key.toString());
+					if (listener !== undefined) {
+						const iq: BinaryPacketIQ = listener.serializer.deserialize(binaryDecoder) as BinaryPacketIQ;
+						listener.handler(this, iq);
+					} else {
+						console.log("Schema " + key + " is not recognized");
+					}
+				} catch (exception) {
+					console.error("Exception raised when handling data channel message", exception);
+				}
+			};
+		};
 
 		// Setup the output data channel.
 		this.mOutDataChannel = pc.createDataChannel("data");
@@ -455,7 +455,7 @@ export class CallConnection {
 				})
 				.catch((error: any) => {
 					console.error("Set remote failed: ", error);
-                });
+				});
 		} else {
 			this.mMakingOffer = true;
 			pc.createOffer(offerOptions)
@@ -519,11 +519,11 @@ export class CallConnection {
 		this.mIcePending = null;
 	}
 
-    onSessionAccept(sdp: string, offer: Offer, offerToReceive: Offer): boolean {
-        if (!this.mPeerConnection) {
-            return false;
-        }
-        this.setPeerVersion(new Version(offer.version));
+	onSessionAccept(sdp: string, offer: Offer, offerToReceive: Offer): boolean {
+		if (!this.mPeerConnection) {
+			return false;
+		}
+		this.setPeerVersion(new Version(offer.version));
 
 		this.mPeerConnection
 			.setRemoteDescription({
@@ -626,14 +626,14 @@ export class CallConnection {
 					usernameFragment: ufrag,
 				};
 
-                const ice: RTCIceCandidate = new RTCIceCandidate(c);
-                //console.log("Adding candidate ", ice);
-                this.mPeerConnection.addIceCandidate(ice).then(
-                    () => {
-                        console.log("Add ice candidate ok ", ice);
-                    },
-                    (err) => {
-                        console.log("Add ice candidate error for %o : ", ice, err);
+				const ice: RTCIceCandidate = new RTCIceCandidate(c);
+				//console.log("Adding candidate ", ice);
+				this.mPeerConnection.addIceCandidate(ice).then(
+					() => {
+						console.log("Add ice candidate ok ", ice);
+					},
+					(err) => {
+						console.log("Add ice candidate error for %o : ", ice, err);
 					}
 				);
 			}
@@ -909,9 +909,9 @@ export class CallConnection {
 			this.mOutDataChannel.send(packet);
 		} catch (exception) {
 			// empty
-            console.error("Could not send ParticipantInfoIQ: ", exception);
-        }
-    }
+			console.error("Could not send ParticipantInfoIQ: ", exception);
+		}
+	}
 
 	/**
 	 * Handle the ParticipantInfoIQ packet.
