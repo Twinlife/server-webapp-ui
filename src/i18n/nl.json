@@ -1,24 +1,24 @@
 {
-    "translation": {
-        "thanks_choosing": "Bedankt voor het kiezen van {{appName}}!",
-        "next_time_app": "Probeer de mobiele app voor de volledige ervaring!",
-        "more_information": "Meer informatie op",
-        "call": "Telefoongesprek",
-        "call_back": "Bel terug of activeer de link opnieuw.",
-        "activate_camera": "Activeer je camera",
-        "nickname_placeholder": "Naam",
-        "nickname_empty_error": "Kies een naam",
-        "guest": "Gast",
-        "microphone_access": "U moet toegang verlenen tot uw microfoon voordat u deze kunt gebruiken.",
-        "microphone_access_denied": "Werk uw machtigingen bij en vernieuw vervolgens de pagina.",
-        "microphone_access_not_found": "Er is geen microfoon gevonden.",
-        "microphone_access_error": "Er is een fout opgetreden, controleer of de microfoon niet in gebruik is door een andere applicatie en ververs de pagina.",
-        "camera_access": "Camera-toegang",
-        "camera_access_denied": "U moet toegang tot uw camera verlenen voordat u deze kunt gebruiken.",
-        "camera_access_not_found": "Er is geen camera gevonden.",
-        "camera_access_error": "Er is een fout opgetreden, controleer of de camera niet door een andere toepassing wordt gebruikt en vernieuw de pagina.",
-        "twincode_error": "De \"Click-to-Call\"-link die u heeft ingevoerd, lijkt ongeldig.",
-        "general_error_title": "Oeps!",
-        "general_error_message": "Sorry, er ging iets mis."
-    }
+	"translation": {
+		"thanks_choosing": "Bedankt voor het kiezen van {{appName}}!",
+		"next_time_app": "Probeer de mobiele app voor de volledige ervaring!",
+		"more_information": "Meer informatie op",
+		"call": "Telefoongesprek",
+		"call_back": "Bel terug of activeer de link opnieuw.",
+		"activate_camera": "Activeer je camera",
+		"nickname_placeholder": "Naam",
+		"nickname_empty_error": "Kies een naam",
+		"guest": "Gast",
+		"microphone_access": "U moet toegang verlenen tot uw microfoon voordat u deze kunt gebruiken.",
+		"microphone_access_denied": "Werk uw machtigingen bij en vernieuw vervolgens de pagina.",
+		"microphone_access_not_found": "Er is geen microfoon gevonden.",
+		"microphone_access_error": "Er is een fout opgetreden, controleer of de microfoon niet in gebruik is door een andere applicatie en ververs de pagina.",
+		"camera_access": "Camera-toegang",
+		"camera_access_denied": "U moet toegang tot uw camera verlenen voordat u deze kunt gebruiken.",
+		"camera_access_not_found": "Er is geen camera gevonden.",
+		"camera_access_error": "Er is een fout opgetreden, controleer of de camera niet door een andere toepassing wordt gebruikt en vernieuw de pagina.",
+		"twincode_error": "De \"Click-to-Call\"-link die u heeft ingevoerd, lijkt ongeldig.",
+		"general_error_title": "Oeps!",
+		"general_error_message": "Sorry, er ging iets mis."
+	}
 }

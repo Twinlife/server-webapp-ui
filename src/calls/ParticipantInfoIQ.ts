@@ -70,7 +70,7 @@ export namespace ParticipantInfoIQ {
 
 		public serialize(encoder: Encoder, object: any): void {
 			super.serialize(encoder, object);
-			let participantInfoIQ: ParticipantInfoIQ = object as ParticipantInfoIQ;
+			const participantInfoIQ: ParticipantInfoIQ = object as ParticipantInfoIQ;
 			encoder.writeString(participantInfoIQ.memberId);
 			encoder.writeString(participantInfoIQ.name);
 			encoder.writeOptionalString(participantInfoIQ.description);
@@ -78,11 +78,11 @@ export namespace ParticipantInfoIQ {
 		}
 
 		public deserialize(decoder: Decoder): any {
-			let serviceRequestIQ: BinaryPacketIQ = super.deserialize(decoder) as BinaryPacketIQ;
-			let memberId: string = decoder.readString();
-			let name: string = decoder.readString();
-			let description: string | null = decoder.readOptionalString();
-			let thumbnailData: ArrayBuffer | null = decoder.readOptionalBytes(null);
+			const serviceRequestIQ: BinaryPacketIQ = super.deserialize(decoder) as BinaryPacketIQ;
+			const memberId: string = decoder.readString();
+			const name: string = decoder.readString();
+			const description: string | null = decoder.readOptionalString();
+			const thumbnailData: ArrayBuffer | null = decoder.readOptionalBytes(null);
 			return new ParticipantInfoIQ(
 				this,
 				serviceRequestIQ.getRequestId(),

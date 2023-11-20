@@ -20,8 +20,8 @@ export class SerializerException extends Error {
 			this.message = exception;
 			Object.setPrototypeOf(this, SerializerException.prototype);
 		} else if (typeof exception === "string" || exception === null) {
-			let __args = arguments;
-			let message: any = __args[0];
+			const __args = arguments;
+			const message: any = __args[0];
 			super(message);
 			this.message = message;
 			Object.setPrototypeOf(this, SerializerException.prototype);

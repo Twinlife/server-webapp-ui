@@ -1,5 +1,5 @@
 import react from "@vitejs/plugin-react";
-import {defineConfig} from "vite";
+import { defineConfig } from "vite";
 import checker from "vite-plugin-checker";
 
 // https://vitejs.dev/config/
@@ -24,4 +24,7 @@ export default defineConfig({
         }),
         basicSsl(),
     ],
+	define: {
+		__APP_VERSION__: JSON.stringify(process.env.npm_package_version),
+	},
 });
