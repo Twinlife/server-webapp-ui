@@ -30,13 +30,11 @@ export type TurnServer = {
 	password: string;
 };
 
-export type Message = {
-	msg: string;
-};
+export type CallMessage = SessionInitiateMessage | SessionInitiateResponseMessage |
+	SessionAcceptMessage | SessionUpdateMessage | TransportInfoMessage | SessionTerminateMessage | InviteCallRoomMessage |
+	JoinCallRoomMessage | MemberJoinMessage;
 
-export type RequestMessage = {
-	msg: string;
-};
+export type Message = CallConfigMessage | CallMessage;
 
 export type CallConfigMessage = {
 	msg: string;
