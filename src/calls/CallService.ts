@@ -206,17 +206,17 @@ export class CallService implements PeerCallServiceObserver {
 		this.mIsCameraMute = cameraMute;
 		const connections: Array<CallConnection> = call.getConnections();
 		for (const connection of connections) {
-            if (!this.mIsCameraMute) {
-                console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
+			if (!this.mIsCameraMute) {
+				console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
 				const track = this.mLocalStream.getVideoTracks()[0];
-                if (track) {
-                    connection.addVideoTrack(track);
-                }
-            }
+				if (track) {
+					connection.addVideoTrack(track);
+				}
+			}
 
-            connection.setVideoDirection(this.mIsCameraMute ? "recvonly" : "sendrecv");
-        }
-    }
+			connection.setVideoDirection(this.mIsCameraMute ? "recvonly" : "sendrecv");
+		}
+	}
 
 	getMediaStream(): MediaStream {
 		return this.mLocalStream;

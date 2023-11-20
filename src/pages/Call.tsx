@@ -75,7 +75,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 	state: CallState = {
 		initializing: true,
-        guestName: this.getGuestName(),
+		guestName: this.getGuestName(),
 		guestNameError: false,
 		status: CallStatus.IDDLE,
 		twincode: {
@@ -500,29 +500,29 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	};
 
 	getGuestName(): string {
-        return window.localStorage.getItem("guestName") ?? this.props.t("guest");
-    }
+		return window.localStorage.getItem("guestName") ?? this.props.t("guest");
+	}
 
-    render() {
-        const {id, t} = this.props;
-        const {
-            initializing,
-            guestName,
-            guestNameError,
-            twincode,
-            videoMute,
-            audioMute,
-            status,
-            terminateReason,
-            displayThanks,
-            audioDevices,
-            videoDevices,
-            usedAudioDevice,
-            usedVideoDevice,
-            alertOpen,
-            alertTitle,
-            alertContent,
-        } = this.state;
+	render() {
+		const { id, t } = this.props;
+		const {
+			initializing,
+			guestName,
+			guestNameError,
+			twincode,
+			videoMute,
+			audioMute,
+			status,
+			terminateReason,
+			displayThanks,
+			audioDevices,
+			videoDevices,
+			usedAudioDevice,
+			usedVideoDevice,
+			alertOpen,
+			alertTitle,
+			alertContent,
+		} = this.state;
 
 		if (displayThanks) {
 			return <Thanks onCallBackClick={this.init} />;
@@ -548,24 +548,23 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					/>
 				)}
 
-                {!initializing && !CallStatusOps.isTerminated(status) && (
-                    <ParticipantsGrid
-                        localVideoRef={this.localVideoRef}
-                        localMediaStream={this.callService.getMediaStream()}
-                        videoMute={videoMute}
-                        twincode={twincode}
-                        participants={this.state.participants}
-                        isIddle={CallStatusOps.isIddle(status)}
-                        guestName={guestName}
-                        guestNameError={guestNameError}
-                        setGuestName={(guestName: string) => {
+				{!initializing && !CallStatusOps.isTerminated(status) && (
+					<ParticipantsGrid
+						localVideoRef={this.localVideoRef}
+						localMediaStream={this.callService.getMediaStream()}
+						videoMute={videoMute}
+						twincode={twincode}
+						participants={this.state.participants}
+						isIddle={CallStatusOps.isIddle(status)}
+						guestName={guestName}
+						guestNameError={guestNameError}
+						setGuestName={(guestName: string) => {
 							this.setState({ guestName, guestNameError: guestName === "" });
-                            window.localStorage.setItem("guestName", guestName);
-                        }
-                        }
-                        muteVideoClick={this.muteVideoClick}
-                    />
-                )}
+							window.localStorage.setItem("guestName", guestName);
+						}}
+						muteVideoClick={this.muteVideoClick}
+					/>
+				)}
 
 				{!initializing && CallStatusOps.isTerminated(status) && terminateReason && (
 					<div className="flex w-full flex-1 items-center justify-center text-center">
@@ -693,14 +692,14 @@ const CallButtons = ({
 			)}
 
 			<div className="flex items-center justify-end">
-                {!videoMute && IsMobile() && hasVideo && (
-                    <button
-                        className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 "
-                        onClick={switchCameraClick}
-                    >
-                        <img src={switchCamIcon} alt="" />
-                    </button>
-                )}
+				{!videoMute && IsMobile() && hasVideo && (
+					<button
+						className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 "
+						onClick={switchCameraClick}
+					>
+						<img src={switchCamIcon} alt="" />
+					</button>
+				)}
 				{inCall && (
 					<WhiteButton onClick={muteAudioClick} className="ml-3 rounded-full ">
 						<img src={audioMute ? micOffIcon : micOnIcon} alt="" className="w-[37px]" />
