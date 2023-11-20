@@ -18,13 +18,13 @@ export class Utf8 {
 		if (content == null) {
 			return null;
 		}
-		let textEncoder = new TextEncoder();
-		let bytes: ArrayBuffer = textEncoder.encode(content);
+		const textEncoder = new TextEncoder();
+		const bytes: ArrayBuffer = textEncoder.encode(content);
 		return bytes;
 	}
 
 	public static create(data: ArrayBuffer, length: number): string {
-		let textDecoder: TextDecoder = new TextDecoder("utf-8");
+		const textDecoder: TextDecoder = new TextDecoder("utf-8");
 		return textDecoder.decode(data);
 	}
 }

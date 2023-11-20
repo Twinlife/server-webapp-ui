@@ -47,7 +47,7 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 			setTwincodeError(false);
 			ContactService.getTwincode(twincodeId)
 				.then(async (response: AxiosResponse<TwincodeInfo, any>) => {
-					let twincode = response.data;
+					const twincode = response.data;
 					if (twincode.audio) {
 						setTwincode(twincode);
 					} else {

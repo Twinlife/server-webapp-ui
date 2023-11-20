@@ -21,7 +21,7 @@ export class BinaryCompactDecoder implements Decoder {
 
 	private mBuffer: ArrayBuffer = new ArrayBuffer(8);
 
-	private textDecoder: TextDecoder = new TextDecoder('utf-8');
+	private textDecoder: TextDecoder = new TextDecoder("utf-8");
 
 	public constructor(inputStream: ByteArrayInputStream) {
 		this.mInputStream = inputStream;
@@ -70,7 +70,7 @@ export class BinaryCompactDecoder implements Decoder {
 
 	public readLongArrayBuffer(): ArrayBuffer {
 		let value: number = 0;
-		let buffer: ArrayBuffer = new ArrayBuffer(8);
+		const buffer: ArrayBuffer = new ArrayBuffer(8);
 		let dstBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
 		for (let i = 0; i < 8; i++) {
 			dstBuffer[i] = 0;
@@ -159,7 +159,7 @@ export class BinaryCompactDecoder implements Decoder {
 					}
 				}
 			}
-			let leftShitf1 = new ArrayBuffer(8);
+			const leftShitf1 = new ArrayBuffer(8);
 			let srcBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
 			dstBuffer = new Uint8Array(leftShitf1, 0, 8);
 			for (let i: number = 1; i < 8; i++) {
@@ -207,11 +207,11 @@ export class BinaryCompactDecoder implements Decoder {
 
 	public readString(): string {
 		try {
-			let length: number = this.readInt();
+			const length: number = this.readInt();
 			if (length === 0) {
 				return "";
 			}
-			let buffer: ArrayBuffer = new ArrayBuffer(length);
+			const buffer: ArrayBuffer = new ArrayBuffer(length);
 			this.doReadBytes(buffer, 0, length);
 			return this.textDecoder.decode(buffer);
 		} catch (exception) {
@@ -279,7 +279,7 @@ export class BinaryCompactDecoder implements Decoder {
 		value |= ((n) => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 32;
 		value |= ((n) => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 40;
 		value |= ((n) => (n < 0 ? Math.ceil(n) : Math.floor(n)))(this.mInputStream.read() as number) << 48;
-		let b: number = this.mInputStream.read();
+		const b: number = this.mInputStream.read();
 		if (b < 0) {
 			throw new SerializerException();
 		}

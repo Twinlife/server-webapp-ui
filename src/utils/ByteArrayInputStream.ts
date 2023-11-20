@@ -109,7 +109,7 @@ export class ByteArrayInputStream {
 	}
 
 	public read(): number {
-		let srcBuffer: Uint8Array = new Uint8Array(this.buf, this.pos, 1);
+		const srcBuffer: Uint8Array = new Uint8Array(this.buf, this.pos, 1);
 		let value: number;
 		if (this.pos < this.count) {
 			value = srcBuffer[0] & 255;
@@ -124,15 +124,15 @@ export class ByteArrayInputStream {
 		if (this.pos >= this.count) {
 			return -1;
 		}
-		let avail: number = this.count - this.pos;
+		const avail: number = this.count - this.pos;
 		if (len > avail) {
 			len = avail;
 		}
 		if (len <= 0) {
 			return 0;
 		}
-		let srcBuffer: Uint8Array = new Uint8Array(this.buf, this.pos + off, len);
-		let dstBuffer: Uint8Array = new Uint8Array(b, 0, len);
+		const srcBuffer: Uint8Array = new Uint8Array(this.buf, this.pos + off, len);
+		const dstBuffer: Uint8Array = new Uint8Array(b, 0, len);
 		dstBuffer.set(srcBuffer);
 		this.pos += len;
 		return len;

@@ -33,5 +33,5 @@ export interface CallObserver {
 	 * @param audio whether the audio must be enabled.
 	 * @param video whether the video must be enabled.
 	 */
-	onOverrideAudioVideo(audio: boolean, video: boolean) : void;
+	onOverrideAudioVideo(audio: boolean, video: boolean): void;
 }

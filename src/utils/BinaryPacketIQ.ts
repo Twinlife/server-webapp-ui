@@ -47,8 +47,8 @@ export class BinaryPacketIQ {
 	}
 
 	public serializeCompact(): ArrayBuffer {
-		let outputStream: ByteArrayOutputStream = new ByteArrayOutputStream(this.getBufferSize());
-		let binaryEncoder: BinaryCompactEncoder = new BinaryCompactEncoder(outputStream);
+		const outputStream: ByteArrayOutputStream = new ByteArrayOutputStream(this.getBufferSize());
+		const binaryEncoder: BinaryCompactEncoder = new BinaryCompactEncoder(outputStream);
 		this.mSerializer.serialize(binaryEncoder, this);
 		return outputStream.toByteArray();
 	}
@@ -71,7 +71,7 @@ export namespace BinaryPacketIQ {
 		}
 
 		public deserialize(decoder: Decoder): any {
-			let requestId: number = decoder.readLong();
+			const requestId: number = decoder.readLong();
 			return new BinaryPacketIQ(this, requestId);
 		}
 	}

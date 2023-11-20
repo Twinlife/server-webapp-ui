@@ -1,24 +1,24 @@
 {
-    "translation": {
-        "thanks_choosing": "Terima kasih telah memilih {{appName}}!",
-        "next_time_app": "Coba aplikasi seluler untuk pengalaman penuh!",
-        "more_information": "Informasi lebih lanjut tentang",
-        "call": "Panggilan",
-        "call_back": "Hubungi kembali atau aktifkan kembali tautan tersebut.",
-        "activate_camera": "Aktifkan kamera Anda",
-        "nickname_placeholder": "Nama",
-        "nickname_empty_error": "Pilih nama",
-        "guest": "Tamu",
-        "microphone_access": "Anda harus memberikan akses ke mikrofon Anda sebelum dapat menggunakannya.",
-        "microphone_access_denied": "Perbarui izin Anda, lalu muat ulang halaman.",
-        "microphone_access_not_found": "Tidak ada mikrofon yang ditemukan.",
-        "microphone_access_error": "Terjadi kesalahan, periksa apakah mikrofon tidak digunakan oleh aplikasi lain dan segarkan halaman.",
-        "camera_access": "Akses kamera",
-        "camera_access_denied": "Anda harus memberikan akses ke kamera sebelum dapat menggunakannya.",
-        "camera_access_not_found": "Tidak ada kamera yang ditemukan.",
-        "camera_access_error": "Terjadi kesalahan, periksa apakah kamera tidak digunakan oleh aplikasi lain dan segarkan halaman.",
-        "twincode_error": "Tautan \"Click-to-Call\" yang Anda masukkan tampaknya tidak valid.",
-        "general_error_title": "Ups!",
-        "general_error_message": "Maaf, terjadi kesalahan."
-    }
+	"translation": {
+		"thanks_choosing": "Terima kasih telah memilih {{appName}}!",
+		"next_time_app": "Coba aplikasi seluler untuk pengalaman penuh!",
+		"more_information": "Informasi lebih lanjut tentang",
+		"call": "Panggilan",
+		"call_back": "Hubungi kembali atau aktifkan kembali tautan tersebut.",
+		"activate_camera": "Aktifkan kamera Anda",
+		"nickname_placeholder": "Nama",
+		"nickname_empty_error": "Pilih nama",
+		"guest": "Tamu",
+		"microphone_access": "Anda harus memberikan akses ke mikrofon Anda sebelum dapat menggunakannya.",
+		"microphone_access_denied": "Perbarui izin Anda, lalu muat ulang halaman.",
+		"microphone_access_not_found": "Tidak ada mikrofon yang ditemukan.",
+		"microphone_access_error": "Terjadi kesalahan, periksa apakah mikrofon tidak digunakan oleh aplikasi lain dan segarkan halaman.",
+		"camera_access": "Akses kamera",
+		"camera_access_denied": "Anda harus memberikan akses ke kamera sebelum dapat menggunakannya.",
+		"camera_access_not_found": "Tidak ada kamera yang ditemukan.",
+		"camera_access_error": "Terjadi kesalahan, periksa apakah kamera tidak digunakan oleh aplikasi lain dan segarkan halaman.",
+		"twincode_error": "Tautan \"Click-to-Call\" yang Anda masukkan tampaknya tidak valid.",
+		"general_error_title": "Ups!",
+		"general_error_message": "Maaf, terjadi kesalahan."
+	}
 }

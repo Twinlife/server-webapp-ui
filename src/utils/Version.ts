@@ -17,9 +17,9 @@ export class Version {
 			this.minor = minor;
 			this.patch = 0;
 		} else if ((typeof major === "string" || major === null) && minor === undefined) {
-			let __args = arguments;
-			let version: any = __args[0];
-			let numbers: string[] = version.trim().split("\\.");
+			const __args = arguments;
+			const version: any = __args[0];
+			const numbers: string[] = version.trim().split("\\.");
 			if (numbers.length > 0) {
 				this.major = Version.toInteger(numbers[0]);
 				if (numbers.length > 1) {
