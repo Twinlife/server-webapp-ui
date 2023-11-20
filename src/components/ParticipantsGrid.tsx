@@ -67,14 +67,12 @@ const ParticipantsGrid: React.FC<{
 				/>
 			))}
 			{participants.length === 0 && (
-				<>
-					<ParticipantGridCell
-						isAudioMute={false}
-						isCameraMute={true}
-						name={twincode.name ?? ""}
-						avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
-					/>
-				</>
+				<ParticipantGridCell
+					isAudioMute={false}
+					isCameraMute={true}
+					name={twincode.name ?? ""}
+					avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
+				/>
 			)}
 			<div
 				className={[
