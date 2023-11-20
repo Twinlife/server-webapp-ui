@@ -30,13 +30,11 @@ export type TurnServer = {
 	password: string;
 };
 
-export type Message = {
-	msg: string;
-};
+export type CallMessage = SessionInitiateMessage | SessionInitiateResponseMessage |
+    SessionAcceptMessage | SessionUpdateMessage | TransportInfoMessage | SessionTerminateMessage | InviteCallRoomMessage |
+    JoinCallRoomMessage | MemberJoinMessage;
 
-export type RequestMessage = {
-	msg: string;
-};
+export type Message = CallConfigMessage | CallMessage;
 
 export type CallConfigMessage = {
 	msg: string;
@@ -167,83 +165,88 @@ export class PeerCallService {
 	private callConfig: CallConfigMessage | null = null;
 	private callObserver: PeerCallServiceObserver | null = null;
 
-	setupWebsocket(): void {
-		this.socket = new WebSocket(url);
-		this.socket.addEventListener("open", (event: Event) => {
-			console.log("Websocket is opened");
-			this.socket?.send('{"msg":"session-request"}');
-		});
+    setupWebsocket(): void {
+        if(this.socket){
+            //In dev useEffect (and thus this function) is called twice.
+            return;
+        }
 
-		this.socket.addEventListener("message", (msg: MessageEvent) => {
-			let req: RequestMessage;
-			try {
-				req = JSON.parse(msg.data.toString());
-			} catch (e) {
-				return;
-			}
-			console.log("Received ", req.msg);
-			if (req.msg === "session-config") {
-				this.callConfig = req as CallConfigMessage;
-			} else if (req.msg === "session-accept") {
-				if (this.callObserver) {
-					let sessionAccept: SessionAcceptMessage = req as SessionAcceptMessage;
-					this.callObserver.onSessionAccept(
-						sessionAccept.sessionId,
-						sessionAccept.sdp,
-						sessionAccept.offer,
-						sessionAccept.offerToReceive
-					);
-				}
-			} else if (req.msg === "session-update") {
-				if (this.callObserver) {
-					let sessionUpdate: SessionUpdateMessage = req as SessionUpdateMessage;
-					this.callObserver.onSessionUpdate(
-						sessionUpdate.sessionId,
-						sessionUpdate.updateType,
-						sessionUpdate.sdp
-					);
-				}
-			} else if (req.msg === "transport-info") {
-				if (this.callObserver) {
-					let transportInfo: TransportInfoMessage = req as TransportInfoMessage;
-					this.callObserver.onTransportInfo(transportInfo.sessionId, transportInfo.candidates);
-				}
-			} else if (req.msg === "session-terminate") {
-				if (this.callObserver) {
-					let sessionTerminate: SessionTerminateMessage = req as SessionTerminateMessage;
-					this.callObserver.onSessionTerminate(sessionTerminate.sessionId, sessionTerminate.reason);
-				}
-			} else if (req.msg === "session-initiate-response") {
-				if (this.callObserver) {
-					let initResponse: SessionInitiateResponseMessage = req as SessionInitiateResponseMessage;
-					this.callObserver.onSessionInitiate(initResponse.to, initResponse.sessionId, initResponse.status);
-				}
-			} else if (req.msg === "session-initiate") {
-				if (this.callObserver) {
-					let sessionInitiate: SessionInitiateMessage = req as SessionInitiateMessage;
-					if (sessionInitiate.sessionId) {
-						this.callObserver.onIncomingSessionInitiate(
-							sessionInitiate.sessionId,
-							sessionInitiate.to,
-							sessionInitiate.sdp,
-							sessionInitiate.offer
-						);
-					}
-				}
-			} else if (req.msg === "join-callroom") {
-				if (this.callObserver) {
-					let joinRoom: JoinCallRoomMessage = req as JoinCallRoomMessage;
-					this.callObserver.onJoinCallRoom(joinRoom.callRoomId, joinRoom.memberId, joinRoom.members);
-				}
-			} else if (req.msg === "member-join") {
-				if (this.callObserver) {
-					let memberJoin: MemberJoinMessage = req as MemberJoinMessage;
-					this.callObserver.onMemberJoin(memberJoin.sessionId, memberJoin.memberId, memberJoin.status);
-				}
-			} else {
-				console.log("Unsupported message ", req);
-			}
-		});
+        this.socket = new WebSocket(url);
+        this.socket.addEventListener("open", (event: Event) => {
+            console.log("Websocket is opened");
+            this.socket?.send('{"msg":"session-request"}');
+        });
+
+        this.socket.addEventListener("message", (msg: MessageEvent) => {
+            let req: Message;
+            try {
+                req = JSON.parse(msg.data.toString());
+            } catch (e) {
+                return;
+            }
+            console.log("Received message ", req.msg);
+            if (req.msg === "session-config") {
+                this.callConfig = req as CallConfigMessage;
+            } else if (req.msg === "session-accept") {
+                if (this.callObserver) {
+                    let sessionAccept: SessionAcceptMessage = req as SessionAcceptMessage;
+                    this.callObserver.onSessionAccept(
+                        sessionAccept.sessionId,
+                        sessionAccept.sdp,
+                        sessionAccept.offer,
+                        sessionAccept.offerToReceive
+                    );
+                }
+            } else if (req.msg === "session-update") {
+                if (this.callObserver) {
+                    let sessionUpdate: SessionUpdateMessage = req as SessionUpdateMessage;
+                    this.callObserver.onSessionUpdate(
+                        sessionUpdate.sessionId,
+                        sessionUpdate.updateType,
+                        sessionUpdate.sdp
+                    );
+                }
+            } else if (req.msg === "transport-info") {
+                if (this.callObserver) {
+                    let transportInfo: TransportInfoMessage = req as TransportInfoMessage;
+                    this.callObserver.onTransportInfo(transportInfo.sessionId, transportInfo.candidates);
+                }
+            } else if (req.msg === "session-terminate") {
+                if (this.callObserver) {
+                    let sessionTerminate: SessionTerminateMessage = req as SessionTerminateMessage;
+                    this.callObserver.onSessionTerminate(sessionTerminate.sessionId, sessionTerminate.reason);
+                }
+            } else if (req.msg === "session-initiate-response") {
+                if (this.callObserver) {
+                    let initResponse: SessionInitiateResponseMessage = req as SessionInitiateResponseMessage;
+                    this.callObserver.onSessionInitiate(initResponse.to, initResponse.sessionId, initResponse.status);
+                }
+            } else if (req.msg === "session-initiate") {
+                if (this.callObserver) {
+                    let sessionInitiate: SessionInitiateMessage = req as SessionInitiateMessage;
+                    if (sessionInitiate.sessionId) {
+                        this.callObserver.onIncomingSessionInitiate(
+                            sessionInitiate.sessionId,
+                            sessionInitiate.to,
+                            sessionInitiate.sdp,
+                            sessionInitiate.offer
+                        );
+                    }
+                }
+            } else if (req.msg === "join-callroom") {
+                if (this.callObserver) {
+                    let joinRoom: JoinCallRoomMessage = req as JoinCallRoomMessage;
+                    this.callObserver.onJoinCallRoom(joinRoom.callRoomId, joinRoom.memberId, joinRoom.members);
+                }
+            } else if (req.msg === "member-join") {
+                if (this.callObserver) {
+                    let memberJoin: MemberJoinMessage = req as MemberJoinMessage;
+                    this.callObserver.onMemberJoin(memberJoin.sessionId, memberJoin.memberId, memberJoin.status);
+                }
+            } else {
+                console.log("Unsupported message ", req);
+            }
+        });
 
 		this.socket.addEventListener("close", (event: CloseEvent) => {
 			console.log("Websocket is closed");
@@ -299,8 +302,8 @@ export class PeerCallService {
 			sessionId: null,
 		};
 
-		this.socket?.send(JSON.stringify(msg));
-	}
+        this.sendMessage(msg);
+    }
 
 	sessionAccept(sessionId: string, to: string, sdp: string, offer: Offer) {
 		const msg: SessionAcceptMessage = {
@@ -312,8 +315,8 @@ export class PeerCallService {
 			offerToReceive: offer,
 		};
 
-		this.socket?.send(JSON.stringify(msg));
-	}
+        this.sendMessage(msg);
+    }
 
 	sessionUpdate(sessionId: string, sdp: string, updateType: string) {
 		const msg: SessionUpdateMessage = {
@@ -323,8 +326,8 @@ export class PeerCallService {
 			updateType: updateType,
 		};
 
-		this.socket?.send(JSON.stringify(msg));
-	}
+        this.sendMessage(msg);
+    }
 
 	transportInfo(sessionId: string, candidate: string, label: string, index: number) {
 		const msg: TransportInfoMessage = {
@@ -340,9 +343,9 @@ export class PeerCallService {
 			],
 		};
 
-		// console.log("send transport info to " + sessionId + " candidate " + candidate);
-		this.socket?.send(JSON.stringify(msg));
-	}
+        console.log("send transport info to " + sessionId + " candidate " + candidate);
+        this.sendMessage(msg);
+    }
 
 	sessionTerminate(sessionId: string, reason: TerminateReason) {
 		const msg: SessionTerminateMessage = {
@@ -351,8 +354,8 @@ export class PeerCallService {
 			reason: reason,
 		};
 
-		this.socket?.send(JSON.stringify(msg));
-	}
+        this.sendMessage(msg);
+    }
 
 	inviteCallRoom(sessionId: string, callRoomId: string, twincodeOutboundId: string){
 		const msg: InviteCallRoomMessage = {
@@ -364,6 +367,11 @@ export class PeerCallService {
 			maxMemberCount: 0
 		};
 
-		this.socket?.send(JSON.stringify(msg));
-	}
+        this.sendMessage(msg);
+    }
+
+    private sendMessage(msg: CallMessage) {
+        console.log("Sending message ", msg);
+        this.socket?.send(JSON.stringify(msg));
+    }
 }

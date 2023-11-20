@@ -139,7 +139,7 @@ export class CallService implements PeerCallServiceObserver {
             return;
         }
 
-        let callStatus = call.isVideo() ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
+        let callStatus = this.mIsCameraMute ? CallStatus.OUTGOING_CALL : CallStatus.OUTGOING_VIDEO_CALL;
         let callConnection: CallConnection = new CallConnection(
             this,
             this.mPeerCallService,
@@ -200,15 +200,15 @@ export class CallService implements PeerCallServiceObserver {
         this.mIsCameraMute = cameraMute;
         let connections: Array<CallConnection> = call.getConnections();
         for (let connection of connections) {
-            if (!this.mIsCameraMute && !connection.isVideo()) {
-                console.log("NEED ACTIVATE CAMERA");
-                const track = this.mLocalStream!.getVideoTracks()[0];
+            if (!this.mIsCameraMute) {
+                console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
+                const track = this.mLocalStream.getVideoTracks()[0];
                 if (track) {
                     connection.addVideoTrack(track);
                 }
-            } else {
-                connection.setVideoDirection(this.mIsCameraMute ? "recvonly" : "sendrecv");
             }
+
+            connection.setVideoDirection(this.mIsCameraMute ? "recvonly" : "sendrecv");
         }
     }
 
@@ -404,8 +404,7 @@ export class CallService implements PeerCallServiceObserver {
             return;
         }
 
-        const video: boolean = !this.mIsCameraMute;
-        const mode: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
+        const mode: CallStatus = this.mIsCameraMute ? CallStatus.OUTGOING_CALL : CallStatus.OUTGOING_VIDEO_CALL;
         this.mActiveCall.updateCallRoom(callRoomId, memberId);
         for (const member of members) {
             if (member.status !== "member-need-session" && member.sessionId) {

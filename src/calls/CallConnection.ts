@@ -320,7 +320,7 @@ export class CallConnection {
                     }
                 })
                 .catch((reason: any) => {
-                    console.log("setLocalDescription failed after onnegotiationneeded: " + reason);
+                    console.log("setLocalDescription failed after onnegotiationneeded: ", reason);
                 });
         };
 
@@ -342,17 +342,23 @@ export class CallConnection {
         this.mInDataChannel = null;
         pc.ondatachannel = (event: RTCDataChannelEvent): void => {
             const channel: RTCDataChannel = event.channel;
+            // Firefox defaults to "blob", but it's not supported by Chromium
+            channel.binaryType = "arraybuffer";
             channel.onopen = (event: Event): any => {
                 const label: string = channel.label;
 
                 console.log("Input data channel " + label + " is opened");
             };
-            channel.onmessage = async (event: MessageEvent<Blob>): Promise<any> => {
+            channel.onmessage = (event: MessageEvent<ArrayBuffer>): any => {
                 console.log("Received a data channel message");
 
+                if(!event.data){
+                    console.error("Event contains no data:", event);
+                    return;
+                }
+
                 try {
-                    const data = await event.data.arrayBuffer();
-                    const inputStream: ByteArrayInputStream = new ByteArrayInputStream(data);
+                    const inputStream: ByteArrayInputStream = new ByteArrayInputStream(event.data);
                     const binaryDecoder: BinaryCompactDecoder = new BinaryCompactDecoder(inputStream);
                     const schemaId = binaryDecoder.readUUID();
                     const schemaVersion = binaryDecoder.readInt();
@@ -365,8 +371,7 @@ export class CallConnection {
                         console.log("Schema " + key + " is not recognized");
                     }
                 } catch (exception) {
-                    console.log("Exception raised when handling data channel message");
-                    console.log(exception);
+                    console.error("Exception raised when handling data channel message", exception);
                 }
             };
         };
@@ -441,20 +446,13 @@ export class CallConnection {
                     this.createAnswer(offer);
                 })
                 .catch((error: any) => {
-                    console.log("Set remote failed: " + error);
+                    console.error("Set remote failed: ", error);
                 });
-
-            /* if (this.mTimer) {
-               clearTimeout(this.mTimer);
-           }
-           this.mTimer = setTimeout(() => {
-               this.mCallService.callTimeout(this);
-           }, CallConnection.CONNECT_TIMEOUT);*/
         } else {
             this.mMakingOffer = true;
             pc.createOffer(offerOptions)
                 .then((description: RTCSessionDescriptionInit) => {
-                    console.log("SDP " + description.sdp);
+                    console.log("SDP: ", description.sdp);
                     pc.setLocalDescription(description)
                         .then(() => {
                             this.mMakingOffer = false;
@@ -515,8 +513,6 @@ export class CallConnection {
 
     onSessionAccept(sdp: string, offer: Offer, offerToReceive: Offer): boolean {
         if (!this.mPeerConnection) {
-            if (this.mPeerConnectionId) {
-            }
             return false;
         }
         this.setPeerVersion(new Version(offer.version));
@@ -597,11 +593,11 @@ export class CallConnection {
                         }
                     })
                     .catch((reason: any) => {
-                        console.error("setLocalDescription failed: " + reason);
+                        console.error("setLocalDescription failed: ", reason);
                     });
             })
             .catch((reason: any) => {
-                console.error("createAnswer failed: " + reason);
+                console.error("createAnswer failed: ", reason);
             });
     }
 
@@ -623,14 +619,13 @@ export class CallConnection {
                 };
 
                 const ice: RTCIceCandidate = new RTCIceCandidate(c);
-                // console.log("Adding candidate " + c.candidate + " label=" + c.sdpMid + " id=" + c.sdpMLineIndex
-                // + " ufrag=" + ice.usernameFragment);
+                //console.log("Adding candidate ", ice);
                 this.mPeerConnection.addIceCandidate(ice).then(
                     () => {
-                        console.log("Add ice candidate ok " + JSON.stringify(ice.toJSON()));
+                        console.log("Add ice candidate ok ", ice);
                     },
                     (err) => {
-                        console.log("Add ice candidate error: " + err);
+                        console.log("Add ice candidate error for %o : ", ice, err);
                     }
                 );
             }
@@ -736,11 +731,11 @@ export class CallConnection {
             );
             const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
             for (const transceiver of transceivers) {
-                console.log("TRANSIEVER", transceiver.receiver.track.kind, transceiver);
+                console.log("TRANSCEIVER", transceiver.receiver.track.kind, transceiver);
                 if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
                     const sender: RTCRtpSender = transceiver.sender;
                     this.mRenegotiationNeeded = true;
-                    if (direction !== "sendrecv") {
+                    if (direction !== "sendrecv" && direction !== "sendonly") {
                         sender.replaceTrack(null);
                     } else {
                         sender.replaceTrack(this.mVideoTrack);
@@ -815,7 +810,7 @@ export class CallConnection {
                 }
             }
         } catch (ex) {
-            console.log("Error: " + ex);
+            console.error("addRemoteTrack failed: ", ex);
         }
     }
 
@@ -906,6 +901,7 @@ export class CallConnection {
             let packet: ArrayBuffer = iq.serializeCompact();
             this.mOutDataChannel.send(packet);
         } catch (exception) {
+            console.error("Could not send ParticipantInfoIQ: ", exception);
         }
     }
 
@@ -922,7 +918,7 @@ export class CallConnection {
 
         let imageUrl: string | null = null;
         const buffer: ArrayBuffer | null = iq.thumbnailData;
-        if (buffer) {
+        if (buffer && buffer.byteLength > 0) {
             const data: Uint8Array = new Uint8Array(buffer, 0, buffer.byteLength);
             const blob = new Blob([data], {type: "image/jpeg"});
             const urlCreator = window.URL || window.webkitURL;

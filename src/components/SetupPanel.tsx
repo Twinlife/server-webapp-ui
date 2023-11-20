@@ -62,7 +62,7 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 	}, [twincodeId]);
 
 	useEffect(() => {
-		if (twincode && twincode.name) {
+		if (twincode?.name) {
 			askForMediaPermission("audio");
 		}
 	}, [twincode]);

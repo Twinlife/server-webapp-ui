@@ -75,7 +75,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 	state: CallState = {
 		initializing: true,
-		guestName: this.props.t("guest"),
+        guestName: this.getGuestName(),
 		guestNameError: false,
 		status: CallStatus.IDDLE,
 		twincode: {
@@ -199,7 +199,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
      * @param {CallParticipantEvent} event the event that occurred.
      */
     onEventParticipant(participant: CallParticipant, event: CallParticipantEvent): void {
-        console.log("Participant event: " + event);
+        console.log("Participant event: ", event);
 
         let participants: Array<CallParticipant> = this.callService.getParticipants();
         this.setState({participants: participants});
@@ -454,6 +454,10 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
         return terminatedConnectionLabelID;
     };
 
+    getGuestName(): string {
+        return window.localStorage.getItem("guestName") ?? this.props.t("guest");
+    }
+
     render() {
         const {id, t} = this.props;
         const {
@@ -523,8 +527,10 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
                         isIddle={CallStatusOps.isIddle(status)}
                         guestName={guestName}
                         guestNameError={guestNameError}
-                        setGuestName={(guestName: string) =>
-                            this.setState({guestName, guestNameError: guestName === ""})
+                        setGuestName={(guestName: string) => {
+                            this.setState({guestName, guestNameError: guestName === ""});
+                            window.localStorage.setItem("guestName", guestName);
+                        }
                         }
                         muteVideoClick={this.muteVideoClick}
                     />
@@ -657,6 +663,14 @@ const CallButtons = ({
             }
 
             <div className="flex items-center justify-end">
+                {!videoMute && IsMobile() && hasVideo && (
+                    <button
+                        className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 "
+                        onClick={switchCameraClick}
+                    >
+                        <img src={switchCamIcon} alt=""/>
+                    </button>
+                )}
                 {inCall && (
                     <WhiteButton onClick={muteAudioClick} className="ml-3 rounded-full ">
                         <img src={audioMute ? micOffIcon : micOnIcon} alt="" className="w-[37px]"/>
@@ -666,14 +680,6 @@ const CallButtons = ({
                     <WhiteButton onClick={muteVideoClick} className="ml-3">
                         <img src={videoMute ? camOffIcon : camOnIcon} alt="" className="w-[37px]"/>
                     </WhiteButton>
-                )}
-                {!videoMute && IsMobile() && hasVideo && (
-                    <button
-                        className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 "
-                        onClick={switchCameraClick}
-                    >
-                        <img src={switchCamIcon} alt=""/>
-                    </button>
                 )}
                 {!IsMobile() && (
                     <SelectDevicesButton
