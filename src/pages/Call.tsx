@@ -538,12 +538,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						twincode={twincode}
 						onComplete={(twincode) => {
 							this.setState({ twincode, initializing: false });
-							if (
-								!(document as any).webkitVisibilityState ||
-								(document as any).webkitVisibilityState !== "prerender"
-							) {
-								this.peerCallService.setupWebsocket();
-							}
 						}}
 					/>
 				)}

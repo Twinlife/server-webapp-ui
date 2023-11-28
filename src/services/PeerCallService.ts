@@ -40,7 +40,8 @@ export type CallMessage =
 	| SessionTerminateMessage
 	| InviteCallRoomMessage
 	| JoinCallRoomMessage
-	| MemberJoinMessage;
+	| MemberJoinMessage
+	| PingMessage;
 
 export type Message = CallConfigMessage | CallMessage;
 
@@ -147,6 +148,10 @@ export type MemberJoinMessage = {
 	status: MemberStatus;
 };
 
+export type PingMessage = {
+	msg: string;
+}
+
 export interface PeerCallServiceObserver {
 	onIncomingSessionInitiate(sessionId: string, peerId: string, sdp: string, offer: Offer): void;
 
@@ -163,7 +168,13 @@ export interface PeerCallServiceObserver {
 	onJoinCallRoom(callRoomId: string, memberId: string, members: MemberInfo[]): void;
 
 	onMemberJoin(sessionId: string | null, memberId: string, status: MemberStatus): void;
+
+	onServerClose(): void;
 }
+
+type Timer = ReturnType<typeof setTimeout>;
+type ReadyCallback = () => void;
+const PING_TIMER : number = 30000; // 30s, must be at least 2 times faster than server websocket idle timeout
 
 /**
  * WebRTC session management to send/receive SDPs.
@@ -172,8 +183,27 @@ export class PeerCallService {
 	private socket: WebSocket | null = null;
 	private callConfig: CallConfigMessage | null = null;
 	private callObserver: PeerCallServiceObserver | null = null;
+	private pingTimer: Timer | null = null;
+	private lastRecvTime: number = 0;
+	private readyCallback: ReadyCallback | null = null;
 
-	setupWebsocket(): void {
+	/**
+	 * Open the websocket connection to the server proxy if necessary and get the WebRTC configuration.
+	 * Once we are ready, execute the readyCallback lambda which can now create the WebRTC peer connection
+	 * and start a session-initiate.
+	 *
+	 * @param readyCallback callback execute when we are ready to create WebRTC peer connection.
+	 */
+	onReady(readyCallback: () => void): void {
+		if (this.socket && this.callConfig) {
+			readyCallback();
+		} else {
+			this.readyCallback = readyCallback;
+			this.setupWebsocket();
+		}
+	}
+
+	private setupWebsocket(): void {
 		if (this.socket) {
 			//In dev useEffect (and thus this function) is called twice.
 			return;
@@ -193,8 +223,14 @@ export class PeerCallService {
 				return;
 			}
 			console.log("Received message ", req.msg);
+			this.lastRecvTime = performance.now();
 			if (req.msg === "session-config") {
 				this.callConfig = req as CallConfigMessage;
+				if (this.readyCallback) {
+					console.log("Now ready to start WebRTC connections");
+					this.readyCallback();
+					this.readyCallback = null;
+				}
 			} else if (req.msg === "session-accept") {
 				if (this.callObserver) {
 					const sessionAccept: SessionAcceptMessage = req as SessionAcceptMessage;
@@ -251,6 +287,8 @@ export class PeerCallService {
 					const memberJoin: MemberJoinMessage = req as MemberJoinMessage;
 					this.callObserver.onMemberJoin(memberJoin.sessionId, memberJoin.memberId, memberJoin.status);
 				}
+			} else if (req.msg === "pong") {
+
 			} else {
 				console.log("Unsupported message ", req);
 			}
@@ -258,15 +296,44 @@ export class PeerCallService {
 
 		this.socket.addEventListener("close", (event: CloseEvent) => {
 			console.log("Websocket is closed");
+			this.close();
 		});
 
 		this.socket.addEventListener("error", (event: Event) => {
 			console.error("Websocket error", event);
+			this.close();
 		});
+
+		this.pingTimer = setInterval(() => {
+			const now = performance.now();
+			if (now - this.lastRecvTime > 2 * PING_TIMER) {
+				if (this.socket) {
+					this.socket.close();
+				}
+			}
+			if (now - this.lastRecvTime > PING_TIMER) {
+				this.ping();
+			}
+		}, PING_TIMER);
 	}
 
 	setObserver(observer: PeerCallServiceObserver): void {
 		this.callObserver = observer;
+	}
+
+	private close(): void {
+
+		if (this.pingTimer) {
+			clearTimeout(this.pingTimer);
+			this.pingTimer = null;
+		}
+		if (this.socket) {
+			this.socket.close();
+			this.socket = null;
+			if (this.callObserver) {
+				this.callObserver.onServerClose();
+			}
+		}
 	}
 
 	/**
@@ -375,6 +442,13 @@ export class PeerCallService {
 			maxMemberCount: 0,
 		};
 
+		this.sendMessage(msg);
+	}
+
+	private ping() : void {
+		const msg: PingMessage = {
+			msg: "ping"
+		}
 		this.sendMessage(msg);
 	}
 

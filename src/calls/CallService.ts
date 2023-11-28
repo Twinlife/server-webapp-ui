@@ -102,34 +102,37 @@ export class CallService implements PeerCallServiceObserver {
 		contactName: string,
 		contactURL: string
 	): void {
-		let call: CallState | null = this.mActiveCall;
-		if (call && call.getStatus() !== CallStatus.TERMINATED) {
+		const activeCall: CallState | null = this.mActiveCall;
+		if (activeCall && activeCall.getStatus() !== CallStatus.TERMINATED) {
 			return;
 		}
 
-		call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage, transfer);
+		const call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage, transfer);
 		const callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
-		const callConnection: CallConnection = new CallConnection(
-			this,
-			this.mPeerCallService,
-			call,
-			null,
-			callStatus,
-			this.mLocalStream,
-			twincodeId,
-			null,
-			this.getAudioDirection(),
-			transfer
-		);
-
 		this.mActiveCall = call;
-		call.addPeerConnection(callConnection);
-		callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
-		if (transfer) {
-			call.transferDirection = TransferDirection.TO_BROWSER;
-			call.transferToConnection = callConnection;
-		}
-		this.mPeerTo.set(twincodeId, callConnection);
+		// Start the CallConnection once the peer call service is ready.
+		this.mPeerCallService.onReady(() => {
+			const callConnection: CallConnection = new CallConnection(
+				this,
+				this.mPeerCallService,
+				call,
+				null,
+				callStatus,
+				this.mLocalStream,
+				twincodeId,
+				null,
+				this.getAudioDirection(),
+				transfer
+			);
+			call.addPeerConnection(callConnection);
+			callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
+			if (transfer) {
+				call.transferDirection = TransferDirection.TO_BROWSER;
+				call.transferToConnection = callConnection;
+			}
+			this.mPeerTo.set(twincodeId, callConnection);
+		});
+
 		this.mObserver.onUpdateCallStatus(callStatus);
 	}
 
@@ -463,6 +466,21 @@ export class CallService implements PeerCallServiceObserver {
 				}
 			}
 		}
+	}
+
+	onServerClose(): void {
+		console.log("server connection is closed");
+
+		// Connection to the proxy server was closed:
+		// - we could report some non-fatal error message if we have some connection,
+		//   the existing connected WebRTC P2P connection can continue to work but as soon
+		//   as we loose the proxy server connection, it will automatically close the existing
+		//   P2P connection hence disconnecting us from our peers.
+		// - if we re-connect to the server, we will be seen as a new client and all existing
+		//   P2P connection are closed.
+		// To be improved by keeping some state on our side and giving some information to
+		// the proxy so that it 1/ trust us and 2/ avoid close/resurect the P2P connections.
+		this.actionTerminateCall("disconnected");
 	}
 
 	onChangeConnectionState(callConnection: CallConnection, state: RTCIceConnectionState): void {
