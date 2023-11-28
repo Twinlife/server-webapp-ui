@@ -266,6 +266,31 @@ export class CallConnection {
 					if (this.mVideoTrack) {
 						this.mVideoTrack.enabled = this.mVideoDirection === "sendrecv";
 					}
+				} else if (state === "failed") {
+					this.terminateInternal("connectivity-error", true);
+					return;
+				} else if (state === "closed") {
+					this.terminateInternal("disconnected", true);
+					return;
+				} else if (state === "disconnected") {
+					// Trigger the ICE restart in 2 seconds in case it was a transient disconnect.
+					// We must be careful that the P2P connection could have been terminated and released.
+					if (this.mConnectionStartTime > 0 && !this.mTimer) {
+						this.mTimer = setTimeout(() => {
+							const state = pc.iceConnectionState;
+							if (this.mPeerConnection && state === "disconnected") {
+								this.mRenegotiationNeeded = true;
+								pc.restartIce();
+							}
+							if (this.mTimer) {
+								clearTimeout(this.mTimer);
+								this.mTimer = null;
+							}
+						}, 2000);
+						return;
+					}
+					this.terminateInternal("disconnected", true);
+					return;
 				}
 
 				// Forward to CallService
@@ -885,6 +910,25 @@ export class CallConnection {
 			participant.release();
 		}
 		return participants;
+	}
+
+	/**
+	 * Terminate the P2P connection after some error is detected.  Notify the peer if necessary.
+	 *
+	 * @param terminateReason the terminate reason.
+	 * @param notifyPeer true if we must notify the peer.
+	 */
+	private terminateInternal(terminateReason: TerminateReason, notifyPeer: boolean): void {
+
+		if (notifyPeer && this.mPeerConnectionId) {
+			this.mPeerCallService.sessionTerminate(this.mPeerConnectionId, terminateReason);
+		}
+		this.mCallService.onTerminatePeerConnection(this, terminateReason);
+		if (this.mPeerConnection) {
+			this.mPeerConnection.close();
+			this.mPeerConnection = null;
+			this.mPeerConnectionId = null;
+		}
 	}
 
 	private sendParticipantInfoIQ(): void {

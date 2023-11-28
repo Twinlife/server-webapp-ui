@@ -15,6 +15,7 @@ export type TerminateReason =
 	| "cancel"
 	| "connectivity-error"
 	| "decline"
+	| "disconnected"
 	| "general-error"
 	| "gone"
 	| "revoked"
