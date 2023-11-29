@@ -486,8 +486,18 @@ export class CallConnection {
 	}
 
 	addVideoTrack(track: MediaStreamTrack) {
-		this.mVideoTrack = track;
-		this.mPeerConnection?.addTrack(track);
+		// Don't add this track on the peer connection if it's already associated with an RTCRtpSender
+		if (this.mVideoTrack === track) {
+			return;
+		}
+
+		// If this is our first video track, add it otherwise replace it.
+		if (!this.mVideoTrack) {
+			this.mVideoTrack = track;
+			this.mPeerConnection?.addTrack(track);
+		} else {
+			this.replaceVideoTrack(track);
+		}
 	}
 
 	onSessionInitiate(sessionId: string): void {
