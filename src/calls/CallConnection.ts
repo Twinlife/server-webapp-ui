@@ -48,7 +48,8 @@ export class CallConnection {
 
 	static DEBUG: boolean = false;
 
-	static DATA_VERSION: string = "CallService:1.2.0";
+	// Label with data version and capabilities supported by the web app ('stream' is not supported yet).
+	static DATA_VERSION: string = "twinlife:data:conversation.CallService:1.2.0:group,transfer";
 
 	static CONNECT_TIMEOUT: number = 15000; // 15 second timeout between accept and connection.
 
@@ -405,7 +406,7 @@ export class CallConnection {
 		};
 
 		// Setup the output data channel.
-		this.mOutDataChannel = pc.createDataChannel("data");
+		this.mOutDataChannel = pc.createDataChannel(CallConnection.DATA_VERSION);
 		this.mOutDataChannel.onopen = (event: Event): any => {
 			console.log("Output data channel is now opened");
 			if (this.mOutDataChannel && this.mCall) {
