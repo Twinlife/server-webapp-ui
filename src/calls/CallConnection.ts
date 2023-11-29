@@ -92,7 +92,9 @@ export class CallConnection {
 	private mInDataChannel: RTCDataChannel | null;
 	private mOutDataChannel: RTCDataChannel | null;
 	private mIcePending: Array<RTCIceCandidate> | null = null;
+	private mIceRemoteCandidates: Array<TransportCandidate> | null = null;
 	private mRenegotiationNeeded: boolean = false;
+	private mInitialized: boolean = false;
 	private mMakingOffer: boolean = false;
 	private mRemoteAnswerPending: boolean = false;
 	private mIgnoreOffer: boolean = false;
@@ -103,7 +105,7 @@ export class CallConnection {
 	private mVideoTrack: MediaStreamTrack | null = null;
 	private mConnectionState: RTCIceConnectionState = "closed";
 	private readonly mParticipants: Map<string, CallParticipant>;
-	private mBinaryListeners: Map<string, PacketHandler> = new Map();
+	private readonly mBinaryListeners: Map<string, PacketHandler> = new Map();
 
 	private readonly mMainParticipant: CallParticipant;
 
@@ -113,8 +115,6 @@ export class CallConnection {
 
 	private mTimer: Timer | null = null;
 
-	private mVideo: boolean = false;
-	private readonly mVideoSourceOn: boolean = false;
 	private mPeerConnected: boolean = false;
 	private mPeerVersion: Version | null = null;
 
@@ -138,10 +138,6 @@ export class CallConnection {
 	 */
 	public getPeerConnectionId(): string | null {
 		return this.mPeerConnectionId;
-	}
-
-	public isVideo(): boolean {
-		return this.mVideo;
 	}
 
 	/**
@@ -217,7 +213,6 @@ export class CallConnection {
 		this.mConnectionStartTime = 0;
 		this.mPeerVersion = null;
 		this.mInitiator = sdp === null;
-		this.mVideo = CallStatusOps.isVideo(callStatus);
 		this.mCallMemberId = memberId;
 		this.mParticipants = new Map();
 		this.mMainParticipant = new CallParticipant(this, call.allocateParticipantId(), transfer);
@@ -431,27 +426,10 @@ export class CallConnection {
 			});
 		}
 
-		switch (callStatus) {
-			case CallStatus.OUTGOING_VIDEO_BELL:
-				this.mVideoSourceOn = true;
-				break;
-			case CallStatus.OUTGOING_CALL:
-			case CallStatus.INCOMING_CALL:
-			case CallStatus.ACCEPTED_INCOMING_CALL:
-				this.mVideoSourceOn = false;
-				break;
-			case CallStatus.OUTGOING_VIDEO_CALL:
-			case CallStatus.INCOMING_VIDEO_CALL:
-			case CallStatus.ACCEPTED_INCOMING_VIDEO_CALL:
-				this.mVideoSourceOn = true;
-				break;
-			case CallStatus.INCOMING_VIDEO_BELL:
-			default:
-				this.mVideoSourceOn = false;
-				break;
-		}
+		console.log("Call is " + callStatus);
 		this.mAudioDirection = audioDirection;
-		if (this.mVideoSourceOn) {
+		const videoSourceOn = callService.isVideoSourceOn();
+		if (videoSourceOn) {
 			this.mVideoDirection = "sendrecv";
 		}
 
@@ -461,7 +439,7 @@ export class CallConnection {
 		};
 		const offer: Offer = {
 			audio: true,
-			video: this.mVideoSourceOn,
+			video: videoSourceOn,
 			data: true,
 			group: false,
 			transfer: false,
@@ -469,17 +447,19 @@ export class CallConnection {
 		};
 		if (sdp) {
 			this.mMakingOffer = false;
-			this.mPeerConnection
-				.setRemoteDescription({
+			this.mRemoteAnswerPending = true;
+			pc.setRemoteDescription({
 					sdp: sdp,
 					type: "offer",
 				})
 				.then(() => {
 					console.log("Set remote is done");
+					this.mRemoteAnswerPending = false;
 					this.createAnswer(offer);
 				})
 				.catch((error: any) => {
 					console.error("Set remote failed: ", error);
+					this.mRemoteAnswerPending = false;
 				});
 		} else {
 			this.mMakingOffer = true;
@@ -489,19 +469,10 @@ export class CallConnection {
 					pc.setLocalDescription(description)
 						.then(() => {
 							this.mMakingOffer = false;
-							if (this.mTo && description.sdp) {
-								if (description.type === "offer" || !this.mPeerConnectionId) {
-									console.log("sending session-initiate with offer:", offer);
-									this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
-								} else {
-									console.log("sending session-accept with offer:", offer);
-									this.mPeerCallService.sessionAccept(
-										this.mPeerConnectionId,
-										this.mTo,
-										description.sdp,
-										offer
-									);
-								}
+							if (this.mTo && description.sdp && description.type === "offer") {
+								console.log("sending session-initiate with offer:", offer);
+								this.mInitialized = true;
+								this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
 							}
 						})
 						.catch((reason: any) => {
@@ -516,7 +487,6 @@ export class CallConnection {
 	}
 
 	addVideoTrack(track: MediaStreamTrack) {
-		this.mVideo = true;
 		this.mVideoTrack = track;
 		this.mPeerConnection?.addTrack(track);
 	}
@@ -550,6 +520,7 @@ export class CallConnection {
 		}
 		this.setPeerVersion(new Version(offer.version));
 
+		this.mRemoteAnswerPending = true;
 		this.mPeerConnection
 			.setRemoteDescription({
 				sdp: sdp,
@@ -557,8 +528,15 @@ export class CallConnection {
 			})
 			.then(() => {
 				console.log("Set remote is done");
+				this.mRemoteAnswerPending = false;
+				// WebRTC accepts ICE candidates only when it has both the local description
+				// and the remote description.  If we call addIceCandidates too early, they are dropped.
+				if (this.mInitialized) {
+					this.checkRemoteCandidates();
+				}
 			})
 			.catch((error: any) => {
+				this.mRemoteAnswerPending = false;
 				console.log("Set remote failed: " + error);
 			});
 		if (this.mTimer) {
@@ -596,6 +574,10 @@ export class CallConnection {
 				if (isOffer) {
 					this.createAnswer(null);
 				}
+			})
+			.catch((reason: any) => {
+				this.mRemoteAnswerPending = false;
+				console.error("setRemoteDescription failed: " + reason);
 			});
 		return true;
 	}
@@ -620,6 +602,7 @@ export class CallConnection {
 									description.sdp,
 									offer
 								);
+								this.checkRemoteCandidates();
 							} else {
 								this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "answer");
 							}
@@ -637,6 +620,17 @@ export class CallConnection {
 	onTransportInfo(candidates: TransportCandidate[]): boolean {
 		if (!this.mPeerConnection) {
 			return false;
+		}
+
+		// WebRTC accepts ICE candidates only when it has both the local description
+		// and the remote description.  If we call addIceCandidates too early, they are dropped.
+		if (!this.mInitialized) {
+			if (!this.mIceRemoteCandidates) {
+				this.mIceRemoteCandidates = candidates;
+			} else {
+				this.mIceRemoteCandidates.push(...candidates);
+			}
+			return true;
 		}
 
 		for (const candidate of candidates) {
@@ -910,6 +904,16 @@ export class CallConnection {
 			participant.release();
 		}
 		return participants;
+	}
+
+	private checkRemoteCandidates(): void {
+		this.mInitialized = true;
+		const candidates: TransportCandidate[] | null = this.mIceRemoteCandidates;
+		if (candidates) {
+			console.log("using " + candidates.length + " ICE candidates which are queued");
+			this.mIceRemoteCandidates = null;
+			this.onTransportInfo(candidates);
+		}
 	}
 
 	/**
