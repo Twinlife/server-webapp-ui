@@ -494,6 +494,17 @@ export class CallService implements PeerCallServiceObserver {
 		this.actionTerminateCall("disconnected");
 	}
 
+	onDeviceRinging(sessionId: string | null) {
+		console.log("session " + sessionId + " is ringing");
+
+		if (sessionId == null) {
+			return;
+		}
+
+		const callConnection = this.mPeers.get(sessionId);
+		callConnection?.setDeviceRinging();
+	}
+
 	onChangeConnectionState(callConnection: CallConnection, state: RTCIceConnectionState): void {
 		const call: CallState = callConnection.getCall();
 		const status: CallState.UpdateState = call.updateConnectionState(callConnection, state);

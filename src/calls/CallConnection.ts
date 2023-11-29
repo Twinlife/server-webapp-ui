@@ -426,7 +426,6 @@ export class CallConnection {
 			});
 		}
 
-		console.log("Call is " + callStatus);
 		this.mAudioDirection = audioDirection;
 		const videoSourceOn = callService.isVideoSourceOn();
 		if (videoSourceOn) {
@@ -714,6 +713,13 @@ export class CallConnection {
 		this.mPeerConnected = true;
 		this.mStatus = CallStatusOps.toActive(this.mStatus);
 		return true;
+	}
+
+	setDeviceRinging(): void {
+		const participant: CallParticipant | null = this.getMainParticipant();
+		if (participant) {
+			this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_RINGING);
+		}
 	}
 
 	setAudioDirection(direction: RTCRtpTransceiverDirection): void {
