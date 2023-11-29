@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 twinlife SA.
+ *  Copyright (c) 2022, 2023 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -14,6 +14,7 @@
  * @property {CallParticipantEvent} EVENT_AUDIO_OFF
  * @property {CallParticipantEvent} EVENT_VIDEO_ON
  * @property {CallParticipantEvent} EVENT_VIDEO_OFF
+ * @property {CallParticipantEvent} EVENT_RINGING
  * @class
  */
 export enum CallParticipantEvent {
@@ -22,4 +23,5 @@ export enum CallParticipantEvent {
 	EVENT_AUDIO_OFF,
 	EVENT_VIDEO_ON,
 	EVENT_VIDEO_OFF,
+	EVENT_RINGING
 }

@@ -148,6 +148,11 @@ export type MemberJoinMessage = {
 	status: MemberStatus;
 };
 
+export type DeviceRingingMessage = {
+	msg: string;
+	sessionId: string | null;
+};
+
 export type PingMessage = {
 	msg: string;
 }
@@ -168,6 +173,8 @@ export interface PeerCallServiceObserver {
 	onJoinCallRoom(callRoomId: string, memberId: string, members: MemberInfo[]): void;
 
 	onMemberJoin(sessionId: string | null, memberId: string, status: MemberStatus): void;
+
+	onDeviceRinging(sessionId: string | null): void;
 
 	onServerClose(): void;
 }
@@ -286,6 +293,11 @@ export class PeerCallService {
 				if (this.callObserver) {
 					const memberJoin: MemberJoinMessage = req as MemberJoinMessage;
 					this.callObserver.onMemberJoin(memberJoin.sessionId, memberJoin.memberId, memberJoin.status);
+				}
+			} else if (req.msg === "device-ringing") {
+				if (this.callObserver) {
+					const deviceRinging: DeviceRingingMessage = req as DeviceRingingMessage;
+					this.callObserver.onDeviceRinging(deviceRinging.sessionId);
 				}
 			} else if (req.msg === "pong") {
 
