@@ -110,6 +110,7 @@ export class CallService implements PeerCallServiceObserver {
 		const call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage, transfer);
 		const callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
 		this.mActiveCall = call;
+		this.mIsCameraMute = !video;
 		// Start the CallConnection once the peer call service is ready.
 		this.mPeerCallService.onReady(() => {
 			const callConnection: CallConnection = new CallConnection(
@@ -269,6 +270,16 @@ export class CallService implements PeerCallServiceObserver {
 
 	hasVideoTrack(): boolean {
 		return this.mLocalStream.getVideoTracks().length > 0;
+	}
+
+	isAudioSourceOn(): boolean {
+
+		return !this.mAudioMute;
+	}
+
+	isVideoSourceOn(): boolean {
+
+		return !this.mIsCameraMute;
 	}
 
 	/**
