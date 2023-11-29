@@ -369,8 +369,8 @@ export class PeerCallService {
 
 		const result = {
 			iceServers: iceServers,
-			// bundlePolicy: "balanced",
-			// sdpSemantics: 'unified-plan'
+			bundlePolicy: "max-bundle",
+			sdpSemantics: 'unified-plan'
 			// rtcpMuxPolicy: 'require',
 			// iceTransportPolicy: 'all'
 		};
