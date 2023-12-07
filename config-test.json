@@ -1,5 +1,5 @@
 {
-	"rest_url": "http://localhost:8081/rest",
+	"rest_url": "https://localhost:8081/rest",
 	"proxy_url": "ws://localhost:8081/p2p/connect",
 	"invite_url": "https://invite.mytwinlife.net?twincodeId="
 }

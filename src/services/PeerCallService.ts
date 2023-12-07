@@ -23,6 +23,7 @@ export type TerminateReason =
 	| "expired"
 	| "not-authorized"
 	| "transfer-done"
+	| "schedule"
 	| "unknown";
 
 export type TurnServer = {
@@ -78,7 +79,7 @@ export type SessionInitiateResponseMessage = {
 	msg: string;
 	to: string;
 	sessionId: string;
-	status: string;
+	status: "success" | "not-authorized" | "gone" | "schedule";
 };
 
 export type SessionAcceptMessage = {
@@ -155,7 +156,7 @@ export type DeviceRingingMessage = {
 
 export type PingMessage = {
 	msg: string;
-}
+};
 
 export interface PeerCallServiceObserver {
 	onIncomingSessionInitiate(sessionId: string, peerId: string, sdp: string, offer: Offer): void;
@@ -168,7 +169,7 @@ export interface PeerCallServiceObserver {
 
 	onTransportInfo(sessionId: string, candidates: TransportCandidate[]): void;
 
-	onSessionTerminate(sessionId: string, reason: TerminateReason): void;
+	onSessionTerminate(sessionId: string | null, reason: TerminateReason): void;
 
 	onJoinCallRoom(callRoomId: string, memberId: string, members: MemberInfo[]): void;
 
@@ -181,7 +182,7 @@ export interface PeerCallServiceObserver {
 
 type Timer = ReturnType<typeof setTimeout>;
 type ReadyCallback = () => void;
-const PING_TIMER : number = 30000; // 30s, must be at least 2 times faster than server websocket idle timeout
+const PING_TIMER: number = 30000; // 30s, must be at least 2 times faster than server websocket idle timeout
 
 /**
  * WebRTC session management to send/receive SDPs.
@@ -229,7 +230,7 @@ export class PeerCallService {
 			} catch (e) {
 				return;
 			}
-			console.log("Received message ", req.msg);
+			console.log("Received message ", req);
 			this.lastRecvTime = performance.now();
 			if (req.msg === "session-config") {
 				this.callConfig = req as CallConfigMessage;
@@ -270,7 +271,16 @@ export class PeerCallService {
 			} else if (req.msg === "session-initiate-response") {
 				if (this.callObserver) {
 					const initResponse: SessionInitiateResponseMessage = req as SessionInitiateResponseMessage;
-					this.callObserver.onSessionInitiate(initResponse.to, initResponse.sessionId, initResponse.status);
+
+					if (initResponse.status === "success") {
+						this.callObserver.onSessionInitiate(
+							initResponse.to,
+							initResponse.sessionId,
+							initResponse.status
+						);
+					} else {
+						this.callObserver.onSessionTerminate(null, initResponse.status);
+					}
 				}
 			} else if (req.msg === "session-initiate") {
 				if (this.callObserver) {
@@ -300,7 +310,6 @@ export class PeerCallService {
 					this.callObserver.onDeviceRinging(deviceRinging.sessionId);
 				}
 			} else if (req.msg === "pong") {
-
 			} else {
 				console.log("Unsupported message ", req);
 			}
@@ -334,7 +343,6 @@ export class PeerCallService {
 	}
 
 	private close(): void {
-
 		if (this.pingTimer) {
 			clearTimeout(this.pingTimer);
 			this.pingTimer = null;
@@ -370,7 +378,7 @@ export class PeerCallService {
 		const result = {
 			iceServers: iceServers,
 			bundlePolicy: "max-bundle",
-			sdpSemantics: 'unified-plan'
+			sdpSemantics: "unified-plan",
 			// rtcpMuxPolicy: 'require',
 			// iceTransportPolicy: 'all'
 		};
@@ -457,10 +465,10 @@ export class PeerCallService {
 		this.sendMessage(msg);
 	}
 
-	private ping() : void {
+	private ping(): void {
 		const msg: PingMessage = {
-			msg: "ping"
-		}
+			msg: "ping",
+		};
 		this.sendMessage(msg);
 	}
 

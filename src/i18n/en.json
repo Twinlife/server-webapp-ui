@@ -35,6 +35,8 @@
 		"audio_call_activity_terminate_gone": "Call terminated: <strong>{{contactName}}</strong> is off-line",
 		"audio_call_activity_terminate_revoked": "Call terminated: <strong>{{contactName}}</strong> has revoked this identity",
 		"audio_call_activity_terminate_success": "Call terminated by <strong>{{contactName}}</strong>",
-		"audio_call_activity_terminate_timeout": "Call terminated: <strong>{{contactName}}</strong> does not answer"
+		"audio_call_activity_terminate_timeout": "Call terminated: <strong>{{contactName}}</strong> does not answer",
+		"audio_call_activity_terminate_schedule_single_day": "Call scheduled on <strong>{{startDate}}</strong> from <strong>{{startTime}}</strong> to <strong>{{endTime}}</strong>",
+		"audio_call_activity_terminate_schedule_multiple_days": "Call scheduled from <strong>{{startDate}}</strong> at <strong>{{startTime}}</strong> to <strong>{{endDate}}</strong> at <strong>{{endTime}}</strong>"
 	}
 }

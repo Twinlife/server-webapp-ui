@@ -58,7 +58,7 @@ export class CallService implements PeerCallServiceObserver {
 
 	static readonly DEBUG: boolean = false;
 	static readonly CALL_TIMEOUT: number = 30 * 1000;
-	static readonly FINISH_TIMEOUT: number = 3 * 1000;
+	static readonly FINISH_TIMEOUT: number = 5 * 1000;
 
 	private readonly mPeerCallService: PeerCallService;
 	private readonly mObserver: CallObserver;
@@ -273,12 +273,10 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	isAudioSourceOn(): boolean {
-
 		return !this.mAudioMute;
 	}
 
 	isVideoSourceOn(): boolean {
-
 		return !this.mIsCameraMute;
 	}
 
@@ -410,12 +408,17 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-	onSessionTerminate(sessionId: string, reason: TerminateReason): void {
+	onSessionTerminate(sessionId: string | null, reason: TerminateReason): void {
 		console.log("session " + sessionId + " terminated with " + reason);
 
-		const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
-		if (callConnection) {
-			this.onTerminatePeerConnection(callConnection, reason);
+		if (sessionId) {
+			const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
+			if (callConnection) {
+				this.onTerminatePeerConnection(callConnection, reason);
+			}
+		} else {
+			this.mObserver.onTerminateCall(reason);
+			this.mActiveCall = null;
 		}
 	}
 

@@ -35,6 +35,9 @@
 		"audio_call_activity_terminate_gone": "Appel terminé : <strong>{{contactName}}</strong> n’est pas connecté(e)",
 		"audio_call_activity_terminate_revoked": "Appel terminé : <strong>{{contactName}}</strong> a révoqué cette identité",
 		"audio_call_activity_terminate_success": "Appel terminé par <strong>{{contactName}}</strong>",
-		"audio_call_activity_terminate_timeout": "Appel terminé : <strong>{{contactName}}</strong> ne répond pas"
+		"audio_call_activity_terminate_timeout": "Appel terminé : <strong>{{contactName}}</strong> ne répond pas",
+		"audio_call_activity_terminate_schedule_unknown": "Appel programmé à une date et heure définie par ailleurs",
+		"audio_call_activity_terminate_schedule_single_day": "Appel programmé le <strong>{{startDate}}</strong> de <strong>{{startTime}}</strong> à <strong>{{endTime}}</strong>",
+		"audio_call_activity_terminate_schedule_multiple_days": "Appel programmé du <strong>{{startDate}}</strong> à <strong>{{startTime}}</strong> au <strong>{{endDate}}</strong> à <strong>{{endTime}}</strong>"
 	}
 }
