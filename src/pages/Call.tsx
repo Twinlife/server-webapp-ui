@@ -8,7 +8,8 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
-import { TFunction } from "i18next";
+import zonedTimeToUtc from "date-fns-tz/zonedTimeToUtc";
+import i18n, { TFunction } from "i18next";
 import React, { Component, ReactNode, RefObject, useEffect, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
@@ -33,11 +34,18 @@ import SelectDevicesButton from "../components/SelectDevicesButton";
 import StoresBadges from "../components/StoresBadges";
 import Thanks from "../components/Thanks";
 import WhiteButton from "../components/WhiteButton";
-import { TwincodeInfo } from "../services/ContactService";
+import { Schedule, TwincodeInfo, dateTimeToString } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 import IsMobile from "../utils/IsMobile";
 
 type FacingMode = "user" | "environment";
+
+type ScheduleLabels = {
+	startDate: string;
+	endDate: string;
+	startTime: string;
+	endTime: string;
+};
 
 interface CallProps {
 	id: string;
@@ -66,6 +74,11 @@ interface CallState {
 	alertContent: ReactNode;
 }
 
+//e.g. "13:30"
+const timeFormat = new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" });
+//e.g. "1 Décembre 2023"
+const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" });
+
 const APP_TRANSFER: boolean = import.meta.env.VITE_APP_TRANSFER === "true";
 
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
@@ -85,6 +98,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			audio: false,
 			video: false,
 			transfer: false,
+			schedule: null,
 		},
 		audioMute: false,
 		videoMute: false,
@@ -463,41 +477,67 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		ev.preventDefault();
 	};
 
-	getTerminateReasonMessage = (terminateReason: TerminateReason): string => {
-		let terminatedConnectionLabelID = "";
-		switch (terminateReason) {
-			case "success":
-				terminatedConnectionLabelID = "audio_call_activity_terminate";
-				break;
-			case "busy":
-				terminatedConnectionLabelID = "audio_call_activity_terminate_busy";
-				break;
-			case "cancel":
-				terminatedConnectionLabelID = "audio_call_activity_terminate_cancel";
-				break;
-			case "connectivity-error":
-				terminatedConnectionLabelID = "audio_call_activity_terminate_connectivity_error";
-				break;
-			case "decline":
-				terminatedConnectionLabelID = "audio_call_activity_terminate_decline";
-				break;
-			case "gone":
-				terminatedConnectionLabelID = "audio_call_activity_terminate_gone";
-				break;
-			case "revoked":
-				terminatedConnectionLabelID = "audio_call_activity_terminate_revoked";
-				break;
-			case "expired":
-				terminatedConnectionLabelID = "audio_call_activity_terminate_timeout";
-				break;
-			case "general-error":
-				console.error("PeerConnectionService.TerminateReason.GENERAL_ERROR");
-				return "";
-			default:
-				return "";
-		}
-		return terminatedConnectionLabelID;
+	private terminateMessages = {
+		success: "audio_call_activity_terminate",
+		busy: "audio_call_activity_terminate_busy",
+		cancel: "audio_call_activity_terminate_cancel",
+		"connectivity-error": "audio_call_activity_terminate_connectivity_error",
+		decline: "audio_call_activity_terminate_decline",
+		disconnected: "TODO",
+		gone: "audio_call_activity_terminate_gone",
+		revoked: "audio_call_activity_terminate_revoked",
+		expired: "audio_call_activity_terminate_timeout",
+		"not-authorized": "audio_call_activity_terminate_timeout",
+		"transfer-done": "TODO",
+		unknown: "TODO",
+		schedule: "audio_call_activity_terminate_schedule_unknown",
+		"general-error": "TODO",
 	};
+
+	getTerminateReasonMessage = (terminateReason: TerminateReason): string => {
+		if (terminateReason === "general-error") {
+			console.error("PeerConnectionService.TerminateReason.GENERAL_ERROR");
+		}
+
+		//special case for schedule, as it has different messages according to the schedule's settings.
+		if (terminateReason === "schedule" && this.state.twincode.schedule) {
+			//for now, we only handle schedules with a single time range of type DateTimeRange
+			const timeRange = this.state.twincode.schedule.timeRanges[0];
+
+			const start = timeRange.start.date;
+			const end = timeRange.end.date;
+
+			if (start.day === end.day && start.month === end.month && start.year === end.year) {
+				return "audio_call_activity_terminate_schedule_single_day";
+			} else {
+				return "audio_call_activity_terminate_schedule_multiple_days";
+			}
+		}
+
+		return this.terminateMessages[terminateReason];
+	};
+
+	/**
+	 * Returns values for the schedule error messages, localized in i18next's current langage
+	 */
+	getScheduleLabels(schedule: Schedule | null): ScheduleLabels | null {
+		if (!schedule?.timeRanges[0]) {
+			return null;
+		}
+
+		const range = schedule.timeRanges[0];
+		const timeZone = schedule.timeZone;
+
+		const startDate = zonedTimeToUtc(dateTimeToString(range.start), timeZone);
+		const endDate = zonedTimeToUtc(dateTimeToString(range.end), timeZone);
+
+		return {
+			startDate: dateFormat.format(startDate),
+			endDate: dateFormat.format(endDate),
+			startTime: timeFormat.format(startDate),
+			endTime: timeFormat.format(endDate),
+		};
+	}
 
 	getGuestName(): string {
 		return window.localStorage.getItem("guestName") ?? this.props.t("guest");
@@ -565,7 +605,10 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						<span>
 							<Trans
 								i18nKey={this.getTerminateReasonMessage(terminateReason)}
-								values={{ contactName: twincode?.name }}
+								values={{
+									contactName: twincode?.name,
+									...this.getScheduleLabels(twincode?.schedule),
+								}}
 								t={t}
 							/>
 						</span>

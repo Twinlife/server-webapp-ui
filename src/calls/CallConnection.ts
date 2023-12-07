@@ -449,9 +449,9 @@ export class CallConnection {
 			this.mMakingOffer = false;
 			this.mRemoteAnswerPending = true;
 			pc.setRemoteDescription({
-					sdp: sdp,
-					type: "offer",
-				})
+				sdp: sdp,
+				type: "offer",
+			})
 				.then(() => {
 					console.log("Set remote is done");
 					this.mRemoteAnswerPending = false;
@@ -940,7 +940,6 @@ export class CallConnection {
 	 * @param notifyPeer true if we must notify the peer.
 	 */
 	private terminateInternal(terminateReason: TerminateReason, notifyPeer: boolean): void {
-
 		if (notifyPeer && this.mPeerConnectionId) {
 			this.mPeerCallService.sessionTerminate(this.mPeerConnectionId, terminateReason);
 		}
