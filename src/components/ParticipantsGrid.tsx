@@ -29,20 +29,6 @@ const ParticipantsGrid: React.FC<{
 }) => {
 	const { t } = useTranslation();
 
-	let gridClass = "";
-	if (participants.length < 2) {
-		gridClass = [
-			isIddle ? "grid-cols-1 grid-rows-2" : "grid-cols-1 grid-rows-1",
-			"md:grid-cols-2 md:grid-rows-1",
-		].join(" ");
-	} else if (participants.length < 5) {
-		gridClass = "grid-cols-2 grid-rows-2";
-	} else if (participants.length < 7) {
-		gridClass = "grid-cols-3 grid-rows-2";
-	} else if (participants.length < 10) {
-		gridClass = "grid-cols-3 grid-rows-3";
-	}
-
 	useEffect(() => {
 		if (localVideoRef.current) {
 			localVideoRef.current.srcObject = localMediaStream;
@@ -52,10 +38,13 @@ const ParticipantsGrid: React.FC<{
 	}, [localMediaStream]);
 
 	return (
-		<div className={["grid flex-1 gap-4 overflow-hidden py-4", gridClass].join(" ")}>
+		// getGridClass(participants.length + 1) because current web user is not part of participants
+		<div className={["grid flex-1 gap-4 overflow-hidden py-4", getGridClass(participants.length + 1)].join(" ")}>
+			{/* Display InCall participants */}
 			{participants.map((participant) => (
 				<ParticipantGridCell
 					key={participant.getParticipantId()}
+					cellClassName={getCellClass(participants.length + 1)}
 					setRemoteRenderer={(ref) => participant.setRemoteRenderer(ref)}
 					isAudioMute={participant.isAudioMute()}
 					isCameraMute={participant.isCameraMute()}
@@ -64,20 +53,23 @@ const ParticipantsGrid: React.FC<{
 					avatarUrl={participant.getAvatarUrl() ?? ""}
 				/>
 			))}
+
+			{/* Display Contact before call (participants.length === 0) */}
 			{participants.length === 0 && (
 				<ParticipantGridCell
+					cellClassName={getCellClass(participants.length + 1)}
 					isAudioMute={false}
 					isCameraMute={true}
 					name={twincode.name ?? ""}
 					avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
 				/>
 			)}
+
 			<div
 				className={[
-					isIddle
-						? "relative"
-						: "absolute right-7 top-16 z-10 h-36 w-24 ring-2 ring-black md:relative md:right-auto md:top-auto md:h-auto md:w-auto",
+					isIddle ? "relative" : "relative ring-2 ring-black",
 					"overflow-hidden rounded-md",
+					getCellClass(participants.length + 1),
 				].join(" ")}
 			>
 				<video
@@ -166,3 +158,50 @@ const ParticipantsGrid: React.FC<{
 };
 
 export default ParticipantsGrid;
+
+function getGridClass(participantsAmount: number) {
+	switch (participantsAmount) {
+		case 0:
+		case 1:
+		case 2:
+			return "grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1";
+		case 3:
+			return "grid-cols-2 grid-rows-2 md:grid-cols-3 md:grid-rows-1";
+		case 4:
+			return "grid-cols-2 grid-rows-2 md:grid-cols-4 md:grid-rows-1";
+		case 5:
+			return "grid-cols-2 grid-rows-3 md:grid-cols-3 md:grid-rows-2";
+		case 6:
+			return "grid-cols-2 md:grid-cols-3";
+		case 7:
+			return "grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2";
+		case 8:
+			return "grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2";
+
+		default:
+			return "";
+	}
+}
+
+function getCellClass(participantsAmount: number) {
+	switch (participantsAmount) {
+		case 1:
+		case 2:
+			return "";
+		case 3:
+			return "first:col-span-2 md:first:col-span-1";
+		case 4:
+			return "";
+		case 5:
+			return "first:row-span-2";
+		case 6:
+			return "";
+		case 7:
+			return "first:row-span-2 md:first:col-span-1 md:first:row-span-2 ";
+		case 8:
+			return "";
+
+		default:
+			return "";
+	}
+}

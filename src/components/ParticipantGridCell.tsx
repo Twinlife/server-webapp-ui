@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 
 interface ParticipantGridCellProps {
+	cellClassName: string;
 	setRemoteRenderer?: (remoteRenderer: HTMLVideoElement) => void;
 	isAudioMute: boolean;
 	isCameraMute: boolean;
@@ -10,6 +11,7 @@ interface ParticipantGridCellProps {
 }
 
 const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
+	cellClassName,
 	setRemoteRenderer,
 	isAudioMute,
 	isCameraMute,
@@ -24,7 +26,12 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	}, []);
 
 	return (
-		<div className="relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]">
+		<div
+			className={[
+				"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
+				cellClassName,
+			].join(" ")}
+		>
 			{isAudioMute && (
 				<div className="absolute left-2 top-2 z-20 text-2xl md:left-auto md:right-2">
 					<svg width="1em" height="1em" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
