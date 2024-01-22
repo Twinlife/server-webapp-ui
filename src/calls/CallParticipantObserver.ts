@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 twinlife SA.
+ *  Copyright (c) 2022-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -8,6 +8,7 @@
  */
 import { CallParticipant } from "./CallParticipant";
 import { CallParticipantEvent } from "./CallParticipantEvent";
+import { ConversationService } from "./ConversationService";
 
 /**
  * Observer interface to be informed when a new call participant arrives, leaves or is updated.
@@ -35,4 +36,12 @@ export interface CallParticipantObserver {
 	 * @param {CallParticipantEvent} event the event that occurred.
 	 */
 	onEventParticipant(participant: CallParticipant, event: CallParticipantEvent): void;
+
+	/**
+	 * A descriptor (message, invitation) was send by the participant.
+	 *
+	 * @param {CallParticipant} participant the participant.
+	 * @param {ConversationService.Descriptor} descriptor the descriptor that was received.
+	 */
+	onPopDescriptor(participant: CallParticipant, descriptor: ConversationService.Descriptor): void;
 }

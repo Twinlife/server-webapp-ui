@@ -45,7 +45,7 @@ export class UUID {
 	public constructor(value1: any, value2?: any) {
 		if (value1 != null && value1 instanceof ArrayBuffer && value2 === undefined) {
 			this.value = value1;
-		} else if (value1 !== null && value1 instanceof Buffer && value1.byteLength === 16 && value2 === undefined) {
+		} else if (value1 !== null && value1 instanceof Uint8Array && value1.byteLength === 16 && value2 === undefined) {
 			this.value = new ArrayBuffer(16);
 			const srcBuffer: Uint8Array = new Uint8Array(value1);
 			const dstBuffer: Uint8Array = new Uint8Array(this.value);

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023 twinlife SA.
+ *  Copyright (c) 2022-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -9,6 +9,7 @@
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
+import { UUID } from "../utils/UUID";
 import { CallConnection } from "./CallConnection";
 
 /**
@@ -44,6 +45,7 @@ export class CallParticipant {
 	private mVideoWidth: number = 0;
 	private mVideoHeight: number = 0;
 	private mediaStream: MediaStream = new MediaStream();
+	private mSenderId: UUID | null = null;
 
 	/**
 	 * Get the call connection associated with this participant.
@@ -156,6 +158,15 @@ export class CallParticipant {
 	}
 
 	/**
+	 * Get the UUID that this participant is using to emit messages during the call.
+	 *
+	 * @returns {UUID} the participant sender id or null if no message was sent.
+	 */
+	public getSenderId(): UUID | null {
+		return this.mSenderId;
+	}
+
+	/**
 	 * Set the video and audio renderer (HTMLVideoElement) for this participant.
 	 * Then affect the participant mediaStream to its srcObject
 	 */
@@ -196,14 +207,6 @@ export class CallParticipant {
 		this.mAvatarUrl = avatarUrl;
 	}
 
-	/* setupVideo(localRenderer: any): boolean {
-
-		if (this.mRemoteRenderer == null) {
-			this.mConnection.getCall().setLocalRenderer(localRenderer);
-		}
-		return true;
-	}*/
-
 	/**
 	 * Release the remote renderer when the connexion is destroyed.
 	 */
@@ -211,6 +214,12 @@ export class CallParticipant {
 		const remoteRenderer: any = this.mRemoteRenderer;
 		if (remoteRenderer != null) {
 			this.mRemoteRenderer = null;
+		}
+	}
+
+	updateSenderId(senderId: UUID) {
+		if (this.mSenderId == null) {
+			this.mSenderId = senderId;
 		}
 	}
 

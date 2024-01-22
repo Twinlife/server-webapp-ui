@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2019-2023 twinlife SA.
+ *  Copyright (c) 2019-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -28,6 +28,7 @@ import { CallParticipantObserver } from "./CallParticipantObserver";
 import { CallState } from "./CallState";
 import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConnectionOperation } from "./ConnectionOperation";
+import { ConversationService } from "./ConversationService";
 import TransferDirection = CallState.TransferDirection;
 
 // type Timer = ReturnType<typeof setTimeout>;
@@ -220,6 +221,21 @@ export class CallService implements PeerCallServiceObserver {
 
 			connection.setVideoDirection(this.mIsCameraMute ? "recvonly" : "sendrecv");
 		}
+	}
+
+	/**
+	 * Send a message to each peer connected with us.
+	 *
+	 * @param message the message to send.
+	 * @param copyAllowed true if the message can be copied.
+	 * @returns the descriptor that was sent.
+	 */
+	pushMessage(message: string, copyAllowed: boolean): ConversationService.MessageDescriptor | null {
+		const call: CallState | null = this.mActiveCall;
+		if (!call) {
+			return null;
+		}
+		return call.pushMessage(message, copyAllowed);
 	}
 
 	getMediaStream(): MediaStream {
