@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023 twinlife SA.
+ *  Copyright (c) 2022-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -22,8 +22,11 @@ import { CallParticipantEvent } from "./CallParticipantEvent";
 import { CallService } from "./CallService";
 import { CallState } from "./CallState";
 import { CallStatus, CallStatusOps } from "./CallStatus";
+import { OnPushIQ } from "./OnPushIQ.ts";
 import { ParticipantInfoIQ } from "./ParticipantInfoIQ";
 import { ParticipantTransferIQ } from "./ParticipantTransferIQ.ts";
+import { PushObjectIQ } from "./PushObjectIQ.ts";
+import { PushTwincodeIQ } from "./PushTwincodeIQ.ts";
 
 type PacketHandler = {
 	serializer: Serializer;
@@ -49,9 +52,12 @@ export class CallConnection {
 	static DEBUG: boolean = false;
 
 	// Label with data version and capabilities supported by the web app ('stream' is not supported yet).
-	static DATA_VERSION: string = "twinlife:data:conversation.CallService:1.2.0:group,transfer";
+	static DATA_VERSION: string = "twinlife:data:conversation.CallService:1.3.0:group,transfer,message";
+	static CAP_MESSAGE: string = "message";
 
 	static CONNECT_TIMEOUT: number = 15000; // 15 second timeout between accept and connection.
+
+	static DEVICE_STATE: number = 2;
 
 	private static readonly PARTICIPANT_INFO_SCHEMA_ID = UUID.fromString("a8aa7e0d-c495-4565-89bb-0c5462b54dd0");
 	private static readonly IQ_PARTICIPANT_INFO_SERIALIZER = ParticipantInfoIQ.createSerializer(
@@ -81,6 +87,27 @@ export class CallConnection {
 	private static readonly IQ_PARTICIPANT_TRANSFER_SERIALIZER = ParticipantTransferIQ.createSerializer(
 		CallConnection.PARTICIPANT_TRANSFER_SCHEMA_ID,
 		1
+	);
+
+	private static readonly PUSH_OBJECT_SCHEMA_ID = UUID.fromString("26e3a3bd-7db0-4fc5-9857-bbdb2032960e");
+	static readonly IQ_PUSH_OBJECT_SERIALIZER = PushObjectIQ.createSerializer(CallConnection.PUSH_OBJECT_SCHEMA_ID, 5);
+
+	private static readonly ON_PUSH_OBJECT_SCHEMA_ID = UUID.fromString("f95ac4b5-d20f-4e1f-8204-6d146dd5291e");
+	private static readonly IQ_ON_PUSH_OBJECT_SERIALIZER = OnPushIQ.createSerializer(
+		CallConnection.ON_PUSH_OBJECT_SCHEMA_ID,
+		3
+	);
+
+	private static readonly PUSH_TWINCODE_SCHEMA_ID = UUID.fromString("72863c61-c0a9-437b-8b88-3b78354e54b8");
+	private static readonly IQ_PUSH_TWINCODE_SERIALIZER = PushObjectIQ.createSerializer(
+		CallConnection.PUSH_TWINCODE_SCHEMA_ID,
+		2
+	);
+
+	private static readonly ON_PUSH_TWINCODE_SCHEMA_ID = UUID.fromString("e6726692-8fe6-4d29-ae64-ba321d44a247");
+	private static readonly IQ_ON_PUSH_TWINCODE_SERIALIZER = OnPushIQ.createSerializer(
+		CallConnection.ON_PUSH_TWINCODE_SCHEMA_ID,
+		2
 	);
 
 	private readonly mCallService: CallService;
@@ -122,6 +149,7 @@ export class CallConnection {
 	private mStatus: CallStatus = CallStatus.TERMINATED;
 
 	private mCallMemberId: string | null = null;
+	private mMessageSupported: boolean | null = null;
 
 	/**
 	 * Get the main call participant.
@@ -189,6 +217,15 @@ export class CallConnection {
 		return v.major >= 2;
 	}
 
+	/**
+	 * Check if this connection supports sending and receiving messages.
+	 *
+	 * @return {boolean} NULL if we don't know, TRUE if P2P messages are supported.
+	 */
+	public isMessageSupported(): boolean | null {
+		return this.mMessageSupported;
+	}
+
 	constructor(
 		callService: CallService,
 		peerCallService: PeerCallService,
@@ -242,6 +279,30 @@ export class CallConnection {
 			serializer: CallConnection.IQ_TRANSFER_DONE_SERIALIZER,
 			handler: (callConnection: CallConnection, _: BinaryPacketIQ) => {
 				callConnection.onTransferDoneIQ();
+			},
+		});
+		this.addListener({
+			serializer: CallConnection.IQ_PUSH_OBJECT_SERIALIZER,
+			handler: (callConnection: CallConnection, iq: BinaryPacketIQ) => {
+				callConnection.onPushObjectIQ(iq);
+			},
+		});
+		this.addListener({
+			serializer: CallConnection.IQ_ON_PUSH_OBJECT_SERIALIZER,
+			handler: (callConnection: CallConnection, iq: BinaryPacketIQ) => {
+				callConnection.onPushObjectResponseIQ(iq);
+			},
+		});
+		this.addListener({
+			serializer: CallConnection.IQ_PUSH_TWINCODE_SERIALIZER,
+			handler: (callConnection: CallConnection, iq: BinaryPacketIQ) => {
+				callConnection.onPushTwincodeIQ(iq);
+			},
+		});
+		this.addListener({
+			serializer: CallConnection.IQ_ON_PUSH_TWINCODE_SERIALIZER,
+			handler: (callConnection: CallConnection, iq: BinaryPacketIQ) => {
+				callConnection.onPushObjectResponseIQ(iq);
 			},
 		});
 
@@ -376,6 +437,16 @@ export class CallConnection {
 			channel.onopen = (event: Event): any => {
 				const label: string = channel.label;
 
+				// CallService:<version>:<capability>,...,<capability>.
+				const items = label.split(/[:,]/);
+				this.mMessageSupported = false;
+				if (items.length >= 3) {
+					for (let i = items.length; --i >= 1; ) {
+						if (items[i] == CallConnection.CAP_MESSAGE) {
+							this.mMessageSupported = true;
+						}
+					}
+				}
 				console.log("Input data channel " + label + " is opened");
 			};
 			channel.onmessage = (event: MessageEvent<ArrayBuffer>): any => {
@@ -837,7 +908,7 @@ export class CallConnection {
 		}
 	}
 
-	addRemoteTrack(track: MediaStreamTrack, stream: MediaStream): void {
+	private addRemoteTrack(track: MediaStreamTrack, stream: MediaStream): void {
 		try {
 			const participant: CallParticipant | null = this.getMainParticipant();
 			if (participant) {
@@ -960,21 +1031,15 @@ export class CallConnection {
 		const thumbnailData: ArrayBuffer = this.mCall.getIdentityAvatarData();
 		const description: string = "";
 		const memberId: string = this.mCall.getCallRoomMemberId() ?? "";
-		try {
-			const iq: ParticipantInfoIQ = new ParticipantInfoIQ(
-				CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER,
-				1,
-				memberId,
-				name,
-				description,
-				thumbnailData
-			);
-			const packet: ArrayBuffer = iq.serializeCompact();
-			this.mOutDataChannel.send(packet);
-		} catch (exception) {
-			// empty
-			console.error("Could not send ParticipantInfoIQ: ", exception);
-		}
+		const iq: ParticipantInfoIQ = new ParticipantInfoIQ(
+			CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER,
+			1,
+			memberId,
+			name,
+			description,
+			thumbnailData
+		);
+		this.sendMessage(iq);
 	}
 
 	/**
@@ -1002,29 +1067,27 @@ export class CallConnection {
 	}
 
 	public sendTransferDoneIQ(): void {
-		if (this.mOutDataChannel == null) {
-			return;
-		}
-		try {
-			const iq = new BinaryPacketIQ(CallConnection.IQ_TRANSFER_DONE_SERIALIZER, 1);
-			const packet: ArrayBuffer = iq.serializeCompact();
-			this.mOutDataChannel.send(packet);
-		} catch (exception) {
-			console.error("Could not send TransferDoneIQ:", exception);
-		}
+		const iq = new BinaryPacketIQ(CallConnection.IQ_TRANSFER_DONE_SERIALIZER, 1);
+		this.sendMessage(iq);
 	}
 
 	public sendPrepareTransferIQ(): void {
 		console.log("sending PrepareTransferIQ to: ", this.mMainParticipant);
+		const iq = new BinaryPacketIQ(CallConnection.IQ_PREPARE_TRANSFER_SERIALIZER, 1);
+		this.sendMessage(iq);
+	}
+
+	sendMessage(iq: BinaryPacketIQ): boolean {
 		if (this.mOutDataChannel == null) {
-			return;
+			return false;
 		}
 		try {
-			const iq = new BinaryPacketIQ(CallConnection.IQ_PREPARE_TRANSFER_SERIALIZER, 1);
 			const packet: ArrayBuffer = iq.serializeCompact();
 			this.mOutDataChannel.send(packet);
+			return true;
 		} catch (exception) {
-			console.error("Could not send PrepareTransferIQ:", exception);
+			console.error("Could not send iq:", exception);
+			return false;
 		}
 	}
 
@@ -1039,6 +1102,64 @@ export class CallConnection {
 		this.mCallService.onTransferDone(this);
 	}
 
+	/**
+	 * Handle the PushObjectIQ message from the peer.
+	 *
+	 * @param iq {BinaryPacketIQ} iq the push message iq.
+	 */
+	private onPushObjectIQ(iq: BinaryPacketIQ): void {
+		if (!(iq != null && iq instanceof PushObjectIQ)) {
+			return;
+		}
+
+		const pushObjectIQ: PushObjectIQ = iq as PushObjectIQ;
+		pushObjectIQ.descriptor.receivedTimestamp = Date.now();
+		this.mMainParticipant.updateSenderId(pushObjectIQ.descriptor.twincodeOutboundId);
+		this.mCall.onPopDescriptor(this.mMainParticipant, pushObjectIQ.descriptor);
+
+		const onPushObjectIQ: OnPushIQ = new OnPushIQ(
+			CallConnection.IQ_ON_PUSH_OBJECT_SERIALIZER,
+			iq.getRequestId(),
+			CallConnection.DEVICE_STATE,
+			pushObjectIQ.descriptor.receivedTimestamp
+		);
+		this.sendMessage(onPushObjectIQ);
+	}
+
+	/**
+	 * Handle the PushTwincodeIQ message from the peer.
+	 *
+	 * @param iq {BinaryPacketIQ} iq the push message iq.
+	 */
+	private onPushTwincodeIQ(iq: BinaryPacketIQ): void {
+		if (!(iq != null && iq instanceof PushTwincodeIQ)) {
+			return;
+		}
+
+		const pushTwincodeIQ: PushTwincodeIQ = iq as PushTwincodeIQ;
+		pushTwincodeIQ.twincodeDescriptor.receivedTimestamp = Date.now();
+		this.mCall.onPopDescriptor(this.mMainParticipant, pushTwincodeIQ.twincodeDescriptor);
+
+		const onPushObjectIQ: OnPushIQ = new OnPushIQ(
+			CallConnection.IQ_ON_PUSH_TWINCODE_SERIALIZER,
+			iq.getRequestId(),
+			CallConnection.DEVICE_STATE,
+			pushTwincodeIQ.twincodeDescriptor.receivedTimestamp
+		);
+		this.sendMessage(onPushObjectIQ);
+	}
+
+	/**
+	 * Handle the OnPushIQ message from the peer.
+	 *
+	 * @param iq {BinaryPacketIQ} iq the push message iq.
+	 */
+	private onPushObjectResponseIQ(iq: BinaryPacketIQ): void {
+		if (!(iq != null && iq instanceof OnPushIQ)) {
+			return;
+		}
+	}
+
 	public inviteCallRoom(): void {
 		console.log("sending InviteCallRoomMessage");
 		const callRoomId = this.getCall().getCallRoomId();
@@ -1049,15 +1170,7 @@ export class CallConnection {
 
 	public sendParticipantTransferIQ(memberId: string) {
 		console.log("sending ParticipantTransferIQ to: ", this.mMainParticipant);
-		if (this.mOutDataChannel == null) {
-			return;
-		}
-		try {
-			const iq = new ParticipantTransferIQ(CallConnection.IQ_PARTICIPANT_TRANSFER_SERIALIZER, 1, memberId);
-			const packet: ArrayBuffer = iq.serializeCompact();
-			this.mOutDataChannel.send(packet);
-		} catch (exception) {
-			console.error("Could not send ParticipantTransferIQ:", exception);
-		}
+		const iq = new ParticipantTransferIQ(CallConnection.IQ_PARTICIPANT_TRANSFER_SERIALIZER, 1, memberId);
+		this.sendMessage(iq);
 	}
 }

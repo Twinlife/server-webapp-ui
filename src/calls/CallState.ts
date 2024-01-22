@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023 twinlife SA.
+ *  Copyright (c) 2022-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -17,6 +17,8 @@ import { CallParticipantEvent } from "./CallParticipantEvent";
 import { CallParticipantObserver } from "./CallParticipantObserver";
 import { CallService } from "./CallService";
 import { CallStatus, CallStatusOps } from "./CallStatus";
+import { ConversationService } from "./ConversationService";
+import { PushObjectIQ } from "./PushObjectIQ.ts";
 
 /**
  * The call state associated with an Audio or Video call:
@@ -47,6 +49,7 @@ export class CallState {
 	private readonly mPeerCallService: PeerCallService;
 	private readonly mIdentityAvatar: ArrayBuffer;
 	private readonly mIdentityName: string;
+	private readonly mSenderId: UUID;
 	private mPeers: Array<CallConnection> = [];
 	private mLocalRenderer: any = null;
 	private mConnectionStartTime: number = 0;
@@ -56,6 +59,8 @@ export class CallState {
 	private mMaxMemberCount: number = 0;
 	private mState: number = 0;
 	private mParticipantCounter: number = 0;
+	private mRequestCounter: number = 0;
+	private mSequenceCounter: number = 0;
 
 	public readonly transfer: boolean = false;
 	public transferDirection: CallState.TransferDirection | null = null;
@@ -184,6 +189,49 @@ export class CallState {
 	}
 
 	/**
+	 * Send a message to each peer connected with us.
+	 *
+	 * @param message the message to send.
+	 * @param copyAllowed true if the message can be copied.
+	 * @returns the descriptor that was sent.
+	 */
+	public pushMessage(message: string, copyAllowed: boolean): ConversationService.MessageDescriptor {
+		const now: number = Date.now();
+		const sequenceId: number = this.newSequenceId();
+		const descriptor: ConversationService.MessageDescriptor = new ConversationService.MessageDescriptor(
+			this.mSenderId,
+			sequenceId,
+			0,
+			null,
+			null,
+			now,
+			message,
+			copyAllowed
+		);
+
+		// Serialize the message only once for each connection.
+		const pushMessageIQ: PushObjectIQ = new PushObjectIQ(
+			CallConnection.IQ_PUSH_OBJECT_SERIALIZER,
+			this.newRequestId(),
+			descriptor
+		);
+
+		// Send only to the peers that support receiving messages.
+		let sent: boolean = false;
+		for (const connection of this.mPeers) {
+			if (connection.isMessageSupported() && connection.sendMessage(pushMessageIQ)) {
+				sent = true;
+			}
+		}
+		if (sent) {
+			descriptor.sentTimestamp = Date.now();
+		} else {
+			descriptor.sentTimestamp = -1;
+		}
+		return descriptor;
+	}
+
+	/**
 	 * A new participant is added to the call group.
 	 *
 	 * @param {CallParticipant} participant the participant.
@@ -220,6 +268,19 @@ export class CallState {
 		}
 	}
 
+	/**
+	 * A descriptor (message, invitation) was send by the participant.
+	 *
+	 * @param {CallParticipant} participant the participant.
+	 * @param {ConversationService.Descriptor} descriptor the descriptor that was received.
+	 */
+	onPopDescriptor(participant: CallParticipant, descriptor: ConversationService.Descriptor): void {
+		const observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
+		if (observer != null) {
+			observer.onPopDescriptor(participant, descriptor);
+		}
+	}
+
 	allocateParticipantId(): number {
 		return this.mParticipantCounter++;
 	}
@@ -245,6 +306,8 @@ export class CallState {
 		this.mIdentityName = identityName;
 		this.mIdentityAvatar = identityImage;
 		this.transfer = transfer;
+		const bytes = crypto.getRandomValues(new Uint8Array(16));
+		this.mSenderId = new UUID(bytes);
 	}
 
 	/**
@@ -361,6 +424,16 @@ export class CallState {
 
 	hasPendingPrepareTransfer(): boolean {
 		return this.pendingPrepareTransfers.size > 0;
+	}
+
+	private newRequestId(): number {
+		this.mRequestCounter++;
+		return this.mRequestCounter;
+	}
+
+	private newSequenceId(): number {
+		this.mSequenceCounter++;
+		return this.mSequenceCounter;
 	}
 }
 

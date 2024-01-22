@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021-2023 twinlife SA.
+ *  Copyright (c) 2021-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -26,6 +26,7 @@ import { CallParticipantEvent } from "../calls/CallParticipantEvent";
 import { CallParticipantObserver } from "../calls/CallParticipantObserver";
 import { CallService } from "../calls/CallService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
+import { ConversationService } from "../calls/ConversationService";
 import Alert from "../components/Alert";
 import Header from "../components/Header";
 import InitializationPanel from "../components/InitializationPanel";
@@ -219,6 +220,16 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.setState({ participants: participants });
 	}
 
+	/**
+	 * A descriptor (message, invitation) was send by the participant.
+	 *
+	 * @param {CallParticipant} participant the participant.
+	 * @param {ConversationService.Descriptor} descriptor the descriptor that was received.
+	 */
+	onPopDescriptor(participant: CallParticipant, descriptor: ConversationService.Descriptor): void {
+		console.log("Participant descriptor: ", descriptor);
+	}
+
 	setUsedDevices() {
 		const mediaStream = this.callService.getMediaStream();
 		for (const track of mediaStream.getTracks()) {
@@ -251,6 +262,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.setState({ audioMute: !audioMute }, () => {
 			const { audioMute } = this.state;
 			this.callService.actionAudioMute(audioMute);
+			this.callService.pushMessage(audioMute ? "MUTE AUDIO" : "RESTORE AUDIO", true);
 		});
 	};
 

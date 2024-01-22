@@ -65,7 +65,26 @@ export class BinaryCompactDecoder implements Decoder {
 
 	public readLong(): number {
 		// SCz: this is not really correct but should work for small values < 2^31
-		return this.readInt();
+		let value: number = 0;
+		let shift: number = 0;
+		do {
+			let b: number;
+			try {
+				b = this.mInputStream.read();
+			} catch (exception) {
+				throw new SerializerException(exception);
+			}
+			if (b >= 0) {
+				value |= (b & 127) << shift;
+				if ((b & 128) === 0) {
+					return (value >>> 1) ^ -(value & 1);
+				}
+			} else {
+				throw new SerializerException();
+			}
+			shift += 7;
+		} while (shift < 64);
+		throw new SerializerException();
 	}
 
 	public readLongArrayBuffer(): ArrayBuffer {
