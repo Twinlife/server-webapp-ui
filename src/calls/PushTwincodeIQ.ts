@@ -69,7 +69,7 @@ export class PushTwincodeIQ extends BinaryPacketIQ {
 export namespace PushTwincodeIQ {
 	export class PushTwincodeIQSerializer extends BinaryPacketIQ.BinaryPacketIQSerializer {
 		constructor(schemaId: UUID, schemaVersion: number) {
-			super(schemaId, schemaVersion, PushTwincodeIQ);
+			super(schemaId, schemaVersion);
 		}
 		public serialize(encoder: Encoder, object: any): void {
 			super.serialize(encoder, object);

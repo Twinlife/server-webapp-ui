@@ -60,7 +60,7 @@ export class OnPushIQ extends BinaryPacketIQ {
 export namespace OnPushIQ {
 	export class OnPushIQSerializer extends BinaryPacketIQ.BinaryPacketIQSerializer {
 		constructor(schemaId: UUID, schemaVersion: number) {
-			super(schemaId, schemaVersion, OnPushIQ);
+			super(schemaId, schemaVersion);
 		}
 		public serialize(encoder: Encoder, object: any): void {
 			super.serialize(encoder, object);

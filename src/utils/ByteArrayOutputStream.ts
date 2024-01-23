@@ -1,10 +1,11 @@
 /*
- *  Copyright (c) 2019-2020 twinlife SA.
+ *  Copyright (c) 2019-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
  *  Contributors:
  *   Christian Jacquemot (Christian.Jacquemot@twin.life)
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 
 /*
@@ -85,11 +86,7 @@ export class ByteArrayOutputStream {
 	 * Attempts to allocate larger arrays may result in
 	 * OutOfMemoryError: Requested array size exceeds VM limit
 	 */
-	static MAX_ARRAY_SIZE: number;
-	public static MAX_ARRAY_SIZE_$LI$(): number {
-		if (ByteArrayOutputStream.MAX_ARRAY_SIZE == null) ByteArrayOutputStream.MAX_ARRAY_SIZE = 2147483647 - 8;
-		return ByteArrayOutputStream.MAX_ARRAY_SIZE;
-	}
+	static MAX_ARRAY_SIZE: number = 16 * 1024 * 1024; // 16 Mb.
 
 	/**
 	 * Increases the capacity to ensure that it can hold at least the
@@ -102,8 +99,7 @@ export class ByteArrayOutputStream {
 		const oldCapacity: number = this.buf.byteLength;
 		let newCapacity: number = oldCapacity << 1;
 		if (newCapacity - minCapacity < 0) newCapacity = minCapacity;
-		if (newCapacity - ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$() > 0)
-			newCapacity = ByteArrayOutputStream.hugeCapacity(minCapacity);
+		if (newCapacity > ByteArrayOutputStream.MAX_ARRAY_SIZE) newCapacity = ByteArrayOutputStream.MAX_ARRAY_SIZE;
 		this.buf = ByteArrayOutputStream.copyOf(this.buf, newCapacity);
 	}
 
@@ -115,23 +111,6 @@ export class ByteArrayOutputStream {
 			dstBuffer[i] = srcBuffer[i];
 		}
 		return dstBuffer.buffer;
-	}
-
-	private static hugeCapacity(minCapacity: number): number {
-		if (minCapacity < 0)
-			throw Object.defineProperty(new Error(), "__classes", {
-				configurable: true,
-				value: [
-					"java.lang.Throwable",
-					"java.lang.VirtualMachineError",
-					"java.lang.Error",
-					"java.lang.Object",
-					"java.lang.OutOfMemoryError",
-				],
-			});
-		return minCapacity > ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$()
-			? 2147483647
-			: ByteArrayOutputStream.MAX_ARRAY_SIZE_$LI$();
 	}
 
 	public write$int(b: number) {

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2023 twinlife SA.
+ *  Copyright (c) 2022-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -65,7 +65,7 @@ export class ParticipantInfoIQ extends BinaryPacketIQ {
 export namespace ParticipantInfoIQ {
 	export class ParticipantInfoIQSerializer extends BinaryPacketIQ.BinaryPacketIQSerializer {
 		constructor(schemaId: UUID, schemaVersion: number) {
-			super(schemaId, schemaVersion, ParticipantInfoIQ);
+			super(schemaId, schemaVersion);
 		}
 
 		public serialize(encoder: Encoder, object: any): void {
