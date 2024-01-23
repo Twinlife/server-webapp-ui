@@ -70,7 +70,7 @@ export namespace PushObjectIQ {
 		static MESSAGE_SCHEMA_ID: UUID = UUID.fromString("c1ba9e82-43a7-413a-ab9f-b743859e7595");
 
 		constructor(schemaId: UUID, schemaVersion: number) {
-			super(schemaId, schemaVersion, PushObjectIQ);
+			super(schemaId, schemaVersion);
 		}
 
 		public serialize(encoder: Encoder, object: any): void {

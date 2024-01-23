@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2020-2023 twinlife SA.
+ *  Copyright (c) 2020-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -27,7 +27,7 @@ export class BinaryPacketIQ {
 		schemaId: UUID,
 		schemaVersion: number
 	): BinaryPacketIQ.BinaryPacketIQSerializer {
-		return new BinaryPacketIQ.BinaryPacketIQSerializer(schemaId, schemaVersion, BinaryPacketIQ);
+		return new BinaryPacketIQ.BinaryPacketIQSerializer(schemaId, schemaVersion);
 	}
 
 	mRequestId: number;
@@ -60,8 +60,8 @@ export class BinaryPacketIQ {
 
 export namespace BinaryPacketIQ {
 	export class BinaryPacketIQSerializer extends Serializer {
-		public constructor(schemaId: UUID, schemaVersion: number, clazz: any) {
-			super(schemaId, schemaVersion, clazz);
+		public constructor(schemaId: UUID, schemaVersion: number) {
+			super(schemaId, schemaVersion);
 		}
 
 		public serialize(encoder: Encoder, serviceRequestIQ: BinaryPacketIQ): void {

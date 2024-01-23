@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2023 twinlife SA.
+ *  Copyright (c) 2015-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -16,19 +16,12 @@ export abstract class Serializer {
 
 	public schemaVersion: number = 0;
 
-	public clazz: any = null;
-
-	public constructor(schemaId: UUID, schemaVersion: number, clazz: any) {
+	public constructor(schemaId: UUID, schemaVersion: number) {
 		this.schemaId = schemaId;
 		this.schemaVersion = schemaVersion;
-		this.clazz = clazz;
 	}
 
 	public abstract serialize(encoder: Encoder, object: any): void;
 
 	public abstract deserialize(decoder: Decoder): any;
-
-	public isSupported(majorVersion: number, minorVersion: number): boolean {
-		return true;
-	}
 }
