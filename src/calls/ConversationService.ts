@@ -11,7 +11,7 @@
 import { UUID } from "../utils/UUID";
 
 export namespace ConversationService {
-	export let VERSION: string = "2.16.1";
+	export const VERSION: string = "2.16.1";
 	export enum Permission {
 		INVITE_MEMBER,
 		UPDATE_MEMBER,
@@ -46,7 +46,7 @@ export namespace ConversationService {
 			if (!(object != null && object instanceof <any>ConversationService.DescriptorId)) {
 				return false;
 			}
-			let descriptorId: ConversationService.DescriptorId = <ConversationService.DescriptorId>object;
+			const descriptorId: ConversationService.DescriptorId = <ConversationService.DescriptorId>object;
 			return (
 				descriptorId.twincodeOutboundId.compareTo(this.twincodeOutboundId) == 0 &&
 				descriptorId.sequenceId === this.sequenceId

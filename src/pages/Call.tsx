@@ -48,6 +48,18 @@ type ScheduleLabels = {
 	endTime: string;
 };
 
+export type Item = {
+	participant: CallParticipant | null;
+	descriptor: ConversationService.Descriptor;
+	displayName: boolean;
+	corners: {
+		tl?: string;
+		tr?: string;
+		bl?: string;
+		br?: string;
+	};
+};
+
 interface CallProps {
 	id: string;
 	t: TFunction<"translation", undefined, "translation">;
@@ -70,6 +82,9 @@ interface CallState {
 	facingMode: FacingMode;
 	usedAudioDevice: string;
 	usedVideoDevice: string;
+	chatPanelOpened: boolean;
+	items: Item[];
+	messageNotificationDisplayed: boolean;
 	alertOpen: boolean;
 	alertTitle: string;
 	alertContent: ReactNode;
@@ -111,6 +126,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		facingMode: "user",
 		usedAudioDevice: "",
 		usedVideoDevice: "",
+		chatPanelOpened: false,
+		items: [],
+		messageNotificationDisplayed: false,
 		alertOpen: false,
 		alertTitle: "",
 		alertContent: <></>,
@@ -175,6 +193,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			alertOpen: false,
 			alertTitle: "",
 			alertContent: <></>,
+			chatPanelOpened: false,
+			items: [],
 		});
 
 		this.callService = null as any;
@@ -227,8 +247,52 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param {ConversationService.Descriptor} descriptor the descriptor that was received.
 	 */
 	onPopDescriptor(participant: CallParticipant, descriptor: ConversationService.Descriptor): void {
-		console.log("Participant descriptor: ", descriptor);
+		console.log("onPopDescriptor", participant, descriptor);
+
+		const { items } = this.state;
+		const newItem: Item = {
+			participant,
+			descriptor,
+			displayName: false,
+			corners: {},
+		};
+
+		const previousItem: Item = items[items.length - 1];
+		if (
+			items.length === 0 ||
+			previousItem.participant === null ||
+			previousItem.participant?.getParticipantId() !== participant.getParticipantId()
+		) {
+			newItem.displayName = true;
+		}
+		items.push(newItem);
+
+		this.updateItems(items);
 	}
+
+	updateItems = (items: Item[]) => {
+		const previousItem: Item = items[items.length - 2];
+		const item = items[items.length - 1];
+
+		if (item.participant) {
+			// Peer item
+			if (previousItem && !item.displayName) {
+				// Consecutive message from same participant
+				item.corners.tl = "rounded-tl";
+				previousItem.corners.bl = "rounded-bl";
+			}
+		} else {
+			// Local item
+			if (previousItem && !previousItem.participant) {
+				// Consecutive message from local user
+				item.corners.tr = "rounded-tr";
+				previousItem.corners.br = "rounded-br";
+			}
+		}
+
+		const { chatPanelOpened } = this.state;
+		this.setState({ items, messageNotificationDisplayed: !chatPanelOpened });
+	};
 
 	setUsedDevices() {
 		const mediaStream = this.callService.getMediaStream();
@@ -571,6 +635,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			videoDevices,
 			usedAudioDevice,
 			usedVideoDevice,
+			chatPanelOpened,
+			items,
+			messageNotificationDisplayed,
 			alertOpen,
 			alertTitle,
 			alertContent,
@@ -582,7 +649,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		return (
 			<div className=" flex h-full w-screen flex-col bg-black p-4">
-				<Header />
+				<Header
+					messageNotificationDisplayed={messageNotificationDisplayed}
+					openChatButtonDisplayed={!initializing && CallStatusOps.isActive(status)}
+					openChatPanel={() =>
+						this.setState({ chatPanelOpened: !chatPanelOpened, messageNotificationDisplayed: false })
+					}
+				/>
 
 				{initializing && (
 					<InitializationPanel
@@ -596,6 +669,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 				{!initializing && !CallStatusOps.isTerminated(status) && (
 					<ParticipantsGrid
+						chatPanelOpened={chatPanelOpened}
+						closeChatPanel={() => this.setState({ chatPanelOpened: false })}
 						localVideoRef={this.localVideoRef}
 						localMediaStream={this.callService.getMediaStream()}
 						videoMute={videoMute}
@@ -609,6 +684,22 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 							window.localStorage.setItem("guestName", guestName);
 						}}
 						muteVideoClick={this.muteVideoClick}
+						pushMessage={(message, copyAllowed) => {
+							const descriptor = this.callService.pushMessage(message, copyAllowed);
+							if (descriptor) {
+								this.updateItems([
+									...this.state.items,
+									{
+										participant: null,
+										descriptor,
+										displayName: false,
+										corners: {},
+									},
+								]);
+							}
+							return descriptor;
+						}}
+						items={items}
 					/>
 				)}
 
