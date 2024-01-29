@@ -1,10 +1,15 @@
 import { RefObject, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { CallParticipant } from "../calls/CallParticipant";
+import { CallService } from "../calls/CallService";
+import { Item } from "../pages/Call";
 import { TwincodeInfo } from "../services/ContactService";
 import ParticipantGridCell from "./ParticipantGridCell";
+import ChatBox from "./chatbox/ChatBox";
 
 const ParticipantsGrid: React.FC<{
+	chatPanelOpened: boolean;
+	closeChatPanel: () => void;
 	localVideoRef: RefObject<HTMLVideoElement>;
 	localMediaStream: MediaStream;
 	videoMute: boolean;
@@ -13,9 +18,13 @@ const ParticipantsGrid: React.FC<{
 	isIddle: boolean;
 	guestName: string;
 	guestNameError: boolean;
+	items: Item[];
 	setGuestName: (value: string) => void;
 	muteVideoClick: (ev: React.MouseEvent<HTMLDivElement>) => void;
+	pushMessage: typeof CallService.prototype.pushMessage;
 }> = ({
+	chatPanelOpened,
+	closeChatPanel,
 	localVideoRef,
 	localMediaStream,
 	videoMute,
@@ -24,8 +33,10 @@ const ParticipantsGrid: React.FC<{
 	isIddle,
 	guestName,
 	guestNameError,
+	items,
 	setGuestName,
 	muteVideoClick,
+	pushMessage,
 }) => {
 	const { t } = useTranslation();
 
@@ -39,7 +50,13 @@ const ParticipantsGrid: React.FC<{
 
 	return (
 		// getGridClass(participants.length + 1) because current web user is not part of participants
-		<div className={["grid flex-1 gap-4 overflow-hidden py-4", getGridClass(participants.length + 1)].join(" ")}>
+		<div
+			className={[
+				"relative grid flex-1 gap-4 overflow-hidden py-4 transition-all",
+				chatPanelOpened ? "pb-[300px] md:pb-4 md:pr-[316px]" : "pb-4 pr-0",
+				getGridClass(participants.length + 1),
+			].join(" ")}
+		>
 			{/* Display InCall participants */}
 			{participants.map((participant) => (
 				<ParticipantGridCell
@@ -153,6 +170,13 @@ const ParticipantsGrid: React.FC<{
 					{!isIddle && <div className="rounded-lg bg-black/70 px-2 py-1">{guestName}</div>}
 				</div>
 			</div>
+
+			<ChatBox
+				chatPanelOpened={chatPanelOpened}
+				closeChatPanel={closeChatPanel}
+				pushMessage={pushMessage}
+				items={items}
+			/>
 		</div>
 	);
 };
