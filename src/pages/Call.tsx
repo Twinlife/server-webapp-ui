@@ -326,7 +326,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.setState({ audioMute: !audioMute }, () => {
 			const { audioMute } = this.state;
 			this.callService.actionAudioMute(audioMute);
-			this.callService.pushMessage(audioMute ? "MUTE AUDIO" : "RESTORE AUDIO", true);
 		});
 	};
 
