@@ -84,6 +84,7 @@ interface CallState {
 	usedVideoDevice: string;
 	chatPanelOpened: boolean;
 	items: Item[];
+	atLeastOneParticipantSupportsMessages: boolean;
 	messageNotificationDisplayed: boolean;
 	alertOpen: boolean;
 	alertTitle: string;
@@ -128,6 +129,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		usedVideoDevice: "",
 		chatPanelOpened: false,
 		items: [],
+		atLeastOneParticipantSupportsMessages: false,
 		messageNotificationDisplayed: false,
 		alertOpen: false,
 		alertTitle: "",
@@ -225,6 +227,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		console.log("Remove participants ");
 		const list: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: list });
+		this.checkIsMessageSupported();
 	}
 
 	/**
@@ -238,7 +241,20 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: participants });
+		if (event === CallParticipantEvent.EVENT_SUPPORTS_MESSAGES) {
+			this.checkIsMessageSupported();
+		}
 	}
+
+	checkIsMessageSupported = () => {
+		console.log("Check if participants support messages");
+		const atLeastOneParticipantSupportsMessages = this.callService.getParticipants().some((participant) => {
+			console.log("isMessageSupported", participant.getCallConnection()?.isMessageSupported());
+			return participant.getCallConnection()?.isMessageSupported();
+		});
+		console.log("At least one participant supports messages: ", atLeastOneParticipantSupportsMessages);
+		this.setState({ atLeastOneParticipantSupportsMessages });
+	};
 
 	/**
 	 * A descriptor (message, invitation) was send by the participant.
@@ -628,6 +644,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			videoMute,
 			audioMute,
 			status,
+			participants,
 			terminateReason,
 			displayThanks,
 			audioDevices,
@@ -636,6 +653,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			usedVideoDevice,
 			chatPanelOpened,
 			items,
+			atLeastOneParticipantSupportsMessages,
 			messageNotificationDisplayed,
 			alertOpen,
 			alertTitle,
@@ -650,7 +668,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			<div className=" flex h-full w-screen flex-col bg-black p-4">
 				<Header
 					messageNotificationDisplayed={messageNotificationDisplayed}
-					openChatButtonDisplayed={!initializing && CallStatusOps.isActive(status)}
+					openChatButtonDisplayed={
+						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
+					}
 					openChatPanel={() =>
 						this.setState({ chatPanelOpened: !chatPanelOpened, messageNotificationDisplayed: false })
 					}
@@ -674,7 +694,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						localMediaStream={this.callService.getMediaStream()}
 						videoMute={videoMute}
 						twincode={twincode}
-						participants={this.state.participants}
+						participants={participants}
 						isIddle={CallStatusOps.isIddle(status)}
 						guestName={guestName}
 						guestNameError={guestNameError}

@@ -15,6 +15,7 @@
  * @property {CallParticipantEvent} EVENT_VIDEO_ON
  * @property {CallParticipantEvent} EVENT_VIDEO_OFF
  * @property {CallParticipantEvent} EVENT_RINGING
+ * @property {CallParticipantEvent} EVENT_SUPPORTS_MESSAGES
  * @class
  */
 export enum CallParticipantEvent {
@@ -24,4 +25,5 @@ export enum CallParticipantEvent {
 	EVENT_VIDEO_ON,
 	EVENT_VIDEO_OFF,
 	EVENT_RINGING,
+	EVENT_SUPPORTS_MESSAGES,
 }
