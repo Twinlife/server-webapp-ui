@@ -448,6 +448,10 @@ export class CallConnection {
 					}
 				}
 				console.log("Input data channel " + label + " is opened");
+				const participant: CallParticipant | null = this.getMainParticipant();
+				if (participant) {
+					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_SUPPORTS_MESSAGES);
+				}
 			};
 			channel.onmessage = (event: MessageEvent<ArrayBuffer>): any => {
 				console.log("Received a data channel message");
