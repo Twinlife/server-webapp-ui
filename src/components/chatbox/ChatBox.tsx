@@ -1,12 +1,13 @@
-import { ArrowDownIcon, ArrowLeftIcon, ArrowRightIcon, ArrowUpIcon } from "@heroicons/react/20/solid";
 import { useEffect, useRef, useState } from "react";
+import { Trans, useTranslation } from "react-i18next";
 import closeImage from "../../assets/close.png";
+import collapseIcon from "../../assets/collapse.svg";
+import expandIcon from "../../assets/expand.svg";
 import sendImage from "../../assets/send.png";
 import { CallService } from "../../calls/CallService";
 import { ConversationService } from "../../calls/ConversationService";
 import { Item } from "../../pages/Call";
 import ChatBoxInput from "./ChatBoxInput";
-import Invitation from "./Invitation";
 import InvitationDialog from "./InvitationDialog";
 
 interface ChatBoxInterface {
@@ -17,12 +18,20 @@ interface ChatBoxInterface {
 }
 
 export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMessage }: ChatBoxInterface) {
+	const { t } = useTranslation();
 	const [chatPanelFull, setChatPanelFull] = useState(false);
 	const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
+	const [invitationItem, setInvitationItem] = useState<Item | null>(null);
 	const [message, setMessage] = useState("");
 
-	const openInvitation = () => {
+	const openInvitation = (item: Item) => {
+		setInvitationItem(item);
 		setInvitationDialogOpen(true);
+	};
+
+	const closeInvitation = () => {
+		setInvitationItem(null);
+		setInvitationDialogOpen(false);
 	};
 
 	const scrollBoxRef = useRef<HTMLDivElement>(null);
@@ -59,16 +68,7 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 			>
 				<div className="flex w-full items-center justify-between px-4">
 					<button onClick={() => setChatPanelFull(!chatPanelFull)}>
-						<ArrowUpIcon className={["h-5 w-5 md:hidden", chatPanelFull ? "hidden" : "block"].join(" ")} />
-						<ArrowDownIcon
-							className={["h-5 w-5 md:hidden", chatPanelFull ? "block" : "hidden"].join(" ")}
-						/>
-						<ArrowLeftIcon
-							className={["hidden h-5 w-5", chatPanelFull ? "md:hidden" : "md:block"].join(" ")}
-						/>
-						<ArrowRightIcon
-							className={["hidden h-5 w-5", chatPanelFull ? "md:block" : "md:hidden"].join(" ")}
-						/>
+						<img src={chatPanelFull ? collapseIcon : expandIcon} alt="" />
 					</button>
 					<button onClick={closeChatPanel}>
 						<img className="w-6" src={closeImage} alt="" />
@@ -76,11 +76,6 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 				</div>
 				<div className="w-full flex-1 overflow-auto" ref={scrollBoxRef}>
 					<div className="flex min-h-full w-full flex-col items-center justify-end overflow-auto p-4 text-sm">
-						{/* <div className="mt-2 place-self-start">
-							<div className="mb-1 text-xs font-light">Pierre</div>
-							<Invitation openInvitation={openInvitation} />
-						</div> */}
-
 						{items.map((item, index) => {
 							if (item.descriptor.type === ConversationService.Descriptor.Type.OBJECT_DESCRIPTOR) {
 								const messageDescriptor = item.descriptor as ConversationService.MessageDescriptor;
@@ -109,12 +104,55 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 												item.corners.br,
 											].join(" ")}
 										>
-											{/* {messageDescriptor.message} */}
-											{messageDescriptor.message.indexOf(":invitation:") !== -1 ? (
-												<Invitation openInvitation={openInvitation} />
-											) : (
-												messageDescriptor.message
-											)}
+											{messageDescriptor.message}
+										</div>
+									</div>
+								);
+							}
+							if (item.descriptor.type === ConversationService.Descriptor.Type.TWINCODE_DESCRIPTOR) {
+								const twincodeDescriptor = item.descriptor as ConversationService.TwincodeDescriptor;
+								return (
+									<div
+										key={index}
+										className={[
+											"w-[80%] max-w-lg",
+											item.participant ? "place-self-start" : "place-self-end",
+										].join(" ")}
+									>
+										{item.displayName && item.participant && (
+											<div className="mb-1 mt-3 text-xs font-light">
+												{item.participant.getName()}
+											</div>
+										)}
+										<div
+											className={[
+												"mt-1 flex items-center justify-start gap-x-2 overflow-hidden whitespace-pre-line break-words rounded-3xl px-3 py-3 hover:cursor-pointer",
+												item.participant
+													? "place-self-start bg-white text-black"
+													: "place-self-end bg-blue text-white",
+												item.corners.tl,
+												item.corners.bl,
+												item.corners.tr,
+												item.corners.br,
+											].join(" ")}
+											onClick={() => openInvitation(item)}
+										>
+											<div className=" w-20">
+												<img
+													className=" rounded-full"
+													src={item.participant?.getAvatarUrl() ?? ""}
+													alt=""
+												/>
+											</div>
+											<div>
+												<Trans
+													i18nKey={"accept_invitation_activity_message"}
+													values={{
+														contactName: item.participant?.getName() ?? "",
+													}}
+													t={t}
+												/>
+											</div>
 										</div>
 									</div>
 								);
@@ -141,7 +179,11 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 					</button>
 				</form>
 			</div>
-			<InvitationDialog open={invitationDialogOpen} handleClose={() => setInvitationDialogOpen(false)} />
+			<InvitationDialog
+				open={invitationDialogOpen}
+				handleClose={closeInvitation}
+				invitationItem={invitationItem}
+			/>
 		</div>
 	);
 }

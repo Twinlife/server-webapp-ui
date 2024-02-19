@@ -99,7 +99,7 @@ export class CallConnection {
 	);
 
 	private static readonly PUSH_TWINCODE_SCHEMA_ID = UUID.fromString("72863c61-c0a9-437b-8b88-3b78354e54b8");
-	private static readonly IQ_PUSH_TWINCODE_SERIALIZER = PushObjectIQ.createSerializer(
+	private static readonly IQ_PUSH_TWINCODE_SERIALIZER = PushTwincodeIQ.createSerializer(
 		CallConnection.PUSH_TWINCODE_SCHEMA_ID,
 		2
 	);
