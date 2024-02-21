@@ -1,3 +1,5 @@
+import chatIcon from "../assets/chat.svg";
+
 interface HeaderProps {
 	messageNotificationDisplayed: boolean;
 	openChatButtonDisplayed: boolean;
@@ -11,18 +13,15 @@ export default function Header({ messageNotificationDisplayed, openChatButtonDis
 				<div className="ml-2 font-light text-grey">{import.meta.env.VITE_APP_NAME}</div>
 			</a>
 			{openChatButtonDisplayed && openChatPanel && (
-				<div className="flex items-center">
+				<button onClick={openChatPanel} className="relative">
 					{messageNotificationDisplayed && (
-						<span className="relative mr-2 flex h-2 w-2">
+						<span className="absolute -right-1 -top-1 flex h-2 w-2">
 							<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red opacity-75"></span>
 							<span className="relative inline-flex h-2 w-2 rounded-full bg-red"></span>
 						</span>
 					)}
-
-					<button onClick={openChatPanel} className="-mt-1">
-						messages
-					</button>
-				</div>
+					<img src={chatIcon} alt="" />
+				</button>
 			)}
 		</div>
 	);

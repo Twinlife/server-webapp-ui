@@ -1,4 +1,5 @@
 import { FC, useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 interface ChatBoxInputProps {
 	value: string;
@@ -8,6 +9,7 @@ interface ChatBoxInputProps {
 
 const ChatBoxInput: FC<ChatBoxInputProps> = ({ value, onChange, onSubmit }) => {
 	const textAreaRef = useRef<HTMLTextAreaElement>(null);
+	const { t } = useTranslation();
 
 	useEffect(() => {
 		if (textAreaRef.current) {
@@ -27,6 +29,7 @@ const ChatBoxInput: FC<ChatBoxInputProps> = ({ value, onChange, onSubmit }) => {
 			ref={textAreaRef}
 			className="flex-1 resize-none rounded-2xl bg-white px-4  py-1 text-black focus:outline-none"
 			value={value}
+			placeholder={t<string>("conversation_activity_message")}
 			onChange={onChange}
 			onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 				if (e.keyCode == 13 && !e.shiftKey) {

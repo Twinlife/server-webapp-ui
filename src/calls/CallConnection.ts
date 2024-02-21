@@ -99,7 +99,7 @@ export class CallConnection {
 	);
 
 	private static readonly PUSH_TWINCODE_SCHEMA_ID = UUID.fromString("72863c61-c0a9-437b-8b88-3b78354e54b8");
-	private static readonly IQ_PUSH_TWINCODE_SERIALIZER = PushObjectIQ.createSerializer(
+	private static readonly IQ_PUSH_TWINCODE_SERIALIZER = PushTwincodeIQ.createSerializer(
 		CallConnection.PUSH_TWINCODE_SCHEMA_ID,
 		2
 	);
@@ -448,6 +448,10 @@ export class CallConnection {
 					}
 				}
 				console.log("Input data channel " + label + " is opened");
+				const participant: CallParticipant | null = this.getMainParticipant();
+				if (participant) {
+					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_SUPPORTS_MESSAGES);
+				}
 			};
 			channel.onmessage = (event: MessageEvent<ArrayBuffer>): any => {
 				console.log("Received a data channel message");
