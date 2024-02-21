@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Trans, useTranslation } from "react-i18next";
 import closeImage from "../../assets/close.png";
 import collapseIcon from "../../assets/collapse.svg";
 import expandIcon from "../../assets/expand.svg";
@@ -9,6 +8,7 @@ import { ConversationService } from "../../calls/ConversationService";
 import { Item } from "../../pages/Call";
 import ChatBoxInput from "./ChatBoxInput";
 import InvitationDialog from "./InvitationDialog";
+import InvitationItem, { InvitationUI } from "./InvitationItem";
 
 interface ChatBoxInterface {
 	chatPanelOpened: boolean;
@@ -18,19 +18,18 @@ interface ChatBoxInterface {
 }
 
 export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMessage }: ChatBoxInterface) {
-	const { t } = useTranslation();
 	const [chatPanelFull, setChatPanelFull] = useState(false);
 	const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
-	const [invitationItem, setInvitationItem] = useState<Item | null>(null);
+	const [invitationUI, setInvitationUI] = useState<InvitationUI | null>(null);
 	const [message, setMessage] = useState("");
 
-	const openInvitation = (item: Item) => {
-		setInvitationItem(item);
+	const openInvitation = (invitationUI: InvitationUI) => {
+		setInvitationUI(invitationUI);
 		setInvitationDialogOpen(true);
 	};
 
 	const closeInvitation = () => {
-		setInvitationItem(null);
+		setInvitationUI(null);
 		setInvitationDialogOpen(false);
 	};
 
@@ -112,49 +111,12 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 							if (item.descriptor.type === ConversationService.Descriptor.Type.TWINCODE_DESCRIPTOR) {
 								const twincodeDescriptor = item.descriptor as ConversationService.TwincodeDescriptor;
 								return (
-									<div
+									<InvitationItem
 										key={index}
-										className={[
-											"w-[80%] max-w-lg",
-											item.participant ? "place-self-start" : "place-self-end",
-										].join(" ")}
-									>
-										{item.displayName && item.participant && (
-											<div className="mb-1 mt-3 text-xs font-light">
-												{item.participant.getName()}
-											</div>
-										)}
-										<div
-											className={[
-												"mt-1 flex items-center justify-start gap-x-2 overflow-hidden whitespace-pre-line break-words rounded-3xl px-3 py-3 hover:cursor-pointer",
-												item.participant
-													? "place-self-start bg-white text-black"
-													: "place-self-end bg-blue text-white",
-												item.corners.tl,
-												item.corners.bl,
-												item.corners.tr,
-												item.corners.br,
-											].join(" ")}
-											onClick={() => openInvitation(item)}
-										>
-											<div className=" w-20">
-												<img
-													className=" rounded-full"
-													src={item.participant?.getAvatarUrl() ?? ""}
-													alt=""
-												/>
-											</div>
-											<div>
-												<Trans
-													i18nKey={"accept_invitation_activity_message"}
-													values={{
-														contactName: item.participant?.getName() ?? "",
-													}}
-													t={t}
-												/>
-											</div>
-										</div>
-									</div>
+										item={item}
+										twincodeDescriptor={twincodeDescriptor}
+										openInvitation={openInvitation}
+									/>
 								);
 							}
 							return null;
@@ -179,11 +141,7 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 					</button>
 				</form>
 			</div>
-			<InvitationDialog
-				open={invitationDialogOpen}
-				handleClose={closeInvitation}
-				invitationItem={invitationItem}
-			/>
+			<InvitationDialog open={invitationDialogOpen} handleClose={closeInvitation} invitationUI={invitationUI} />
 		</div>
 	);
 }
