@@ -39,6 +39,9 @@
 		"audio_call_activity_terminate_schedule_single_day": "Call scheduled on <strong>{{startDate}}</strong> from <strong>{{startTime}}</strong> to <strong>{{endTime}}</strong>",
 		"audio_call_activity_terminate_schedule_multiple_days": "Call scheduled from <strong>{{startDate}}</strong> at <strong>{{startTime}}</strong> to <strong>{{endDate}}</strong> at <strong>{{endTime}}</strong>",
 		"accept_invitation_activity_message": "{{contactName}} wants to connect with you",
-		"fullscreen_qrcode_activity_save_message": "Import or scan this invitation QR-Code with twinme to add this contact."
+		"fullscreen_qrcode_activity_save_message": "Import or scan this invitation QR-Code with twinme to add this contact.",
+		"conversation_activity_message": "Type a message",
+		"application_accept": "Accept",
+		"application_cancel": "Cancel"
 	}
 }
