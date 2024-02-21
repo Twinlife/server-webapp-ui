@@ -2,26 +2,24 @@ import QRCode from "qrcode";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import closeImage from "../../assets/close.png";
-import { ConversationService } from "../../calls/ConversationService";
-import { Item } from "../../pages/Call";
+import { InvitationUI } from "./InvitationItem";
 
 const VITE_INVITE_URL = import.meta.env.VITE_INVITE_URL;
 
 interface InvitationDialogProps {
 	open: boolean;
-	invitationItem: Item | null;
+	invitationUI: InvitationUI | null;
 	handleClose: () => void;
 }
 
-const InvitationDialog: React.FC<InvitationDialogProps> = ({ open, invitationItem, handleClose }) => {
+const InvitationDialog: React.FC<InvitationDialogProps> = ({ open, invitationUI, handleClose }) => {
 	const { t } = useTranslation();
 	const [urlString, setUrlString] = useState("");
 	const [qrcodeImgSrc, setQrcodeImgSrc] = useState("");
 
 	useEffect(() => {
-		if (invitationItem) {
-			const descriptor = invitationItem.descriptor as ConversationService.TwincodeDescriptor;
-			const inviteURL = VITE_INVITE_URL + descriptor.twincodeId.toString();
+		if (invitationUI) {
+			const inviteURL = VITE_INVITE_URL + invitationUI.twincode;
 			setUrlString(inviteURL);
 			QRCode.toDataURL(inviteURL)
 				.then((url) => {
@@ -34,7 +32,7 @@ const InvitationDialog: React.FC<InvitationDialogProps> = ({ open, invitationIte
 			setUrlString("");
 			setQrcodeImgSrc("");
 		}
-	}, [invitationItem]);
+	}, [invitationUI]);
 
 	if (!open) return null;
 
@@ -54,16 +52,16 @@ const InvitationDialog: React.FC<InvitationDialogProps> = ({ open, invitationIte
 
 					<div className="flex flex-1 flex-col items-center px-4">
 						<img
-							src={invitationItem?.participant?.getAvatarUrl() ?? ""}
+							src={`${import.meta.env.VITE_REST_URL}/images/${invitationUI?.avatarId}`}
 							className=" h-20 w-20 rounded-full object-cover md:mt-10 md:h-28 md:w-28"
 							alt=""
 						/>
-						<p className=" mt-2 text-center">{invitationItem?.participant?.getName()}</p>
+						<p className=" mt-2 text-center">{invitationUI?.name}</p>
 						<p className=" mt-2 text-center font-light md:mt-6">
 							<Trans
 								i18nKey={"accept_invitation_activity_message"}
 								values={{
-									contactName: invitationItem?.participant?.getName(),
+									contactName: invitationUI?.name,
 								}}
 								t={t}
 							/>
