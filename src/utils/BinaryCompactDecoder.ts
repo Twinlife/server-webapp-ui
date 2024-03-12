@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2023 twinlife SA.
+ *  Copyright (c) 2015-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -13,10 +13,6 @@ import { SerializerException } from "./SerializerException";
 import { UUID } from "./UUID";
 
 export class BinaryCompactDecoder implements Decoder {
-	static LOG_TAG: string = "BinaryDecoder";
-
-	static DEBUG: boolean = false;
-
 	mInputStream: ByteArrayInputStream;
 
 	private mBuffer: ArrayBuffer = new ArrayBuffer(8);

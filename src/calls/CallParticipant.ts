@@ -12,6 +12,8 @@
 import { UUID } from "../utils/UUID";
 import { CallConnection } from "./CallConnection";
 
+const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
+
 /**
  * A participant in an Audio or Video call.
  *
@@ -29,10 +31,6 @@ import { CallConnection } from "./CallConnection";
  * @class
  */
 export class CallParticipant {
-	static readonly LOG_TAG: string = "CallParticipant";
-
-	static readonly DEBUG: boolean = false;
-
 	private readonly mParticipantId: number;
 	private readonly mConnection: CallConnection;
 	private mAvatarUrl: string | null = null;
@@ -173,7 +171,9 @@ export class CallParticipant {
 	public setRemoteRenderer(remoteRenderer: HTMLVideoElement) {
 		this.mRemoteRenderer = remoteRenderer;
 		this.mRemoteRenderer.srcObject = this.mediaStream;
-		console.log("Set remote renderer for participant");
+		if (DEBUG) {
+			console.log(this.mSenderId, ": set remote renderer for participant");
+		}
 	}
 
 	public addTrack(track: MediaStreamTrack) {

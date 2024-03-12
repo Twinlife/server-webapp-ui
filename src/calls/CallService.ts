@@ -32,6 +32,7 @@ import { ConversationService } from "./ConversationService";
 import TransferDirection = CallState.TransferDirection;
 
 // type Timer = ReturnType<typeof setTimeout>;
+const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 /**
  * Audio or video call service.
@@ -55,9 +56,6 @@ import TransferDirection = CallState.TransferDirection;
  * (see FINISH_TIMEOUT)
  */
 export class CallService implements PeerCallServiceObserver {
-	static readonly LOG_TAG: string = "CallService";
-
-	static readonly DEBUG: boolean = false;
 	static readonly CALL_TIMEOUT: number = 30 * 1000;
 	static readonly FINISH_TIMEOUT: number = 5 * 1000;
 
@@ -108,6 +106,7 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
+		console.info("Calling", twincodeId);
 		const call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage, transfer);
 		const callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
 		this.mActiveCall = call;
@@ -180,6 +179,8 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
+		console.info("User terminate call", terminateReason);
+
 		const connections: Array<CallConnection> = call.getConnections();
 		for (const callConnection of connections) {
 			if (callConnection.getStatus() !== CallStatus.TERMINATED) {
@@ -195,6 +196,7 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
+		console.info("User audio mute", audioMute);
 		this.mAudioMute = audioMute;
 		const connections: Array<CallConnection> = call.getConnections();
 		for (const callConnection of connections) {
@@ -208,11 +210,14 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
+		console.info("User camera mute", cameraMute);
 		this.mIsCameraMute = cameraMute;
 		const connections: Array<CallConnection> = call.getConnections();
 		for (const connection of connections) {
 			if (!this.mIsCameraMute) {
-				console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
+				if (DEBUG) {
+					console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
+				}
 				const track = this.mLocalStream.getVideoTracks()[0];
 				if (track) {
 					connection.addVideoTrack(track);
@@ -318,7 +323,7 @@ export class CallService implements PeerCallServiceObserver {
 	 * IQs received from the proxy server.
 	 */
 	onIncomingSessionInitiate(sessionId: string, peerId: string, sdp: string, offer: Offer): void {
-		console.log("session-initiate received " + sessionId);
+		console.info(sessionId, ": incoming session-initiate");
 
 		const call: CallState | null = this.mActiveCall;
 		let pos: number = peerId.indexOf("@");
@@ -363,18 +368,22 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onSessionInitiate(to: string, sessionId: string): void {
-		console.log("session-initiate created " + sessionId);
+		if (DEBUG) {
+			console.log(sessionId, ": received session-initiate creation response");
+		}
 
 		const callConnection: CallConnection | undefined = this.mPeerTo.get(to);
 		if (callConnection) {
 			callConnection.onSessionInitiate(sessionId);
 			this.mPeers.set(sessionId, callConnection);
-			console.log("Peer added, mPeers items: " + this.mPeers.size);
+			if (DEBUG) {
+				console.log(sessionId, ": peer added, mPeers items: ", this.mPeers.size);
+			}
 		}
 	}
 
 	onSessionAccept(sessionId: string, sdp: string, offer: Offer, offerToReceive: Offer): void {
-		console.log("P2P " + sessionId + " is accepted for:", offer);
+		console.info(sessionId, ": is accepted with:", offer);
 
 		const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
 		if (!callConnection?.onSessionAccept(sdp, offer, offerToReceive)) {
@@ -406,7 +415,7 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onSessionUpdate(sessionId: string, updateType: string, sdp: string): void {
-		console.log("P2P " + sessionId + "update " + updateType);
+		console.info(sessionId, ": update", updateType);
 
 		const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
 		if (!callConnection?.onSessionUpdate(updateType, sdp)) {
@@ -425,7 +434,7 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onSessionTerminate(sessionId: string | null, reason: TerminateReason): void {
-		console.log("session " + sessionId + " terminated with " + reason);
+		console.info(sessionId, ": terminated by peer with ", reason);
 
 		if (sessionId) {
 			const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
@@ -439,6 +448,8 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onJoinCallRoom(callRoomId: string, memberId: string, members: MemberInfo[]): void {
+		console.info("join call room", callRoomId, "as", memberId);
+
 		if (!this.mActiveCall) {
 			return;
 		}
@@ -472,15 +483,15 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onMemberJoin(sessionId: string | null, memberId: string, status: MemberStatus): void {
-		console.log("Member join sessionId: " + sessionId + " memberId: " + memberId + " status: " + status);
-
 		if (sessionId == null || memberId == null) {
 			return;
 		}
+		console.info(sessionId, ": member join memberId: ", memberId, " status: ", status);
 
 		const callConnection = this.mPeers.get(sessionId);
 
 		if (!callConnection) {
+			console.warn(sessionId, ": connection not found");
 			return;
 		}
 
@@ -499,7 +510,7 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onServerClose(): void {
-		console.log("server connection is closed");
+		console.warn("server connection is closed");
 
 		// Connection to the proxy server was closed:
 		// - we could report some non-fatal error message if we have some connection,
@@ -514,11 +525,11 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	onDeviceRinging(sessionId: string | null) {
-		console.log("session " + sessionId + " is ringing");
-
 		if (sessionId == null) {
 			return;
 		}
+
+		console.info(sessionId, ": device-ringing");
 
 		const callConnection = this.mPeers.get(sessionId);
 		callConnection?.setDeviceRinging();
@@ -536,7 +547,7 @@ export class CallService implements PeerCallServiceObserver {
 		}
 
 		if (
-			state === "connected" &&
+			(state === "connected" || state === "completed") &&
 			call.getMainParticipant()?.transfer &&
 			call.transferDirection === TransferDirection.TO_BROWSER &&
 			call.getCurrentConnection()?.getPeerConnectionId() !== callConnection.getPeerConnectionId()
@@ -548,7 +559,9 @@ export class CallService implements PeerCallServiceObserver {
 			call.getCurrentConnection()?.sendTransferDoneIQ();
 		}
 
-		console.log("Connection state=" + state);
+		if (DEBUG) {
+			console.log("Connection state=", state);
+		}
 		this.mObserver.onUpdateCallStatus(call.getStatus());
 	}
 
@@ -556,7 +569,9 @@ export class CallService implements PeerCallServiceObserver {
 		const call: CallState = callConnection.getCall();
 		const sessionId: string | null = callConnection.getPeerConnectionId();
 		if (sessionId) {
-			console.log("Remove peer session " + sessionId);
+			if (DEBUG) {
+				console.log(sessionId, ": remove peer session");
+			}
 			this.mPeers.delete(sessionId);
 		}
 		if (!call.remove(callConnection)) {
@@ -579,11 +594,13 @@ export class CallService implements PeerCallServiceObserver {
 		const peerConnectionId = callConnection.getPeerConnectionId();
 
 		if (!peerConnectionId) {
-			console.error("onOnPrepareTransfer: no peerConnectionId for CallConnection:", callConnection);
+			if (DEBUG) {
+				console.error("onOnPrepareTransfer: no peerConnectionId for CallConnection:", callConnection);
+			}
 			return;
 		}
 
-		console.log("onOnPrepareTransfer");
+		console.info(peerConnectionId, ": onOnPrepareTransfer");
 		call.removePendingPrepareTransfer(peerConnectionId);
 
 		if (!call.hasPendingPrepareTransfer()) {

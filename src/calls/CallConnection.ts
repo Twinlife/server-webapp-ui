@@ -35,6 +35,8 @@ type PacketHandler = {
 
 type Timer = ReturnType<typeof setTimeout>;
 
+const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
+
 /**
  * A P2P call connection in an Audio or Video call.
  *
@@ -47,10 +49,6 @@ type Timer = ReturnType<typeof setTimeout>;
  * @class
  */
 export class CallConnection {
-	static LOG_TAG: string = "CallConnection";
-
-	static DEBUG: boolean = false;
-
 	// Label with data version and capabilities supported by the web app ('stream' is not supported yet).
 	static DATA_VERSION: string = "twinlife:data:conversation.CallService:1.3.0:group,transfer,message";
 	static CAP_MESSAGE: string = "message";
@@ -260,8 +258,15 @@ export class CallConnection {
 		}, CallService.CALL_TIMEOUT);
 
 		if (peerConnectionId != null) {
+			if (DEBUG) {
+				console.log(peerConnectionId, ": create incoming P2P");
+			}
 			this.mParticipants.set(peerConnectionId.toString(), this.mMainParticipant);
 			this.mCall.onAddParticipant(this.mMainParticipant);
+		} else {
+			if (DEBUG) {
+				console.log("create outgoing P2P (no sessionId yet)");
+			}
 		}
 		this.addListener({
 			serializer: CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER,
@@ -312,11 +317,10 @@ export class CallConnection {
 
 		// Handle ICE connection state.
 		pc.oniceconnectionstatechange = (event: Event) => {
-			console.log("oniceconnection state event=", event);
 			if (this.mPeerConnection) {
-				const state = pc.iceConnectionState;
-				console.log("IceConnectionState: " + state + " state=" + state);
-				if (state === "connected") {
+				const state = this.mPeerConnection.iceConnectionState;
+				console.info(this.mPeerConnectionId, ": IceConnectionState ", state);
+				if (state === "connected" || state === "completed") {
 					if (this.mAudioTrack) {
 						this.mAudioTrack.enabled = this.mAudioDirection === "sendrecv";
 					}
@@ -337,7 +341,7 @@ export class CallConnection {
 							const state = pc.iceConnectionState;
 							if (this.mPeerConnection && state === "disconnected") {
 								this.mRenegotiationNeeded = true;
-								pc.restartIce();
+								this.mPeerConnection.restartIce();
 							}
 							if (this.mTimer) {
 								clearTimeout(this.mTimer);
@@ -377,13 +381,14 @@ export class CallConnection {
 		};
 
 		pc.onicecandidateerror = (event: Event) => {
-			console.log("ice candidate error: ", event);
+			console.warn(this.mPeerConnectionId, ": ice candidate error:", event);
 		};
 
 		// Handle signaling state errors.
 		pc.onsignalingstatechange = (event: Event) => {
 			if (this.mPeerConnection) {
 				const signalingState = this.mPeerConnection.signalingState;
+				console.info(this.mPeerConnectionId, "signalingstate", signalingState);
 				if (signalingState === "closed" && this.mPeerConnectionId) {
 					this.mPeerCallService.sessionTerminate(this.mPeerConnectionId, "connectivity-error");
 				}
@@ -392,9 +397,11 @@ export class CallConnection {
 
 		// Handle WebRTC renegotiation to send a new offer.
 		pc.onnegotiationneeded = (event: Event) => {
-			console.log("on negotiation needed");
 			if (!this.mRenegotiationNeeded || !this.mPeerConnection) {
 				return;
+			}
+			if (DEBUG) {
+				console.log(this.mPeerConnectionId, ": onnegotiationneeded");
 			}
 			this.mRenegotiationNeeded = false;
 			this.mMakingOffer = true;
@@ -410,13 +417,15 @@ export class CallConnection {
 					}
 				})
 				.catch((reason: any) => {
-					console.log("setLocalDescription failed after onnegotiationneeded: ", reason);
+					console.error(this.mPeerConnectionId, "setLocalDescription failed after onnegotiationneeded:", reason);
 				});
 		};
 
 		// Handle the audio/video track.
 		pc.ontrack = (event: RTCTrackEvent) => {
-			console.log("Received on track event");
+			if (DEBUG) {
+				console.log(this.mPeerConnectionId, ": received on track event");
+			}
 
 			for (const stream of event.streams) {
 				stream.onremovetrack = (ev: MediaStreamTrackEvent) => {
@@ -447,17 +456,21 @@ export class CallConnection {
 						}
 					}
 				}
-				console.log("Input data channel " + label + " is opened");
+				if (DEBUG) {
+					console.log(this.mPeerConnectionId, ": onopen data channel ", label);
+				}
 				const participant: CallParticipant | null = this.getMainParticipant();
 				if (participant) {
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_SUPPORTS_MESSAGES);
 				}
 			};
 			channel.onmessage = (event: MessageEvent<ArrayBuffer>): any => {
-				console.log("Received a data channel message");
+				if (DEBUG) {
+					console.log(this.mPeerConnectionId, ": received a data channel message");
+				}
 
 				if (!event.data) {
-					console.error("Event contains no data:", event);
+					console.warn(this.mPeerConnectionId, ": event contains no data:", event);
 					return;
 				}
 
@@ -472,10 +485,12 @@ export class CallConnection {
 						const iq: BinaryPacketIQ = listener.serializer.deserialize(binaryDecoder) as BinaryPacketIQ;
 						listener.handler(this, iq);
 					} else {
-						console.log("Schema " + key + " is not recognized");
+						if (DEBUG) {
+							console.log(this.mPeerConnectionId, ": unknown schema ", key);
+						}
 					}
 				} catch (exception) {
-					console.error("Exception raised when handling data channel message", exception);
+					console.warn(this.mPeerConnectionId, ": exception raised when handling data channel message", exception);
 				}
 			};
 		};
@@ -483,7 +498,9 @@ export class CallConnection {
 		// Setup the output data channel.
 		this.mOutDataChannel = pc.createDataChannel(CallConnection.DATA_VERSION);
 		this.mOutDataChannel.onopen = (event: Event): any => {
-			console.log("Output data channel is now opened");
+			if (DEBUG) {
+				console.log(this.mPeerConnectionId, ": output data channel is now opened");
+			}
 			if (this.mOutDataChannel && this.mCall) {
 				this.sendParticipantInfoIQ();
 			}
@@ -491,7 +508,13 @@ export class CallConnection {
 
 		if (mediaStream) {
 			mediaStream.getTracks().forEach((track) => {
-				console.log("Found track " + track.id);
+				if (DEBUG) {
+					if (this.mPeerConnectionId) {
+						console.log(this.mPeerConnectionId, ": found", track.kind, "track", track.id);
+					} else {
+						console.log("Found", track.kind, "track", track.id);
+					}
+				}
 				if (track.kind === "audio") {
 					this.mAudioTrack = track;
 					pc.addTrack(track, mediaStream);
@@ -528,35 +551,48 @@ export class CallConnection {
 				type: "offer",
 			})
 				.then(() => {
-					console.log("Set remote is done");
+					if (DEBUG) {
+						console.log(this.mPeerConnectionId, ": set remote is done");
+					}
 					this.mRemoteAnswerPending = false;
 					this.createAnswer(offer);
 				})
 				.catch((error: any) => {
-					console.error("Set remote failed: ", error);
+					console.error(this.mPeerConnectionId, ": set remote failed:", error);
 					this.mRemoteAnswerPending = false;
 				});
 		} else {
 			this.mMakingOffer = true;
 			pc.createOffer(offerOptions)
 				.then((description: RTCSessionDescriptionInit) => {
-					console.log("SDP: ", description.sdp);
+					if (DEBUG) {
+						if (this.mPeerConnectionId) {
+							console.log(this.mPeerConnectionId, ": SDP: ", description.sdp);
+						} else {
+							console.log("First SDP: ", description.sdp);
+						}
+					}
 					pc.setLocalDescription(description)
 						.then(() => {
 							this.mMakingOffer = false;
 							if (this.mTo && description.sdp && description.type === "offer") {
-								console.log("sending session-initiate with offer:", offer);
+								if (DEBUG) {
+									if (this.mPeerConnectionId) {
+										console.log(this.mPeerConnectionId, ": sending session-initiate with offer:", offer);
+									} else {
+										console.log("Sending first session-initiate with offer:", offer);
+									}
+								}
 								this.mInitialized = true;
 								this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
 							}
 						})
 						.catch((reason: any) => {
-							console.log("setLocalDescription failed: " + reason);
+							console.error(this.mPeerConnectionId, ": setLocalDescription failed:", reason);
 						});
-					console.log("setLocalDescription is done");
 				})
 				.catch((reason: any) => {
-					console.error("createOffer failed: " + reason);
+					console.error(this.mPeerConnectionId, ": createOffer failed:", reason);
 				});
 		}
 	}
@@ -577,13 +613,16 @@ export class CallConnection {
 	}
 
 	onSessionInitiate(sessionId: string): void {
-		console.log("session-initiate created " + sessionId);
+		if (DEBUG) {
+			console.log(sessionId, ": session-initiate created");
+		}
 		this.mPeerConnectionId = sessionId;
 		this.mParticipants.set(sessionId, this.mMainParticipant);
-		console.log("Add new participant");
 		this.mCall.onAddParticipant(this.mMainParticipant);
 		if (this.mIcePending && this.mIcePending.length > 0) {
-			console.log("Flush " + this.mIcePending.length + " candidates");
+			if (DEBUG) {
+				console.log(sessionId, ": flush ", this.mIcePending.length, " candidates");
+			}
 			for (const candidate of this.mIcePending) {
 				if (candidate.candidate && candidate.sdpMid != null && candidate.sdpMLineIndex != null) {
 					this.mPeerCallService.transportInfo(
@@ -594,7 +633,6 @@ export class CallConnection {
 					);
 				}
 			}
-			console.log("Flush candidates ok");
 		}
 		this.mIcePending = null;
 	}
@@ -612,7 +650,9 @@ export class CallConnection {
 				type: "answer",
 			})
 			.then(() => {
-				console.log("Set remote is done");
+				if (DEBUG) {
+					console.log(this.mPeerConnectionId, ": set remote is done");
+				}
 				this.mRemoteAnswerPending = false;
 				// WebRTC accepts ICE candidates only when it has both the local description
 				// and the remote description.  If we call addIceCandidates too early, they are dropped.
@@ -622,7 +662,7 @@ export class CallConnection {
 			})
 			.catch((error: any) => {
 				this.mRemoteAnswerPending = false;
-				console.log("Set remote failed: " + error);
+				console.error(this.mPeerConnectionId, ": set remote failed:", error);
 			});
 		if (this.mTimer) {
 			clearTimeout(this.mTimer);
@@ -662,7 +702,7 @@ export class CallConnection {
 			})
 			.catch((reason: any) => {
 				this.mRemoteAnswerPending = false;
-				console.error("setRemoteDescription failed: " + reason);
+				console.error(this.mPeerConnectionId, "setRemoteDescription failed:", reason);
 			});
 		return true;
 	}
@@ -694,11 +734,11 @@ export class CallConnection {
 						}
 					})
 					.catch((reason: any) => {
-						console.error("setLocalDescription failed: ", reason);
+						console.error(this.mPeerConnectionId, "setLocalDescription failed:", reason);
 					});
 			})
 			.catch((reason: any) => {
-				console.error("createAnswer failed: ", reason);
+				console.error(this.mPeerConnectionId, "createAnswer failed:", reason);
 			});
 	}
 
@@ -734,10 +774,12 @@ export class CallConnection {
 				//console.log("Adding candidate ", ice);
 				this.mPeerConnection.addIceCandidate(ice).then(
 					() => {
-						console.log("Add ice candidate ok ", ice);
+						if (DEBUG) {
+							console.log(this.mPeerConnectionId, ": add ice candidate ok ", ice);
+						}
 					},
 					(err) => {
-						console.log("Add ice candidate error for %o : ", ice, err);
+						console.error(this.mPeerConnectionId, ": add ice candidate error for %o : ", ice, err);
 					}
 				);
 			}
@@ -783,7 +825,7 @@ export class CallConnection {
 	 */
 	updateConnectionState(state: RTCIceConnectionState): boolean {
 		this.mConnectionState = state;
-		if (state !== "connected") {
+		if (state !== "connected" && state !== "completed") {
 			return false;
 		}
 
@@ -812,7 +854,9 @@ export class CallConnection {
 		this.mAudioDirection = direction;
 		if (this.mPeerConnection != null && this.mAudioTrack) {
 			if (this.mConnectionState === "connected" || this.mConnectionState === "completed") {
-				console.log("Enable audio track");
+				if (DEBUG) {
+					console.log(this.mPeerConnectionId, ": enable audio track");
+				}
 				this.mAudioTrack.enabled = direction === "sendrecv";
 			}
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
@@ -837,19 +881,25 @@ export class CallConnection {
 		if (this.mPeerConnection != null && this.mVideoTrack) {
 			if (this.mConnectionState === "connected" || this.mConnectionState === "completed") {
 				this.mVideoTrack.enabled = direction === "sendrecv";
-				console.log("Enable video track");
+				if (DEBUG) {
+					console.log(this.mPeerConnectionId, ": enable video track");
+				}
 			}
-			console.log(
-				"Video track enabled=" +
-					this.mVideoTrack.enabled +
-					" state=" +
-					this.mConnectionState +
-					" dir=" +
-					direction
-			);
+			if (DEBUG) {
+				console.log(this.mPeerConnectionId,
+					": video track enabled=" +
+						this.mVideoTrack.enabled +
+						" state=" +
+						this.mConnectionState +
+						" dir=" +
+						direction
+				);
+			}
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
 			for (const transceiver of transceivers) {
-				console.log("TRANSCEIVER", transceiver.receiver.track.kind, transceiver);
+				if (DEBUG) {
+					console.log(this.mPeerConnectionId, ": TRANSCEIVER", transceiver.receiver.track.kind, transceiver);
+				}
 				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
 					const sender: RTCRtpSender = transceiver.sender;
 					this.mRenegotiationNeeded = true;
@@ -867,7 +917,9 @@ export class CallConnection {
 
 	replaceAudioTrack(track: MediaStreamTrack): void {
 		if (this.mPeerConnection != null && this.mAudioTrack) {
-			console.log("Replace Audio Track");
+			if (DEBUG) {
+				console.log(this.mPeerConnectionId, ": replace Audio Track");
+			}
 			this.mAudioTrack = track;
 
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
@@ -884,12 +936,16 @@ export class CallConnection {
 
 	replaceVideoTrack(track: MediaStreamTrack): void {
 		if (this.mPeerConnection != null && this.mVideoTrack) {
-			console.log("Replace Video Track");
+			if (DEBUG) {
+				console.log(this.mPeerConnectionId, ": replace Video Track");
+			}
 			this.mVideoTrack = track;
 
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
 			for (const transceiver of transceivers) {
-				console.log("TRANSCEIVER", transceiver.receiver.track.kind, transceiver);
+				if (DEBUG) {
+					console.log(this.mPeerConnectionId, ": TRANSCEIVER", transceiver.receiver.track.kind, transceiver);
+				}
 				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
 					const sender: RTCRtpSender = transceiver.sender;
 					this.mRenegotiationNeeded = true;
@@ -902,6 +958,9 @@ export class CallConnection {
 
 	terminate(terminateReason: TerminateReason): void {
 		if (this.mPeerConnectionId != null) {
+			if (DEBUG) {
+				console.log(this.mPeerConnectionId, ": session-terminate with ", terminateReason);
+			}
 			this.mPeerCallService.sessionTerminate(this.mPeerConnectionId.toString(), terminateReason);
 			this.mPeerConnectionId = null;
 		}
@@ -928,7 +987,7 @@ export class CallConnection {
 				}
 			}
 		} catch (ex) {
-			console.error("addRemoteTrack failed: ", ex);
+			console.error(this.mPeerConnectionId, "addRemoteTrack failed:", ex);
 		}
 	}
 
@@ -1002,7 +1061,9 @@ export class CallConnection {
 		this.mInitialized = true;
 		const candidates: TransportCandidate[] | null = this.mIceRemoteCandidates;
 		if (candidates) {
-			console.log("using " + candidates.length + " ICE candidates which are queued");
+			if (DEBUG) {
+				console.log(this.mPeerConnectionId, ": using ", candidates.length, " ICE candidates which are queued");
+			}
 			this.mIceRemoteCandidates = null;
 			this.onTransportInfo(candidates);
 		}
@@ -1028,7 +1089,9 @@ export class CallConnection {
 
 	private sendParticipantInfoIQ(): void {
 		const name: string = this.mCall.getIdentityName();
-		console.log("Sending participant with name=" + name);
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": sending participant with name=" + name);
+		}
 		if (name == null || this.mOutDataChannel == null) {
 			return;
 		}
@@ -1076,7 +1139,9 @@ export class CallConnection {
 	}
 
 	public sendPrepareTransferIQ(): void {
-		console.log("sending PrepareTransferIQ to: ", this.mMainParticipant);
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": sending PrepareTransferIQ to: ", this.mMainParticipant);
+		}
 		const iq = new BinaryPacketIQ(CallConnection.IQ_PREPARE_TRANSFER_SERIALIZER, 1);
 		this.sendMessage(iq);
 	}
@@ -1090,18 +1155,22 @@ export class CallConnection {
 			this.mOutDataChannel.send(packet);
 			return true;
 		} catch (exception) {
-			console.error("Could not send iq:", exception);
+			console.warn(this.mPeerConnectionId, ": could not send iq:", exception);
 			return false;
 		}
 	}
 
 	public onOnPrepareTransferIQ(): void {
-		console.log("received OnPrepareTransferIQ from: ", this.mMainParticipant);
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": received OnPrepareTransferIQ from: ", this.mMainParticipant);
+		}
 		this.mCallService.onOnPrepareTransfer(this);
 	}
 
 	public onTransferDoneIQ(): void {
-		console.log("received TransferDoneIQ from: ", this.mMainParticipant);
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": received TransferDoneIQ from: ", this.mMainParticipant);
+		}
 
 		this.mCallService.onTransferDone(this);
 	}
@@ -1165,7 +1234,9 @@ export class CallConnection {
 	}
 
 	public inviteCallRoom(): void {
-		console.log("sending InviteCallRoomMessage");
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": sending InviteCallRoomMessage");
+		}
 		const callRoomId = this.getCall().getCallRoomId();
 		if (this.mPeerConnectionId && callRoomId) {
 			this.mPeerCallService.inviteCallRoom(this.mPeerConnectionId, callRoomId.toString(), this.mTo);
@@ -1173,7 +1244,9 @@ export class CallConnection {
 	}
 
 	public sendParticipantTransferIQ(memberId: string) {
-		console.log("sending ParticipantTransferIQ to: ", this.mMainParticipant);
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": sending ParticipantTransferIQ to: ", this.mMainParticipant);
+		}
 		const iq = new ParticipantTransferIQ(CallConnection.IQ_PARTICIPANT_TRANSFER_SERIALIZER, 1, memberId);
 		this.sendMessage(iq);
 	}

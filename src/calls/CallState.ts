@@ -41,10 +41,6 @@ import { PushObjectIQ } from "./PushObjectIQ.ts";
  *
  */
 export class CallState {
-	static LOG_TAG: string = "CallState";
-
-	static DEBUG: boolean = false;
-
 	private readonly mCallService: CallService;
 	private readonly mPeerCallService: PeerCallService;
 	private readonly mIdentityAvatar: ArrayBuffer;
