@@ -97,6 +97,7 @@ const timeFormat = new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" }
 const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" });
 
 const APP_TRANSFER: boolean = import.meta.env.VITE_APP_TRANSFER === "true";
+const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
 	private localVideoRef: RefObject<HTMLVideoElement> = React.createRef();
@@ -164,7 +165,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param {CallStatus} status the new call status.
 	 */
 	onUpdateCallStatus(status: CallStatus): void {
-		console.log("New call status ", CallStatus[status]);
+		if (DEBUG) {
+			console.log("New call status ", CallStatus[status]);
+		}
 
 		this.setState({ status: status });
 	}
@@ -187,7 +190,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param reason the call termination reason.
 	 */
 	onTerminateCall(reason: TerminateReason): void {
-		console.log("Call terminated " + reason);
+		console.info("Call terminated", reason);
 
 		this.setState({
 			terminateReason: reason,
@@ -212,7 +215,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param {CallParticipant} participant the participant.
 	 */
 	onAddParticipant(participant: CallParticipant): void {
-		console.log("Add new participant ", participant);
+		if (DEBUG) {
+			console.log("Add new participant ", participant);
+		}
 
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: participants });
@@ -224,7 +229,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param {CallParticipant[]} participants the list of participants being removed.
 	 */
 	onRemoveParticipants(participants: Array<CallParticipant>): void {
-		console.log("Remove participants ");
+		if (DEBUG) {
+			console.log("Remove", participants.length, "participants");
+		}
 		const list: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: list });
 		this.checkIsMessageSupported();
@@ -237,7 +244,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param {CallParticipantEvent} event the event that occurred.
 	 */
 	onEventParticipant(participant: CallParticipant, event: CallParticipantEvent): void {
-		console.log("Participant event: ", event);
+		if (DEBUG) {
+			console.log("Participant event: ", event);
+		}
 
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: participants });
@@ -247,12 +256,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	}
 
 	checkIsMessageSupported = () => {
-		console.log("Check if participants support messages");
+		if (DEBUG) {
+			console.log("Check if participants support messages");
+		}
 		const atLeastOneParticipantSupportsMessages = this.callService.getParticipants().some((participant) => {
-			console.log("isMessageSupported", participant.getCallConnection()?.isMessageSupported());
+			if (DEBUG) {
+				console.log("isMessageSupported", participant.getCallConnection()?.isMessageSupported());
+			}
 			return participant.getCallConnection()?.isMessageSupported();
 		});
-		console.log("At least one participant supports messages: ", atLeastOneParticipantSupportsMessages);
+		if (DEBUG) {
+			console.log("At least one participant supports messages: ", atLeastOneParticipantSupportsMessages);
+		}
 		this.setState({ atLeastOneParticipantSupportsMessages });
 	};
 
@@ -263,7 +278,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param {ConversationService.Descriptor} descriptor the descriptor that was received.
 	 */
 	onPopDescriptor(participant: CallParticipant, descriptor: ConversationService.Descriptor): void {
-		console.log("onPopDescriptor", participant, descriptor);
+		if (DEBUG) {
+			console.log("onPopDescriptor", participant, descriptor);
+		}
 
 		const { items } = this.state;
 		const newItem: Item = {
@@ -494,7 +511,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				let alertMessage = <></>;
 				switch (error.name) {
 					case "NotAllowedError":
-						console.log("NOT ALLOWED");
+						if (DEBUG) {
+							console.log("NOT ALLOWED");
+						}
 						alertMessage = (
 							<div>
 								{this.props.t(kind === "audio" ? "microphone_access_denied" : "camera_access_denied")}
@@ -502,7 +521,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						);
 						break;
 					case "NotFoundError":
-						console.log("NOT FOUND");
+						if (DEBUG) {
+							console.log("NOT FOUND");
+						}
 						alertMessage = (
 							<div>
 								{this.props.t(
@@ -512,7 +533,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						);
 						break;
 					default:
-						console.log("DEFAULT ERROR");
+						if (DEBUG) {
+							console.log("DEFAULT ERROR");
+						}
 						alertMessage = (
 							<div>
 								{this.props.t(kind === "audio" ? "microphone_access_error" : "camera_access_error")}

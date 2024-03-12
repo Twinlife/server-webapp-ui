@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021-2023 twinlife SA.
+ *  Copyright (c) 2021-2024 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -9,6 +9,7 @@
  */
 
 const url = import.meta.env.VITE_PROXY_URL;
+const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 export type TerminateReason =
 	| "busy"
@@ -219,7 +220,9 @@ export class PeerCallService {
 
 		this.socket = new WebSocket(url);
 		this.socket.addEventListener("open", (event: Event) => {
-			console.log("Websocket is opened");
+			if (DEBUG) {
+				console.log("Websocket is opened");
+			}
 			this.socket?.send('{"msg":"session-request"}');
 		});
 
@@ -230,12 +233,16 @@ export class PeerCallService {
 			} catch (e) {
 				return;
 			}
-			console.log("Received message ", req);
+			if (DEBUG) {
+				console.log("Received message ", req);
+			}
 			this.lastRecvTime = performance.now();
 			if (req.msg === "session-config") {
 				this.callConfig = req as CallConfigMessage;
 				if (this.readyCallback) {
-					console.log("Now ready to start WebRTC connections");
+					if (DEBUG) {
+						console.log("Now ready to start WebRTC connections");
+					}
 					this.readyCallback();
 					this.readyCallback = null;
 				}
@@ -311,17 +318,24 @@ export class PeerCallService {
 				}
 			} else if (req.msg === "pong") {
 			} else {
-				console.log("Unsupported message ", req);
+				if (DEBUG) {
+					// Only for development: this is an error.
+					console.error("Unsupported message ", req);
+				}
 			}
 		});
 
 		this.socket.addEventListener("close", (event: CloseEvent) => {
-			console.log("Websocket is closed");
+			if (DEBUG) {
+				console.log("Websocket is closed");
+			}
 			this.close();
 		});
 
 		this.socket.addEventListener("error", (event: Event) => {
-			console.error("Websocket error", event);
+			if (DEBUG) {
+				console.error("Websocket error", event);
+			}
 			this.close();
 		});
 
@@ -473,7 +487,9 @@ export class PeerCallService {
 	}
 
 	private sendMessage(msg: CallMessage) {
-		console.log("Sending message ", msg);
+		if (DEBUG) {
+			console.log("Sending message ", msg);
+		}
 		this.socket?.send(JSON.stringify(msg));
 	}
 }
