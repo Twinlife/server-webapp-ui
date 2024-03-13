@@ -761,15 +761,24 @@ export class CallConnection {
 		for (const candidate of candidates) {
 			if (!candidate.removed) {
 				const startPos: number = candidate.candidate.indexOf(" ufrag ") + 7;
-				const endPos: number = candidate.candidate.indexOf(" ", startPos);
-				const ufrag: string = candidate.candidate.substring(startPos, endPos);
-				const c: RTCIceCandidateInit = {
-					candidate: candidate.candidate,
-					sdpMid: candidate.sdpMid,
-					sdpMLineIndex: candidate.sdpMLineIndex,
-					usernameFragment: ufrag,
-				};
+				let c: RTCIceCandidateInit;
+				if (startPos > 7) {
+					const endPos: number = candidate.candidate.indexOf(" ", startPos);
+					const ufrag: string = candidate.candidate.substring(startPos, endPos);
+					c = {
+						candidate: candidate.candidate,
+						sdpMid: candidate.sdpMid,
+						sdpMLineIndex: candidate.sdpMLineIndex,
+						usernameFragment: ufrag,
+					};
 
+				} else {
+					c = {
+						candidate: candidate.candidate,
+						sdpMid: candidate.sdpMid,
+						sdpMLineIndex: candidate.sdpMLineIndex
+					};
+				}
 				const ice: RTCIceCandidate = new RTCIceCandidate(c);
 				//console.log("Adding candidate ", ice);
 				this.mPeerConnection.addIceCandidate(ice).then(
