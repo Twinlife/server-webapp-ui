@@ -77,15 +77,12 @@ const InvitationDialog: React.FC<InvitationDialogProps> = ({ open, invitationUI,
 						</p>
 					</div>
 					<div className="flex w-full items-center justify-between gap-x-4 px-4 text-sm font-light">
-						<button className="h-10 flex-1 rounded bg-red transition hover:bg-red/70" onClick={handleClose}>
-							{t("application_cancel")}
-						</button>
 						<a
 							href={urlString}
 							target="_blank"
 							className="flex h-10 flex-1 items-center justify-center rounded bg-blue transition hover:bg-blue/70"
 						>
-							{t("application_accept")}
+							{t("open_invitation")}
 						</a>
 					</div>
 				</div>
