@@ -633,38 +633,40 @@ export class CallConnection {
 		return true;
 	}
 
-	onSessionUpdate(updateType: string, sdp: string): boolean {
-		if (!this.mPeerConnection) {
-			return false;
-		}
-
-		const isOffer: boolean = updateType === "offer";
-		const state: RTCSignalingState = this.mPeerConnection.signalingState;
-		const readyForOffer: boolean = !this.mMakingOffer && (state === "stable" || this.mRemoteAnswerPending);
-		const offerCollision: boolean = isOffer && !readyForOffer;
-		this.mIgnoreOffer = !this.mInitiator && offerCollision;
-		if (this.mIgnoreOffer || (state === "stable" && !isOffer)) {
-			return true;
-		}
-
-		const type: RTCSdpType = isOffer ? "offer" : "answer";
-		this.mRemoteAnswerPending = !isOffer;
-		this.mPeerConnection
-			.setRemoteDescription({
-				sdp: sdp,
-				type: type,
-			})
-			.then(() => {
-				this.mRemoteAnswerPending = false;
-				if (isOffer) {
-					this.createAnswer(null);
+	async onSessionUpdate(updateType: string, sdp: string): Promise<boolean> {
+		return await new Promise<boolean>((resolve) => {
+			if (this.mPeerConnection) {
+				const isOffer: boolean = updateType === "offer";
+				const state: RTCSignalingState = this.mPeerConnection.signalingState;
+				const readyForOffer: boolean = !this.mMakingOffer && (state === "stable" || this.mRemoteAnswerPending);
+				const offerCollision: boolean = isOffer && !readyForOffer;
+				this.mIgnoreOffer = !this.mInitiator && offerCollision;
+				if (this.mIgnoreOffer || (state === "stable" && !isOffer)) {
+					resolve(true);
 				}
-			})
-			.catch((reason: any) => {
-				this.mRemoteAnswerPending = false;
-				console.error("setRemoteDescription failed: " + reason);
-			});
-		return true;
+
+				const type: RTCSdpType = isOffer ? "offer" : "answer";
+				this.mRemoteAnswerPending = !isOffer;
+				this.mPeerConnection
+					.setRemoteDescription({
+						sdp: sdp,
+						type: type,
+					})
+					.then(() => {
+						this.mRemoteAnswerPending = false;
+						if (isOffer) {
+							this.createAnswer(null);
+						}
+						resolve(true);
+					})
+					.catch((reason: any) => {
+						this.mRemoteAnswerPending = false;
+						console.error("setRemoteDescription failed: " + reason);
+						resolve(false);
+					});
+			}
+			resolve(false);
+		});
 	}
 
 	createAnswer(offer: Offer | null): void {

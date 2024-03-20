@@ -310,6 +310,7 @@ export class PeerCallService {
 					this.callObserver.onDeviceRinging(deviceRinging.sessionId);
 				}
 			} else if (req.msg === "pong") {
+				console.log("Received pong");
 			} else {
 				console.log("Unsupported message ", req);
 			}
