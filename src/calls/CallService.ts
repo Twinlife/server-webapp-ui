@@ -414,11 +414,12 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-	onSessionUpdate(sessionId: string, updateType: string, sdp: string): void {
+	async onSessionUpdate(sessionId: string, updateType: string, sdp: string): Promise<void> {
 		console.info(sessionId, ": update", updateType);
 
 		const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
-		if (!callConnection?.onSessionUpdate(updateType, sdp)) {
+		const result = (await callConnection?.onSessionUpdate(updateType, sdp)) ?? false;
+		if (!result) {
 			this.mPeerCallService.sessionTerminate(sessionId, "gone");
 		}
 	}

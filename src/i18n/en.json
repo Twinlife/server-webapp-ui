@@ -42,6 +42,7 @@
 		"fullscreen_qrcode_activity_save_message": "Import or scan this invitation QR-Code with twinme to add this contact.",
 		"conversation_activity_message": "Type a message",
 		"application_accept": "Accept",
-		"application_cancel": "Cancel"
+		"application_cancel": "Cancel",
+		"open_invitation": "Open invite"
 	}
 }
