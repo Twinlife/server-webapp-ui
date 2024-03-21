@@ -675,37 +675,40 @@ export class CallConnection {
 
 	async onSessionUpdate(updateType: string, sdp: string): Promise<boolean> {
 		return await new Promise<boolean>((resolve) => {
-			if (this.mPeerConnection) {
-				const isOffer: boolean = updateType === "offer";
-				const state: RTCSignalingState = this.mPeerConnection.signalingState;
-				const readyForOffer: boolean = !this.mMakingOffer && (state === "stable" || this.mRemoteAnswerPending);
-				const offerCollision: boolean = isOffer && !readyForOffer;
-				this.mIgnoreOffer = !this.mInitiator && offerCollision;
-				if (this.mIgnoreOffer || (state === "stable" && !isOffer)) {
-					resolve(true);
-				}
-
-				const type: RTCSdpType = isOffer ? "offer" : "answer";
-				this.mRemoteAnswerPending = !isOffer;
-				this.mPeerConnection
-					.setRemoteDescription({
-						sdp: sdp,
-						type: type,
-					})
-					.then(() => {
-						this.mRemoteAnswerPending = false;
-						if (isOffer) {
-							this.createAnswer(null);
-						}
-						resolve(true);
-					})
-					.catch((reason: any) => {
-						this.mRemoteAnswerPending = false;
-						console.error(this.mPeerConnectionId, "setRemoteDescription failed:", reason);
-						resolve(false);
-					});
+			if (!this.mPeerConnection) {
+			        resolve(false);
+				return; // Return because we have no P2P connection.
 			}
-			resolve(false);
+			const isOffer: boolean = updateType === "offer";
+			const state: RTCSignalingState = this.mPeerConnection.signalingState;
+			const readyForOffer: boolean = !this.mMakingOffer && (state === "stable" || this.mRemoteAnswerPending);
+			const offerCollision: boolean = isOffer && !readyForOffer;
+			this.mIgnoreOffer = !this.mInitiator && offerCollision;
+			if (this.mIgnoreOffer || (state === "stable" && !isOffer)) {
+	                        console.info(this.mPeerConnectionId, "onSessionUpdate ignore offer due to answer/offer collision");
+				resolve(true);
+				return; // Return now because we must not proceed and we must ignore the remote description.
+			}
+
+			const type: RTCSdpType = isOffer ? "offer" : "answer";
+			this.mRemoteAnswerPending = !isOffer;
+			this.mPeerConnection
+				.setRemoteDescription({
+					sdp: sdp,
+					type: type,
+				})
+				.then(() => {
+					this.mRemoteAnswerPending = false;
+					if (isOffer) {
+						this.createAnswer(null);
+					}
+					resolve(true);
+				})
+				.catch((reason: any) => {
+					this.mRemoteAnswerPending = false;
+					console.error(this.mPeerConnectionId, "setRemoteDescription failed:", reason);
+					resolve(false);
+				});
 		});
 	}
 
