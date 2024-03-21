@@ -317,7 +317,9 @@ export class PeerCallService {
 					this.callObserver.onDeviceRinging(deviceRinging.sessionId);
 				}
 			} else if (req.msg === "pong") {
-				console.log("Received pong");
+                                if (DEBUG) {
+				        console.log("Received pong");                                
+                                }
 			} else {
 				if (DEBUG) {
 					// Only for development: this is an error.
