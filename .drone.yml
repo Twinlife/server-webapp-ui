@@ -33,6 +33,7 @@ steps:
   - name: MEP
     commands: 
       - sudo mv skred-webapp-ui/* /srv/call.skred.mobi/ && sudo chown -R 1000:1000 /srv/call.skred.mobi && sudo mv twinme-webapp-ui/* /srv/call.twin.me/ && sudo chown -R 1000:1000 /srv/call.twin.me
+      - sudo mv skred-webapp-transfer/* /srv/transfer.skred.mobi/ && sudo chown -R 1000:1000 /srv/transfer.skred.mobi && sudo mv twinme-webapp-transfer/* /srv/transfer.twin.me/ && sudo chown -R 1000:1000 /srv/transfer.twin.me/
 
 trigger:
   event:
