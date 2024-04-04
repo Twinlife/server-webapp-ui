@@ -417,7 +417,11 @@ export class CallConnection {
 					}
 				})
 				.catch((reason: any) => {
-					console.error(this.mPeerConnectionId, "setLocalDescription failed after onnegotiationneeded:", reason);
+					console.error(
+						this.mPeerConnectionId,
+						"setLocalDescription failed after onnegotiationneeded:",
+						reason
+					);
 				});
 		};
 
@@ -490,7 +494,11 @@ export class CallConnection {
 						}
 					}
 				} catch (exception) {
-					console.warn(this.mPeerConnectionId, ": exception raised when handling data channel message", exception);
+					console.warn(
+						this.mPeerConnectionId,
+						": exception raised when handling data channel message",
+						exception
+					);
 				}
 			};
 		};
@@ -578,7 +586,11 @@ export class CallConnection {
 							if (this.mTo && description.sdp && description.type === "offer") {
 								if (DEBUG) {
 									if (this.mPeerConnectionId) {
-										console.log(this.mPeerConnectionId, ": sending session-initiate with offer:", offer);
+										console.log(
+											this.mPeerConnectionId,
+											": sending session-initiate with offer:",
+											offer
+										);
 									} else {
 										console.log("Sending first session-initiate with offer:", offer);
 									}
@@ -676,7 +688,7 @@ export class CallConnection {
 	async onSessionUpdate(updateType: string, sdp: string): Promise<boolean> {
 		return await new Promise<boolean>((resolve) => {
 			if (!this.mPeerConnection) {
-			        resolve(false);
+				resolve(false);
 				return; // Return because we have no P2P connection.
 			}
 			const isOffer: boolean = updateType === "offer";
@@ -685,7 +697,7 @@ export class CallConnection {
 			const offerCollision: boolean = isOffer && !readyForOffer;
 			this.mIgnoreOffer = !this.mInitiator && offerCollision;
 			if (this.mIgnoreOffer || (state === "stable" && !isOffer)) {
-	                        console.info(this.mPeerConnectionId, "onSessionUpdate ignore offer due to answer/offer collision");
+				console.info(this.mPeerConnectionId, "onSessionUpdate ignore offer due to answer/offer collision");
 				resolve(true);
 				return; // Return now because we must not proceed and we must ignore the remote description.
 			}
@@ -776,12 +788,11 @@ export class CallConnection {
 						sdpMLineIndex: candidate.sdpMLineIndex,
 						usernameFragment: ufrag,
 					};
-
 				} else {
 					c = {
 						candidate: candidate.candidate,
 						sdpMid: candidate.sdpMid,
-						sdpMLineIndex: candidate.sdpMLineIndex
+						sdpMLineIndex: candidate.sdpMLineIndex,
 					};
 				}
 				const ice: RTCIceCandidate = new RTCIceCandidate(c);
@@ -900,7 +911,8 @@ export class CallConnection {
 				}
 			}
 			if (DEBUG) {
-				console.log(this.mPeerConnectionId,
+				console.log(
+					this.mPeerConnectionId,
 					": video track enabled=" +
 						this.mVideoTrack.enabled +
 						" state=" +

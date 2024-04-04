@@ -619,6 +619,15 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	/**
+	 * Check whether we have an active call and the websocket to the server proxy is necessary.
+	 *
+	 * @returns true if a call is active (connected or not) and we need the server connection.
+	 */
+	public needConnection(): boolean {
+		return this.mActiveCall ? this.mActiveCall.getStatus() !== CallStatus.TERMINATED : false;
+	}
+
+	/**
 	 * Get the list of connections.
 	 *
 	 * @return {CallConnection[]} the current frozen list of connections.
