@@ -99,10 +99,12 @@ const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" })
 const APP_TRANSFER: boolean = import.meta.env.VITE_APP_TRANSFER === "true";
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
+// Create only one instance of PeerCallService.
+const peerCallService: PeerCallService = new PeerCallService();
+
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
 	private localVideoRef: RefObject<HTMLVideoElement> = React.createRef();
-	private peerCallService: PeerCallService = new PeerCallService();
-	private callService: CallService = new CallService(this.peerCallService, this, this);
+	private callService: CallService = new CallService(peerCallService, this, this);
 
 	state: CallState = {
 		initializing: true,
@@ -155,7 +157,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			alertContent: <></>,
 		});
 		if (!this.callService) {
-			this.callService = new CallService(this.peerCallService, this, this);
+			this.callService = new CallService(peerCallService, this, this);
 		}
 	};
 

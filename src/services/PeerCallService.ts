@@ -179,11 +179,23 @@ export interface PeerCallServiceObserver {
 	onDeviceRinging(sessionId: string | null): void;
 
 	onServerClose(): void;
+
+	// Asks the CallService whether we have an active call.
+	needConnection(): boolean;
 }
 
 type Timer = ReturnType<typeof setTimeout>;
 type ReadyCallback = () => void;
-const PING_TIMER: number = 30000; // 30s, must be at least 2 times faster than server websocket idle timeout
+const PING_TIMER: number = 15000; // 15s, must be at least 2 times faster than server websocket idle timeout
+const CONNECT_TIMER: number = 15000; // 15s to connect for the websocket.
+const RETRY_DELAY: number = 3000; // 3s pause between reconnection.
+const MAX_RETRIES: number = 5;
+
+// Websocket close code.  Use CLOSE_OK for normal close or a custom code in 3000..4999 range.
+const CLOSE_OK: number = 1000;
+const CLOSE_ERROR: number = 3000;
+const CLOSE_PING_ERROR: number = 3001;
+const CLOSE_TIMEOUT_ERROR: number = 3002;
 
 /**
  * WebRTC session management to send/receive SDPs.
@@ -193,8 +205,25 @@ export class PeerCallService {
 	private callConfig: CallConfigMessage | null = null;
 	private callObserver: PeerCallServiceObserver | null = null;
 	private pingTimer: Timer | null = null;
+	private connectTimer: Timer | null = null;
 	private lastRecvTime: number = 0;
 	private readyCallback: ReadyCallback | null = null;
+	private readonly sessionId: string;
+	private retryCount: number = 0;
+
+	constructor() {
+		// Generates a random secure string that identifies this web-socket client
+		// in case we have to disconnect and re-connect to the server
+		// (random bit string of 510 bits encoded in base64, we pick 6 bits per byte).
+		const bytes: Uint8Array = crypto.getRandomValues(new Uint8Array(85));
+		let sid = "id-";
+		for (let i = 0; i < bytes.length; i++) {
+			const val: number = bytes[i] % 64;
+			sid += "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ_-"[val];
+		}
+		this.sessionId = sid.toString();
+		console.info("Using sessionId", this.sessionId);
+	}
 
 	/**
 	 * Open the websocket connection to the server proxy if necessary and get the WebRTC configuration.
@@ -213,20 +242,21 @@ export class PeerCallService {
 	}
 
 	private setupWebsocket(): void {
-		if (this.socket) {
-			//In dev useEffect (and thus this function) is called twice.
-			return;
-		}
-
-		this.socket = new WebSocket(url);
-		this.socket.addEventListener("open", (event: Event) => {
+		// Give the session id in the protocols part.
+		this.socket = new WebSocket(url, this.sessionId);
+		this.socket.onopen = (event: Event) => {
 			if (DEBUG) {
 				console.log("Websocket is opened");
 			}
+			this.retryCount = 0;
 			this.socket?.send('{"msg":"session-request"}');
-		});
+			if (this.connectTimer) {
+				clearTimeout(this.connectTimer);
+				this.connectTimer = null;
+			}
+		};
 
-		this.socket.addEventListener("message", (msg: MessageEvent) => {
+		this.socket.onmessage = (msg: MessageEvent) => {
 			let req: Message;
 			try {
 				req = JSON.parse(msg.data.toString());
@@ -317,59 +347,82 @@ export class PeerCallService {
 					this.callObserver.onDeviceRinging(deviceRinging.sessionId);
 				}
 			} else if (req.msg === "pong") {
-                                if (DEBUG) {
-				        console.log("Received pong");                                
-                                }
+				if (DEBUG) {
+					console.log("Received pong");
+				}
 			} else {
 				if (DEBUG) {
 					// Only for development: this is an error.
 					console.error("Unsupported message ", req);
 				}
 			}
-		});
+		};
 
-		this.socket.addEventListener("close", (event: CloseEvent) => {
+		this.socket.onclose = (event: CloseEvent) => {
 			if (DEBUG) {
-				console.log("Websocket is closed");
+				console.log("Websocket is closed", event.code);
 			}
-			this.close();
-		});
+			this.close(event.code, event.reason);
+			// If the call is connected (or trying to connect), retry connection to the server.
+			if (this.callObserver?.needConnection()) {
+				console.info("Unexpected websocket close", event.code, "retry count", this.retryCount);
+				if (this.retryCount < MAX_RETRIES) {
+					setTimeout(() => {
+						this.retryCount++;
+						this.setupWebsocket();
+					}, RETRY_DELAY);
+				} else {
+					this.callObserver?.onServerClose();
+				}
+			}
+		};
 
-		this.socket.addEventListener("error", (event: Event) => {
+		this.socket.onerror = (event: Event) => {
 			if (DEBUG) {
 				console.error("Websocket error", event);
 			}
-			this.close();
-		});
+			this.close(CLOSE_ERROR, "websocket error on client");
+		};
 
 		this.pingTimer = setInterval(() => {
 			const now = performance.now();
 			if (now - this.lastRecvTime > 2 * PING_TIMER) {
-				if (this.socket) {
-					this.socket.close();
+				this.close(CLOSE_PING_ERROR, "ping timeout");
+			} else if (now - this.lastRecvTime > PING_TIMER) {
+				// If we have an active call, proceed with ping/pong
+				// otherwise close websocket.
+				if (this.callObserver?.needConnection()) {
+					this.ping();
+				} else {
+					this.close(CLOSE_OK, "normal close");
 				}
 			}
-			if (now - this.lastRecvTime > PING_TIMER) {
-				this.ping();
-			}
 		}, PING_TIMER);
+
+		this.connectTimer = setTimeout(() => {
+			if (this.socket && this.socket.readyState === WebSocket.CONNECTING) {
+				console.info("WebSocket connection timed out. Retrying...");
+				this.close(CLOSE_TIMEOUT_ERROR, "connection timeout");
+			}
+		}, CONNECT_TIMER);
 	}
 
 	setObserver(observer: PeerCallServiceObserver): void {
 		this.callObserver = observer;
 	}
 
-	private close(): void {
+	private close(code: number, reason: string): void {
 		if (this.pingTimer) {
 			clearTimeout(this.pingTimer);
 			this.pingTimer = null;
 		}
+		if (this.connectTimer) {
+			clearTimeout(this.connectTimer);
+			this.connectTimer = null;
+		}
 		if (this.socket) {
-			this.socket.close();
+			this.socket.close(code, reason);
 			this.socket = null;
-			if (this.callObserver) {
-				this.callObserver.onServerClose();
-			}
 		}
 	}
 
@@ -438,7 +491,7 @@ export class PeerCallService {
 			updateType: updateType,
 		};
 
-		this.socket?.send(JSON.stringify(msg));
+		this.sendMessage(msg);
 	}
 
 	transportInfo(sessionId: string, candidate: string, label: string, index: number) {
@@ -456,7 +509,7 @@ export class PeerCallService {
 		};
 
 		// console.log("send transport info to " + sessionId + " candidate " + candidate);
-		this.socket?.send(JSON.stringify(msg));
+		this.sendMessage(msg);
 	}
 
 	sessionTerminate(sessionId: string, reason: TerminateReason) {
@@ -466,7 +519,7 @@ export class PeerCallService {
 			reason: reason,
 		};
 
-		this.socket?.send(JSON.stringify(msg));
+		this.sendMessage(msg);
 	}
 
 	inviteCallRoom(sessionId: string, callRoomId: string, twincodeOutboundId: string) {
