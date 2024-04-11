@@ -12,7 +12,10 @@ steps:
 
   - name: remove old configuration folder
     commands:
-      - sudo rm -rf /srv/call.skred.mobi.old && sudo rm -rf /srv/call.twin.me.old
+      - sudo rm -rf /srv/call.skred.mobi.old
+      - sudo rm -rf /srv/call.twin.me.old
+      - sudo rm -rf /srv/transfer.skred.mobi.old
+      - sudo rm -rf /srv/transfer.twin.me.old
 
   - name: start docker-compose
     commands:
@@ -28,12 +31,17 @@ steps:
 
   - name: Backup old folder
     commands: 
-      - sudo mv /srv/call.skred.mobi /srv/call.skred.mobi.old && sudo mv /srv/call.twin.me /srv/call.twin.me.old
+      - sudo mv /srv/call.skred.mobi /srv/call.skred.mobi.old
+      - sudo mv /srv/call.twin.me /srv/call.twin.me.old
+      - sudo mv /srv/transfer.skred.mobi /srv/transfer.skred.mobi.old
+      - sudo mv /srv/transfer.twin.me /srv/transfer.twin.me.old
 
   - name: MEP
     commands: 
       - sudo mkdir -p /srv/call.skred.mobi
       - sudo mkdir -p /srv/call.twin.me
+      - sudo mkdir -p /srv/transfer.skred.mobi
+      - sudo mkdir -p /srv/transfer.twin.me
       - sudo mv skred-webapp-ui/* /srv/call.skred.mobi/ && sudo chown -R 1000:1000 /srv/call.skred.mobi && sudo mv twinme-webapp-ui/* /srv/call.twin.me/ && sudo chown -R 1000:1000 /srv/call.twin.me
       - sudo mv skred-webapp-transfer/* /srv/transfer.skred.mobi/ && sudo chown -R 1000:1000 /srv/transfer.skred.mobi && sudo mv twinme-webapp-transfer/* /srv/transfer.twin.me/ && sudo chown -R 1000:1000 /srv/transfer.twin.me/
 
