@@ -243,7 +243,7 @@ export class PeerCallService {
 
 	private setupWebsocket(): void {
 		// Give the session id in the protocols part.
-		this.socket = new WebSocket(url, this.sessionId);
+		this.socket = new WebSocket(url /*, this.sessionId */);
 		this.socket.onopen = (event: Event) => {
 			if (DEBUG) {
 				console.log("Websocket is opened");
