@@ -243,13 +243,13 @@ export class PeerCallService {
 
 	private setupWebsocket(): void {
 		// Give the session id in the protocols part.
-		this.socket = new WebSocket(url /*, this.sessionId */);
+		this.socket = new WebSocket(url);
 		this.socket.onopen = (event: Event) => {
 			if (DEBUG) {
 				console.log("Websocket is opened");
 			}
 			this.retryCount = 0;
-			this.socket?.send('{"msg":"session-request"}');
+			this.socket?.send('{"msg":"session-request","session-id":"' + this.sessionId + '"}');
 			if (this.connectTimer) {
 				clearTimeout(this.connectTimer);
 				this.connectTimer = null;
@@ -421,7 +421,13 @@ export class PeerCallService {
 			this.connectTimer = null;
 		}
 		if (this.socket) {
-			this.socket.close(code, reason);
+			try {
+				this.socket.close(code, reason);
+			} catch (exception) {
+				if (DEBUG) {
+					console.debug("Close error with code", code, "reason", reason, "exception", exception);
+				}
+			}
 			this.socket = null;
 		}
 	}
