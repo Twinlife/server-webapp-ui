@@ -718,6 +718,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						localVideoRef={this.localVideoRef}
 						localMediaStream={this.callService.getMediaStream()}
 						videoMute={videoMute}
+						isLocalAudioMute={audioMute}
 						twincode={twincode}
 						participants={participants}
 						isIddle={CallStatusOps.isIddle(status)}

@@ -13,6 +13,7 @@ const ParticipantsGrid: React.FC<{
 	localVideoRef: RefObject<HTMLVideoElement>;
 	localMediaStream: MediaStream;
 	videoMute: boolean;
+	isLocalAudioMute: boolean;
 	twincode: TwincodeInfo;
 	participants: CallParticipant[];
 	isIddle: boolean;
@@ -28,6 +29,7 @@ const ParticipantsGrid: React.FC<{
 	localVideoRef,
 	localMediaStream,
 	videoMute,
+	isLocalAudioMute,
 	twincode,
 	participants,
 	isIddle,
@@ -46,7 +48,7 @@ const ParticipantsGrid: React.FC<{
 		} else {
 			console.log("There is no local video element");
 		}
-	}, [localMediaStream]);
+	}, [localMediaStream, localVideoRef]);
 
 	return (
 		// getGridClass(participants.length + 1) because current web user is not part of participants
@@ -89,6 +91,20 @@ const ParticipantsGrid: React.FC<{
 					getCellClass(participants.length + 1),
 				].join(" ")}
 			>
+				{isLocalAudioMute && (
+					<div className="absolute left-2 top-2 z-20 text-2xl md:left-auto md:right-2">
+						<svg width="1em" height="1em" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
+							<g fill="none" fillRule="evenodd">
+								<circle fill="#FD605D" cx={13} cy={13} r={13} />
+								<path
+									d="m8.825 18.486.809-.795c.77.577 1.72.933 2.763.933h1.145c2.528 0 4.578-2.014 4.578-4.5V13h1.144v1.125c0 3.106-2.562 5.625-5.722 5.625v1.124h.572c.316 0 .572.252.572.563 0 .311-.256.563-.572.563h-2.289a.568.568 0 0 1-.572-.563c0-.311.256-.563.572-.563h.572V19.75a5.726 5.726 0 0 1-3.572-1.264zm8.15-8.012v3.088c0 2.175-1.793 3.937-4.006 3.937a4.017 4.017 0 0 1-2.358-.769l6.364-6.256zm-10.3 3.65V13h1.144v1.125c0 .423.079.825.19 1.213l-.91.895a5.507 5.507 0 0 1-.425-2.108zm2.367.199c-.05-.246-.078-.5-.078-.76V7.936C8.964 5.763 10.757 4 12.969 4a3.986 3.986 0 0 1 3.795 2.733l-7.722 7.59zM6.5 19.5l-.5-.607L19.197 5.921l.303.579-13 13z"
+									fill="#FFF"
+								/>
+							</g>
+						</svg>
+					</div>
+				)}
+
 				<video
 					ref={localVideoRef}
 					className={["h-full w-full object-cover", videoMute ? "hidden" : ""].join(" ")}
