@@ -44,6 +44,8 @@
 		"conversation_activity_message": "Entrez un message",
 		"application_accept": "Accepter",
 		"application_cancel": "Annuler",
-		"open_invitation": "Ouvrir l'invitation"
+		"open_invitation": "Ouvrir l'invitation",
+		"streaming_audio_activity_error_message": "Une erreur est survenue. Veuillez réessayer.",
+		"application_no_network_connectivity": "pas de connectivité réseau"
 	}
 }
