@@ -45,6 +45,7 @@
 		"application_cancel": "Cancel",
 		"open_invitation": "Open invite",
 		"streaming_audio_activity_error_message": "An error has occured. Please try again.",
-		"application_no_network_connectivity": "No network connectivity"
+		"application_no_network_connectivity": "No network connectivity",
+		"call_activity_transfert_call_message": "The on-going call has been transferred."
 	}
 }

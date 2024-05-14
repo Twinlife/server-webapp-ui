@@ -604,7 +604,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		revoked: "audio_call_activity_terminate_revoked",
 		expired: "audio_call_activity_terminate_timeout",
 		"not-authorized": "audio_call_activity_terminate_timeout",
-		"transfer-done": "TODO",
+		"transfer-done": "call_activity_transfert_call_message",
 		unknown: "general_error_message",
 		schedule: "audio_call_activity_terminate_schedule_unknown",
 		"general-error": "general_error_message",
