@@ -23,7 +23,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 
 	useEffect(() => {
 		if (ref.current && setRemoteRenderer) setRemoteRenderer(ref.current);
-	}, []);
+	}, [setRemoteRenderer, ref]);
 
 	return (
 		<div

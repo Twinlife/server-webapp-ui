@@ -382,6 +382,7 @@ export class PeerCallService {
 				console.error("Websocket error", event);
 			}
 			this.close(CLOSE_ERROR, "websocket error on client");
+			this.callObserver?.onSessionTerminate(null, "connectivity-error");
 		};
 
 		this.pingTimer = setInterval(() => {
