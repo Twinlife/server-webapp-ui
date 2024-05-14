@@ -593,26 +593,30 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		ev.preventDefault();
 	};
 
-	private terminateMessages = {
+	private terminateMessages: { [key in TerminateReason]: string } = {
 		success: "audio_call_activity_terminate",
 		busy: "audio_call_activity_terminate_busy",
 		cancel: "audio_call_activity_terminate_cancel",
 		"connectivity-error": "audio_call_activity_terminate_connectivity_error",
 		decline: "audio_call_activity_terminate_decline",
-		disconnected: "TODO",
+		disconnected: "application_no_network_connectivity",
 		gone: "audio_call_activity_terminate_gone",
 		revoked: "audio_call_activity_terminate_revoked",
 		expired: "audio_call_activity_terminate_timeout",
 		"not-authorized": "audio_call_activity_terminate_timeout",
 		"transfer-done": "TODO",
-		unknown: "TODO",
+		unknown: "general_error_message",
 		schedule: "audio_call_activity_terminate_schedule_unknown",
-		"general-error": "TODO",
+		"general-error": "general_error_message",
 	};
 
 	getTerminateReasonMessage = (terminateReason: TerminateReason): string => {
 		if (terminateReason === "general-error") {
 			console.error("PeerConnectionService.TerminateReason.GENERAL_ERROR");
+		}
+
+		if (terminateReason === "unknown") {
+			console.error("PeerConnectionService.TerminateReason.unknown");
 		}
 
 		//special case for schedule, as it has different messages according to the schedule's settings.
