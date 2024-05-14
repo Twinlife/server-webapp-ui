@@ -46,6 +46,7 @@
 		"application_cancel": "Annuler",
 		"open_invitation": "Ouvrir l'invitation",
 		"streaming_audio_activity_error_message": "Une erreur est survenue. Veuillez réessayer.",
-		"application_no_network_connectivity": "pas de connectivité réseau"
+		"application_no_network_connectivity": "pas de connectivité réseau",
+		"call_activity_transfert_call_message": "L’appel en cours a été transféré."
 	}
 }
