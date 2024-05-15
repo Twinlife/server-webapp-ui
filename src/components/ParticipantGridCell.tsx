@@ -74,7 +74,8 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 
 			<video
 				ref={ref}
-				autoPlay
+				autoPlay={true}
+				playsInline={true}
 				id={"videoElement-" + participantId}
 				className={["h-full w-full object-cover", isCameraMute ? "hidden" : ""].join(" ")}
 			></video>
