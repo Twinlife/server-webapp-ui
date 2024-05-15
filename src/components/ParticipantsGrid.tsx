@@ -108,7 +108,8 @@ const ParticipantsGrid: React.FC<{
 				<video
 					ref={localVideoRef}
 					className={["h-full w-full object-cover", videoMute ? "hidden" : ""].join(" ")}
-					autoPlay
+					autoPlay={true}
+					playsInline={true}
 					muted={true}
 				></video>
 
