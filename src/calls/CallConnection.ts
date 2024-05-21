@@ -1113,7 +1113,7 @@ export class CallConnection {
 		}
 	}
 
-	private sendParticipantInfoIQ(): void {
+	public sendParticipantInfoIQ(): void {
 		const name: string = this.mCall.getIdentityName();
 		if (DEBUG) {
 			console.log(this.mPeerConnectionId, ": sending participant with name=" + name);

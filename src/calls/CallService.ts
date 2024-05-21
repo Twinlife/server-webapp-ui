@@ -94,6 +94,15 @@ export class CallService implements PeerCallServiceObserver {
 		this.mIdentityImage = identityImage;
 	}
 
+	updateIdentity(identityName: string, identityImage: ArrayBuffer): void {
+		this.mIdentityName = identityName;
+		this.mIdentityImage = identityImage;
+		const call: CallState | null = this.mActiveCall;
+		if (call) {
+			call.updateIdentity(identityName, identityImage);
+		}
+	}
+
 	actionOutgoingCall(
 		twincodeId: string,
 		video: boolean,
