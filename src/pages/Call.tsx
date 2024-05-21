@@ -10,6 +10,7 @@
  */
 import zonedTimeToUtc from "date-fns-tz/zonedTimeToUtc";
 import i18n, { TFunction } from "i18next";
+import { ScreenShare, ScreenShareOff } from "lucide-react";
 import React, { Component, ReactNode, RefObject, useEffect, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
@@ -82,6 +83,7 @@ interface CallState {
 	facingMode: FacingMode;
 	usedAudioDevice: string;
 	usedVideoDevice: string;
+	isSharingScreen: boolean;
 	chatPanelOpened: boolean;
 	items: Item[];
 	atLeastOneParticipantSupportsMessages: boolean;
@@ -130,6 +132,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		facingMode: "user",
 		usedAudioDevice: "",
 		usedVideoDevice: "",
+		isSharingScreen: false,
 		chatPanelOpened: false,
 		items: [],
 		atLeastOneParticipantSupportsMessages: false,
@@ -419,7 +422,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 	selectAudioDevice = async (deviceId: string) => {
 		try {
-			this.setState({ usedAudioDevice: deviceId });
 			const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 				audio: { deviceId },
 				video: false,
@@ -434,8 +436,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 	selectVideoDevice = async (deviceId: string) => {
 		try {
-			this.setState({ usedVideoDevice: deviceId });
 			if (this.callService.hasVideoTrack()) {
+				this.setState({ isSharingScreen: false });
 				const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 					audio: false,
 					video: { deviceId },
@@ -447,6 +449,33 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		} catch (error) {
 			console.log("Select video device error", error);
 		}
+	};
+
+	startScreenSharing = async (mediaStream: MediaStream) => {
+		if (DEBUG) {
+			console.log("Start screen sharing");
+		}
+
+		try {
+			const videoTrack = mediaStream.getVideoTracks()[0];
+			this.callService.addOrReplaceVideoTrack(videoTrack);
+			this.setUsedDevices();
+			this.setState({ videoMute: false, isSharingScreen: true });
+			this.callService.actionCameraMute(false);
+		} catch (error) {
+			console.log("Screen sharing error", error);
+		}
+	};
+
+	stopScreenSharing = () => {
+		if (DEBUG) {
+			console.log("Stop screen sharing");
+		}
+
+		this.setState({ videoMute: true, isSharingScreen: false });
+		this.callService.actionCameraMute(true);
+		this.callService.actionCameraStop();
+		this.setUsedDevices();
 	};
 
 	handleCallClick: React.MouseEventHandler<HTMLButtonElement> = async (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -680,6 +709,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			videoDevices,
 			usedAudioDevice,
 			usedVideoDevice,
+			isSharingScreen,
 			chatPanelOpened,
 			items,
 			atLeastOneParticipantSupportsMessages,
@@ -790,8 +820,11 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						videoDevices={videoDevices}
 						usedAudioDevice={usedAudioDevice}
 						usedVideoDevice={usedVideoDevice}
+						isSharingScreen={isSharingScreen}
 						selectAudioDevice={this.selectAudioDevice}
 						selectVideoDevice={this.selectVideoDevice}
+						startScreenSharing={this.startScreenSharing}
+						stopScreenSharing={this.stopScreenSharing}
 					/>
 				)}
 
@@ -830,8 +863,11 @@ const CallButtons = ({
 	videoDevices,
 	usedAudioDevice,
 	usedVideoDevice,
+	isSharingScreen,
 	selectAudioDevice,
 	selectVideoDevice,
+	startScreenSharing,
+	stopScreenSharing,
 }: {
 	status: CallStatus;
 	handleCallClick: React.MouseEventHandler;
@@ -847,8 +883,11 @@ const CallButtons = ({
 	videoDevices: MediaDeviceInfo[];
 	usedAudioDevice: string;
 	usedVideoDevice: string;
+	isSharingScreen: boolean;
 	selectAudioDevice: (deviceId: string) => void;
 	selectVideoDevice: (deviceId: string) => void;
+	startScreenSharing: (mediaStream: MediaStream) => void;
+	stopScreenSharing: () => void;
 }) => {
 	const { t } = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
@@ -901,9 +940,34 @@ const CallButtons = ({
 						<img src={audioMute ? micOffIcon : micOnIcon} alt="" className="w-[37px]" />
 					</WhiteButton>
 				)}
-				{hasVideo && (
+				{hasVideo && !isSharingScreen && (
 					<WhiteButton onClick={muteVideoClick} className="ml-3">
 						<img src={videoMute ? camOffIcon : camOnIcon} alt="" className="w-[37px]" />
+					</WhiteButton>
+				)}
+				{!IsMobile() && (
+					<WhiteButton
+						className="ml-3 !p-[10px]"
+						onClick={async () => {
+							if (!isSharingScreen) {
+								try {
+									const mediaStream = await navigator.mediaDevices.getDisplayMedia({
+										video: true,
+										audio: false,
+									});
+									console.log("mediaStream", mediaStream);
+									if (mediaStream) {
+										startScreenSharing(mediaStream);
+									}
+								} catch (error) {
+									console.error("Screen sharing error or denied : ", error);
+								}
+							} else {
+								stopScreenSharing();
+							}
+						}}
+					>
+						{isSharingScreen ? <ScreenShareOff color="black" /> : <ScreenShare color="black" />}
 					</WhiteButton>
 				)}
 				{!IsMobile() && (
