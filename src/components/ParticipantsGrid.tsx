@@ -4,6 +4,7 @@ import { CallParticipant } from "../calls/CallParticipant";
 import { CallService } from "../calls/CallService";
 import { Item } from "../pages/Call";
 import { TwincodeInfo } from "../services/ContactService";
+import GuestNameForms from "./GuestNameForms";
 import ParticipantGridCell from "./ParticipantGridCell";
 import ChatBox from "./chatbox/ChatBox";
 
@@ -21,6 +22,7 @@ const ParticipantsGrid: React.FC<{
 	guestNameError: boolean;
 	items: Item[];
 	setGuestName: (value: string) => void;
+	updateGuestName: (value: string) => void;
 	muteVideoClick: (ev: React.MouseEvent<HTMLDivElement>) => void;
 	pushMessage: typeof CallService.prototype.pushMessage;
 }> = ({
@@ -37,6 +39,7 @@ const ParticipantsGrid: React.FC<{
 	guestNameError,
 	items,
 	setGuestName,
+	updateGuestName,
 	muteVideoClick,
 	pushMessage,
 }) => {
@@ -163,28 +166,13 @@ const ParticipantsGrid: React.FC<{
 					)}
 				</div>
 				<div className={["absolute bottom-2 right-2 text-sm"].join(" ")}>
-					{isIddle && (
-						<>
-							{guestNameError && (
-								<div className="animate-skaheX py-1 text-orange-600">{t("nickname_empty_error")}</div>
-							)}
-							<div
-								className={[
-									"rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition",
-									guestNameError ? "!border-orange-600" : "",
-								].join(" ")}
-							>
-								<input
-									type="text"
-									value={guestName}
-									className=" bg-transparent placeholder:font-light placeholder:text-[#656565] focus:outline-none "
-									placeholder="Entrez un pseudo"
-									onChange={(e) => setGuestName(e.target.value)}
-								/>
-							</div>
-						</>
-					)}
-					{!isIddle && <div className="rounded-lg bg-black/70 px-2 py-1">{guestName}</div>}
+					<GuestNameForms
+						update={!isIddle}
+						guestName={guestName}
+						guestNameError={guestNameError}
+						setGuestName={setGuestName}
+						updateGuestName={updateGuestName}
+					/>
 				</div>
 			</div>
 

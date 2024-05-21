@@ -732,6 +732,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 							this.setState({ guestName, guestNameError: guestName === "" });
 							window.localStorage.setItem("guestName", guestName);
 						}}
+						updateGuestName={(guestName: string) => {
+							this.setState({ guestName, guestNameError: guestName === "" });
+							window.localStorage.setItem("guestName", guestName);
+							if (guestName !== "") {
+								this.callService.updateIdentity(guestName, new ArrayBuffer(0));
+							}
+						}}
 						muteVideoClick={this.muteVideoClick}
 						pushMessage={(message, copyAllowed) => {
 							const descriptor = this.callService.pushMessage(message, copyAllowed);

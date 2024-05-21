@@ -43,8 +43,8 @@ import { PushObjectIQ } from "./PushObjectIQ.ts";
 export class CallState {
 	private readonly mCallService: CallService;
 	private readonly mPeerCallService: PeerCallService;
-	private readonly mIdentityAvatar: ArrayBuffer;
-	private readonly mIdentityName: string;
+	private mIdentityAvatar: ArrayBuffer;
+	private mIdentityName: string;
 	private readonly mSenderId: UUID;
 	private mPeers: Array<CallConnection> = [];
 	private mLocalRenderer: any = null;
@@ -225,6 +225,20 @@ export class CallState {
 			descriptor.sentTimestamp = -1;
 		}
 		return descriptor;
+	}
+
+	/**
+	 * Update the identity name and avatar.
+	 *
+	 * @param identityName the new identity name.
+	 * @param identityAvatar the new identity avatar.
+	 */
+	public updateIdentity(identityName: string, identityAvatar: ArrayBuffer): void {
+		this.mIdentityName = identityName;
+		this.mIdentityAvatar = identityAvatar;
+		for (const connection of this.mPeers) {
+			connection.sendParticipantInfoIQ();
+		}
 	}
 
 	/**
