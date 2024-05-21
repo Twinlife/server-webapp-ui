@@ -237,6 +237,22 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
+	actionCameraStop(): void {
+		const call: CallState | null = this.mActiveCall;
+		if (call) {
+			const connections: Array<CallConnection> = call.getConnections();
+			for (const connection of connections) {
+				connection.stopVideoTrack();
+			}
+		}
+
+		const track = this.mLocalStream.getVideoTracks()[0];
+		if (track) {
+			track.stop();
+			this.mLocalStream.removeTrack(track);
+		}
+	}
+
 	/**
 	 * Send a message to each peer connected with us.
 	 *
