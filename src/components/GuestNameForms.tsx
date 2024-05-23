@@ -1,4 +1,6 @@
-import { useState } from "react";
+import clsx from "clsx";
+import { X } from "lucide-react";
+import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface GuestNameFormsProps {
@@ -52,25 +54,41 @@ interface UpdateGuestNameFormProps {
 function UpdateGuestNameForm({ defaultValue, updateGuestName }: UpdateGuestNameFormProps) {
 	const [localGuestName, setLocalGuestName] = useState(defaultValue);
 
+	const inputRef = useRef<HTMLInputElement>(null);
+
 	return (
-		<>
+		<form
+			className={clsx(
+				"-m-2 flex flex-row items-center rounded-md border-2 border-solid border-transparent p-1 transition",
+				localGuestName !== defaultValue && (localGuestName === "" ? "border-orange-600" : "border-white/50")
+			)}
+			onSubmit={(e) => {
+				e.preventDefault();
+				if (localGuestName !== defaultValue) {
+					updateGuestName(localGuestName);
+					inputRef.current?.blur();
+				}
+			}}
+		>
 			<input
+				ref={inputRef}
 				type="text"
 				value={localGuestName}
-				className=" bg-transparent placeholder:font-light placeholder:text-[#656565] focus:outline-none "
+				className="bg-transparent placeholder:font-light placeholder:text-[#656565] hover:cursor-pointer focus:outline-none"
 				placeholder="Entrez un pseudo"
 				onChange={(e) => setLocalGuestName(e.target.value)}
 			/>
 			{localGuestName !== defaultValue && (
 				<button
-					className="rounded-lg bg-black/70 px-2 py-1 text-white"
+					type="button"
+					className="text-white"
 					onClick={() => {
-						updateGuestName(localGuestName);
+						setLocalGuestName(defaultValue);
 					}}
 				>
-					Valider
+					<X size={16} />
 				</button>
 			)}
-		</>
+		</form>
 	);
 }
