@@ -61,8 +61,10 @@ export class CallState {
 	public readonly transfer: boolean = false;
 	public transferDirection: CallState.TransferDirection | null = null;
 	public transferToConnection: CallConnection | null = null;
-	private readonly pendingPrepareTransfers: Set<string> = new Set<string>();
-
+	public transferFromConnection: CallConnection | null = null;
+	public transferToMemberId: string | null = null;
+	private readonly mPendingCallRoomMembers: Map<string, CallConnection> = new Map<string, CallConnection>();
+	private readonly mPendingPrepareTransfers: Set<string> = new Set<string>();
 	/**
 	 * Get the identity name.
 	 *
@@ -247,6 +249,8 @@ export class CallState {
 	 * @param {CallParticipant} participant the participant.
 	 */
 	onAddParticipant(participant: CallParticipant): void {
+		this.performTransfer(participant);
+
 		const observer: CallParticipantObserver | null = this.mCallService.getParticipantObserver();
 		if (observer != null) {
 			observer.onAddParticipant(participant);
@@ -422,18 +426,64 @@ export class CallState {
 			callConnection.release();
 		}
 		this.mPeers = [];
+
+		if (this.transferFromConnection) {
+			this.transferFromConnection.release();
+			this.transferFromConnection = null;
+		}
+
+		this.mPendingCallRoomMembers.clear();
+		this.mPendingPrepareTransfers.clear();
+	}
+
+	onEventParticipantTransfer(memberId: string): void {
+		this.transferToMemberId = memberId;
+
+		for (let [sessionId, callConnection] of this.mPendingCallRoomMembers) {
+			this.mCallService.onSessionInitiate(callConnection.getCallMemberId()!, sessionId);
+		}
+		this.mPendingCallRoomMembers.clear();
+	}
+
+	onPrepareTransfer(peerConnection: CallConnection): void {
+		this.transferFromConnection = peerConnection;
 	}
 
 	addPendingPrepareTransfer(peerConnectionId: string): void {
-		this.pendingPrepareTransfers.add(peerConnectionId);
+		this.mPendingPrepareTransfers.add(peerConnectionId);
 	}
 
 	removePendingPrepareTransfer(peerConnectionId: string): void {
-		this.pendingPrepareTransfers.delete(peerConnectionId);
+		this.mPendingPrepareTransfers.delete(peerConnectionId);
 	}
 
 	hasPendingPrepareTransfer(): boolean {
-		return this.pendingPrepareTransfers.size > 0;
+		return this.mPendingPrepareTransfers.size > 0;
+	}
+
+	addPendingCallRoomConnection(peerConnectionId: string, callConnection: CallConnection): void {
+		this.mPendingCallRoomMembers.set(peerConnectionId, callConnection);
+	}
+
+	performTransfer(transfertTarget: CallParticipant): boolean {
+		if (!this.transferFromConnection) {
+			return false;
+		}
+
+		const transferToMemberId = this.transferFromConnection.transferToMemberId;
+
+		if (transferToMemberId && transferToMemberId === transfertTarget.getCallConnection()?.getCallMemberId()) {
+			transfertTarget.transferParticipant(this.transferFromConnection.getMainParticipant()!);
+			this.transferFromConnection.transferToMemberId = null;
+			this.transferFromConnection = null;
+			this.transferToMemberId = null;
+
+			this.onEventParticipant(transfertTarget, CallParticipantEvent.EVENT_IDENTITY);
+
+			return true;
+		}
+
+		return false;
 	}
 
 	private newRequestId(): number {

@@ -32,6 +32,11 @@ const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
  */
 export class CallParticipant {
 	private readonly mParticipantId: number;
+	/**
+	 * If not null, indicates that this participant is the transfer target of the participant
+	 * referenced by this ID.
+	 */
+	public transferredFromParticipantId: number | null = null;
 	private readonly mConnection: CallConnection;
 	private mAvatarUrl: string | null = null;
 	private mName: string | null;
@@ -233,5 +238,15 @@ export class CallParticipant {
 			this.mVideoWidth = videoWidth;
 			this.mVideoHeight = videoHeight;
 		}
+	}
+
+	public transferParticipant(transferredParticipant: CallParticipant): void {
+		const name = transferredParticipant.getName();
+		if (!name) {
+			return;
+		}
+
+		this.setInformation(name, transferredParticipant.getDescription(), transferredParticipant.getAvatarUrl());
+		this.transferredFromParticipantId = transferredParticipant.getParticipantId();
 	}
 }

@@ -416,22 +416,41 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		if (callConnection?.getCall().transfer) {
-			switch (callConnection.getCall().transferDirection) {
+		const call = callConnection.getCall();
+
+		if (call.transferFromConnection) {
+			// We've received a PrepareTransferIQ from the transferred participant
+			// => this new incoming connection is likely from the transfer target
+			// (but it could also be a new group member joining at the same time)
+			if (!call.transferToMemberId) {
+				// We haven't received the ParticipantTransferIQ yet,
+				// so we don't know which new member is the transfer target.
+				// Wait for the IQ before doing anything with the new connection.
+				call.addPendingCallRoomConnection(sessionId, callConnection);
+				return;
+			} else if (call.transferToMemberId === callConnection.getCallMemberId()) {
+				// We've received a ParticipantTransferIQ from the transferred participant,
+				// and this is the transfer target's connection => perform the transfer
+				call.performTransfer(callConnection.getMainParticipant()!);
+			}
+		}
+
+		if (call.transfer) {
+			switch (call.transferDirection) {
 				case TransferDirection.TO_BROWSER:
-					if (callConnection.getCall().getCurrentConnection()?.getPeerConnectionId() == sessionId) {
+					if (call.getCurrentConnection()?.getPeerConnectionId() == sessionId) {
 						// We're transferring the call to this browser and we're connected to the transferred device =>
 						// copy the audio/video setting from the device as we want the browser to be in the same mode as the device.
 						this.mObserver.onOverrideAudioVideo(offer.audio, offer.video);
 					}
 					break;
 				case TransferDirection.TO_DEVICE:
-					for (const connection of callConnection.getCall().getConnections()) {
+					for (const connection of call.getConnections()) {
 						const peerConnectionId = connection.getPeerConnectionId();
 
 						if (peerConnectionId && peerConnectionId != sessionId) {
 							connection.sendPrepareTransferIQ();
-							callConnection.getCall().addPendingPrepareTransfer(peerConnectionId);
+							call.addPendingPrepareTransfer(peerConnectionId);
 						}
 					}
 					break;
