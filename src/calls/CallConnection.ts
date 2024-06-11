@@ -148,6 +148,10 @@ export class CallConnection {
 
 	private mCallMemberId: string | null = null;
 	private mMessageSupported: boolean | null = null;
+	/**
+	 * If not null, this connection's main participant is currently in transfer towards this memberId.
+	 */
+	transferToMemberId: string | null = null;
 
 	/**
 	 * Get the main call participant.
@@ -272,6 +276,19 @@ export class CallConnection {
 			serializer: CallConnection.IQ_PARTICIPANT_INFO_SERIALIZER,
 			handler: (callConnection: CallConnection, iq: BinaryPacketIQ) => {
 				return callConnection.onParticipantInfoIQ(iq);
+			},
+		});
+		this.addListener({
+			serializer: CallConnection.IQ_PARTICIPANT_TRANSFER_SERIALIZER,
+			handler: (callConnection: CallConnection, iq: BinaryPacketIQ) => {
+				callConnection.onParticipantTransferIQ(iq);
+			},
+		});
+
+		this.addListener({
+			serializer: CallConnection.IQ_PREPARE_TRANSFER_SERIALIZER,
+			handler: (callConnection: CallConnection, _: BinaryPacketIQ) => {
+				callConnection.onPrepareTransferIQ();
 			},
 		});
 		this.addListener({
@@ -1172,6 +1189,11 @@ export class CallConnection {
 			return;
 		}
 
+		if (this.mMainParticipant.transferredFromParticipantId != null) {
+			// The participant is a transfer target, ignore the info
+			// because we already copied it from the transferred participant.
+			return;
+		}
 		let imageUrl: string | null = null;
 		const buffer: ArrayBuffer | null = iq.thumbnailData;
 		if (buffer && buffer.byteLength > 0) {
@@ -1210,6 +1232,34 @@ export class CallConnection {
 			console.warn(this.mPeerConnectionId, ": could not send iq:", exception);
 			return false;
 		}
+	}
+
+	public onParticipantTransferIQ(iq: BinaryPacketIQ): void {
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": received ParticipantTransferIQ from: ", this.mMainParticipant);
+		}
+
+		if (!(iq != null && iq instanceof ParticipantTransferIQ)) {
+			return;
+		}
+
+		this.transferToMemberId = iq.memberId;
+
+		this.mCall.onEventParticipantTransfer(iq.memberId);
+	}
+
+	public onPrepareTransferIQ(): void {
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": received PrepareTransferIQ from: ", this.mMainParticipant);
+		}
+
+		if (!this.mPeerConnectionId) {
+			return;
+		}
+
+		this.mCall.onPrepareTransfer(this);
+
+		this.sendMessage(new BinaryPacketIQ(CallConnection.IQ_ON_PREPARE_TRANSFER_SERIALIZER, 1));
 	}
 
 	public onOnPrepareTransferIQ(): void {
