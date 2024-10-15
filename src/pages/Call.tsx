@@ -10,17 +10,20 @@
  */
 import zonedTimeToUtc from "date-fns-tz/zonedTimeToUtc";
 import i18n, { TFunction } from "i18next";
-import { ScreenShare, ScreenShareOff } from "lucide-react";
+import {
+	Mic,
+	MicOff,
+	ScreenShare,
+	ScreenShareOff,
+	SwitchCamera,
+	Video,
+	VideoOff
+} from "lucide-react";
 import React, { Component, ReactNode, RefObject, useEffect, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
 import { NavigateFunction, useNavigate, useParams } from "react-router-dom";
-import camOffIcon from "../assets/cam-off.svg";
-import camOnIcon from "../assets/cam-on.svg";
-import micOffIcon from "../assets/mic-off.svg";
-import micOnIcon from "../assets/mic-on.svg";
 import phoneCallIcon from "../assets/phone-call.svg";
-import switchCamIcon from "../assets/switch-cam.svg";
 import { CallObserver } from "../calls/CallObserver";
 import { CallParticipant } from "../calls/CallParticipant";
 import { CallParticipantEvent } from "../calls/CallParticipantEvent";
@@ -895,7 +898,7 @@ const CallButtons = ({
 	const inTransfer = APP_TRANSFER && inCall;
 
 	return (
-		<div className="mx-auto flex w-full items-center justify-between md:w-96 md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2">
+		<div className="mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2">
 			<div>
 				<button
 					className={[
@@ -917,32 +920,29 @@ const CallButtons = ({
 			{inTransfer && (
 				<div>
 					<button
-						className="flex items-center justify-center rounded-full bg-blue px-6 py-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
+						className="flex items-center justify-center rounded-full bg-blue px-6 py-3 ml-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
 						onClick={handleTransferClick}
 					>
 						<img src={phoneCallIcon} alt="" className="mr-3" />
-						<span className="font-light">Transfer</span>
+						<span className="font-light">{t("transfer")}</span>
 					</button>
 				</div>
 			)}
 
 			<div className="flex items-center justify-end">
 				{!videoMute && IsMobile() && hasVideo && (
-					<button
-						className=" ml-3 rounded-full bg-white p-2 hover:bg-white/90 active:bg-white/80 "
-						onClick={switchCameraClick}
-					>
-						<img src={switchCamIcon} alt="" />
-					</button>
+					<WhiteButton onClick={switchCameraClick} className="ml-3 !p-[10px]">
+						<SwitchCamera color="black" />
+					</WhiteButton>
 				)}
 				{inCall && (
-					<WhiteButton onClick={muteAudioClick} className="ml-3 rounded-full ">
-						<img src={audioMute ? micOffIcon : micOnIcon} alt="" className="w-[37px]" />
+					<WhiteButton onClick={muteAudioClick} className="ml-3 !p-[10px] ">
+						{audioMute ? <MicOff color="black" /> : <Mic color="black" />}
 					</WhiteButton>
 				)}
 				{hasVideo && !isSharingScreen && (
-					<WhiteButton onClick={muteVideoClick} className="ml-3">
-						<img src={videoMute ? camOffIcon : camOnIcon} alt="" className="w-[37px]" />
+					<WhiteButton onClick={muteVideoClick} className="ml-3 !p-[10px]">
+						{videoMute ? <VideoOff color="black" /> : <Video color="black" />}
 					</WhiteButton>
 				)}
 				{!IsMobile() && (
