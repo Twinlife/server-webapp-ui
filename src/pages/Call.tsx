@@ -726,6 +726,14 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			return <Thanks onCallBackClick={this.init} />;
 		}
 
+		const callType = twincode.transfer ? i18n.t("transfer") : i18n.t("call");
+
+		document.title = i18n.t("title", {
+			"appName": import.meta.env.VITE_APP_NAME,
+			"callType": callType,
+			"linkName": twincode.name
+		});
+
 		return (
 			<div className=" flex h-full w-screen flex-col bg-black p-4">
 				<Header
@@ -828,6 +836,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						selectVideoDevice={this.selectVideoDevice}
 						startScreenSharing={this.startScreenSharing}
 						stopScreenSharing={this.stopScreenSharing}
+						transfer={twincode.transfer}
 					/>
 				)}
 
@@ -852,13 +861,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 }
 
 const CallButtons = ({
-	status,
-	handleCallClick,
-	handleHangUpClick: hangUpClick,
-	handleTransferClick,
-	audioMute,
-	muteAudioClick,
-	hasVideo,
+						 status,
+						 handleCallClick,
+						 handleHangUpClick: hangUpClick,
+						 handleTransferClick,
+						 audioMute,
+						 muteAudioClick,
+						 hasVideo,
 	videoMute,
 	muteVideoClick,
 	switchCameraClick,
@@ -871,6 +880,7 @@ const CallButtons = ({
 	selectVideoDevice,
 	startScreenSharing,
 	stopScreenSharing,
+	transfer
 }: {
 	status: CallStatus;
 	handleCallClick: React.MouseEventHandler;
@@ -891,11 +901,12 @@ const CallButtons = ({
 	selectVideoDevice: (deviceId: string) => void;
 	startScreenSharing: (mediaStream: MediaStream) => void;
 	stopScreenSharing: () => void;
+	transfer: boolean;
 }) => {
 	const { t } = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
 	const isIddle = CallStatusOps.isIddle(status);
-	const inTransfer = APP_TRANSFER && inCall;
+	const inTransfer = transfer && inCall;
 
 	return (
 		<div className="mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2">
