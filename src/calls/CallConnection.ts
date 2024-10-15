@@ -9,7 +9,13 @@
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
-import { Offer, PeerCallService, TerminateReason, TransportCandidate } from "../services/PeerCallService";
+import {
+	DEFAULT_OFFER_TO_RECEIVE,
+	Offer,
+	PeerCallService,
+	TerminateReason,
+	TransportCandidate
+} from "../services/PeerCallService";
 import { BinaryCompactDecoder } from "../utils/BinaryCompactDecoder";
 import { BinaryPacketIQ } from "../utils/BinaryPacketIQ";
 import { ByteArrayInputStream } from "../utils/ByteArrayInputStream";
@@ -759,7 +765,8 @@ export class CallConnection {
 									this.mPeerConnectionId,
 									this.mTo,
 									description.sdp,
-									offer
+									offer,
+									DEFAULT_OFFER_TO_RECEIVE
 								);
 								this.checkRemoteCandidates();
 							} else {
