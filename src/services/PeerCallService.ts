@@ -197,6 +197,15 @@ const CLOSE_ERROR: number = 3000;
 const CLOSE_PING_ERROR: number = 3001;
 const CLOSE_TIMEOUT_ERROR: number = 3002;
 
+export const DEFAULT_OFFER_TO_RECEIVE: Offer = {
+	audio: true,
+	video: true,
+	data: true,
+	group: false,
+	transfer: false,
+	version: "1.0.0"
+};
+
 /**
  * WebRTC session management to send/receive SDPs.
  */
@@ -477,14 +486,14 @@ export class PeerCallService {
 		this.sendMessage(msg);
 	}
 
-	sessionAccept(sessionId: string, to: string, sdp: string, offer: Offer) {
+	sessionAccept(sessionId: string, to: string, sdp: string, offer: Offer, offerToReceive: Offer) {
 		const msg: SessionAcceptMessage = {
 			msg: "session-accept",
 			sessionId: sessionId,
 			to: to,
 			sdp: sdp,
 			offer: offer,
-			offerToReceive: offer,
+			offerToReceive: offerToReceive
 		};
 
 		this.sendMessage(msg);

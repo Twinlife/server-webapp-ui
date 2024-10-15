@@ -181,12 +181,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	}
 
 	onOverrideAudioVideo(audio: boolean, video: boolean): void {
-		const videoChanged = video ? this.state.videoMute : !this.state.videoMute;
+		const videoChanged = video != !this.state.videoMute;
 		if (videoChanged) {
 			this.toggleVideo();
 		}
 
-		const audioChanged = audio ? this.state.audioMute : !this.state.audioMute;
+		const audioChanged = audio != !this.state.audioMute;
 		if (audioChanged) {
 			this.toggleAudio();
 		}
@@ -380,12 +380,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			const { videoMute } = this.state;
 
 			this.setState({ videoMute: !videoMute }, async () => {
-				const { status, videoMute } = this.state;
+				const { videoMute } = this.state;
 				if (!videoMute && !this.callService.hasVideoTrack()) {
 					await this.askForMediaPermission("video");
 				}
 
-				if (this.callService.hasVideoTrack() && CallStatusOps.isActive(status)) {
+				if (this.callService.hasVideoTrack()) {
 					this.callService.actionCameraMute(videoMute);
 				}
 			});
