@@ -101,7 +101,6 @@ const timeFormat = new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" }
 //e.g. "1 Décembre 2023"
 const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" });
 
-const APP_TRANSFER: boolean = import.meta.env.VITE_APP_TRANSFER === "true";
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 // Create only one instance of PeerCallService.
@@ -907,6 +906,7 @@ const CallButtons = ({
 	const inCall = CallStatusOps.isActive(status);
 	const isIddle = CallStatusOps.isIddle(status);
 	const inTransfer = transfer && inCall;
+	const callLabel = transfer ? t("transfer") : t("call");
 
 	return (
 		<div className="mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2">
@@ -924,7 +924,7 @@ const CallButtons = ({
 					{inCall ? (
 						<Timer />
 					) : (
-						<span className="font-light">{isIddle ? t("call") : t("audio_call_activity_calling")}</span>
+						<span className="font-light">{isIddle ? callLabel : t("audio_call_activity_calling")}</span>
 					)}
 				</button>
 			</div>
