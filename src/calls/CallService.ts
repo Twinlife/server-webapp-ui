@@ -30,6 +30,7 @@ import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConnectionOperation } from "./ConnectionOperation";
 import { ConversationService } from "./ConversationService";
 import TransferDirection = CallState.TransferDirection;
+import { WakelockHandler } from "../utils/WakelockHandler.ts";
 
 // type Timer = ReturnType<typeof setTimeout>;
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
@@ -70,7 +71,7 @@ export class CallService implements PeerCallServiceObserver {
 	private mLocalStream: MediaStream = new MediaStream();
 	private mIdentityName: string = "Unknown";
 	private mIdentityImage: ArrayBuffer = new ArrayBuffer(0);
-
+	private wakeLock: WakelockHandler | null = null;
 	/**
 	 * Constructor to build the main CallService and maintain the state of current call with one or
 	 * several WebRTC connection and one or several call participant.
@@ -141,6 +142,9 @@ export class CallService implements PeerCallServiceObserver {
 				call.transferToConnection = callConnection;
 			}
 			this.mPeerTo.set(twincodeId, callConnection);
+
+			this.wakeLock = new WakelockHandler();
+			this.wakeLock.acquire();
 		});
 
 		this.mObserver.onUpdateCallStatus(callStatus);
@@ -490,6 +494,10 @@ export class CallService implements PeerCallServiceObserver {
 			this.mObserver.onTerminateCall(reason);
 			this.mActiveCall = null;
 		}
+
+		if (this.wakeLock !== null) {
+			this.wakeLock.release();
+		}
 	}
 
 	onJoinCallRoom(callRoomId: string, memberId: string, members: MemberInfo[]): void {
@@ -632,6 +640,10 @@ export class CallService implements PeerCallServiceObserver {
 
 		this.mObserver.onTerminateCall(terminateReason);
 		this.mActiveCall = null;
+
+		if (this.wakeLock !== null) {
+			this.wakeLock.release();
+		}
 	}
 
 	onOnPrepareTransfer(callConnection: CallConnection): void {
