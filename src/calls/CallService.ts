@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2019-2024 twinlife SA.
+ *  Copyright (c) 2019-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -197,8 +197,8 @@ export class CallService implements PeerCallServiceObserver {
 		const connections: Array<CallConnection> = call.getConnections();
 		for (const callConnection of connections) {
 			if (callConnection.getStatus() !== CallStatus.TERMINATED) {
-				callConnection.terminate(terminateReason);
-				this.onTerminatePeerConnection(callConnection, terminateReason);
+				const sessionId: string | null = callConnection.terminate(terminateReason);
+				this.onTerminatePeerConnection(sessionId, callConnection, terminateReason);
 			}
 		}
 	}
@@ -336,12 +336,11 @@ export class CallService implements PeerCallServiceObserver {
 	 * @return the list of participants are returned.
 	 */
 	getParticipants(): Array<CallParticipant> {
-		const participants: Array<CallParticipant> = [];
-		const connections: Array<CallConnection> = this.getConnections();
-		for (const callConnection of connections) {
-			callConnection.getParticipants(participants);
+		if (this.mActiveCall) {
+			return this.mActiveCall.getParticipants();
+		} else {
+			return [];
 		}
-		return participants;
 	}
 
 	getParticipantObserver(): CallParticipantObserver | null {
@@ -488,15 +487,10 @@ export class CallService implements PeerCallServiceObserver {
 		if (sessionId) {
 			const callConnection: CallConnection | undefined = this.mPeers.get(sessionId);
 			if (callConnection) {
-				this.onTerminatePeerConnection(callConnection, reason);
+				this.onTerminatePeerConnection(sessionId, callConnection, reason);
 			}
 		} else {
-			this.mObserver.onTerminateCall(reason);
-			this.mActiveCall = null;
-		}
-
-		if (this.wakeLock !== null) {
-			this.wakeLock.release();
+			this.terminateCall(reason);
 		}
 	}
 
@@ -618,9 +612,8 @@ export class CallService implements PeerCallServiceObserver {
 		this.mObserver.onUpdateCallStatus(call.getStatus());
 	}
 
-	onTerminatePeerConnection(callConnection: CallConnection, terminateReason: TerminateReason): void {
+	onTerminatePeerConnection(sessionId: string | null, callConnection: CallConnection, terminateReason: TerminateReason): void {
 		const call: CallState = callConnection.getCall();
-		const sessionId: string | null = callConnection.getPeerConnectionId();
 		if (sessionId) {
 			if (DEBUG) {
 				console.log(sessionId, ": remove peer session");
@@ -638,12 +631,7 @@ export class CallService implements PeerCallServiceObserver {
 			}
 		}
 
-		this.mObserver.onTerminateCall(terminateReason);
-		this.mActiveCall = null;
-
-		if (this.wakeLock !== null) {
-			this.wakeLock.release();
-		}
+		this.terminateCall(terminateReason);
 	}
 
 	onOnPrepareTransfer(callConnection: CallConnection): void {
@@ -694,8 +682,25 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	callTimeout(callConnection: CallConnection): void {
-		callConnection.terminate("expired");
-		this.onTerminatePeerConnection(callConnection, "expired");
+		const sessionId : string | null = callConnection.terminate("expired");
+		this.onTerminatePeerConnection(sessionId, callConnection, "expired");
+	}
+
+	/**
+	 * Call is terminated, notify the observer, cleanup and release the screen lock.
+	 *
+	 * @param terminateReason the terminate reason
+	 */
+	private terminateCall(terminateReason: TerminateReason): void {
+
+		console.info("call terminated with", terminateReason);
+		this.mObserver.onTerminateCall(terminateReason);
+		this.mActiveCall = null;
+
+		if (this.wakeLock !== null) {
+			this.wakeLock.release();
+			this.wakeLock = null;
+		}
 	}
 
 	private getAudioDirection(): RTCRtpTransceiverDirection {
