@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2024 twinlife SA.
+ *  Copyright (c) 2022-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -271,7 +271,7 @@ export class CallConnection {
 			if (DEBUG) {
 				console.log(peerConnectionId, ": create incoming P2P");
 			}
-			this.mParticipants.set(peerConnectionId.toString(), this.mMainParticipant);
+			this.mParticipants.set(peerConnectionId, this.mMainParticipant);
 			this.mCall.onAddParticipant(this.mMainParticipant);
 		} else {
 			if (DEBUG) {
@@ -1032,12 +1032,20 @@ export class CallConnection {
 		}
 	}
 
-	terminate(terminateReason: TerminateReason): void {
-		if (this.mPeerConnectionId != null) {
+	/**
+	 * Terminate the peer connection with the terminate reason and release the
+	 * WebRTC peer connection.
+	 *
+	 * @param terminateReason the terminate reason
+	 * @returns the peer connection id or null (if terminated before the creation, or, it is already terminated).
+	 */
+	terminate(terminateReason: TerminateReason): string | null {
+		const sessionId : string | null = this.mPeerConnectionId;
+		if (sessionId != null) {
 			if (DEBUG) {
-				console.log(this.mPeerConnectionId, ": session-terminate with ", terminateReason);
+				console.log(sessionId, ": session-terminate with ", terminateReason);
 			}
-			this.mPeerCallService.sessionTerminate(this.mPeerConnectionId.toString(), terminateReason);
+			this.mPeerCallService.sessionTerminate(sessionId, terminateReason);
 			this.mPeerConnectionId = null;
 		}
 
@@ -1045,6 +1053,7 @@ export class CallConnection {
 			this.mPeerConnection.close();
 			this.mPeerConnection = null;
 		}
+		return sessionId;
 	}
 
 	private addRemoteTrack(track: MediaStreamTrack, stream: MediaStream): void {
@@ -1152,10 +1161,12 @@ export class CallConnection {
 	 * @param notifyPeer true if we must notify the peer.
 	 */
 	private terminateInternal(terminateReason: TerminateReason, notifyPeer: boolean): void {
-		if (notifyPeer && this.mPeerConnectionId) {
-			this.mPeerCallService.sessionTerminate(this.mPeerConnectionId, terminateReason);
+		const sessionId : string | null = this.mPeerConnectionId;
+		if (notifyPeer && sessionId) {
+			this.mPeerCallService.sessionTerminate(sessionId, terminateReason);
+			this.mPeerConnectionId = null;
 		}
-		this.mCallService.onTerminatePeerConnection(this, terminateReason);
+		this.mCallService.onTerminatePeerConnection(sessionId, this, terminateReason);
 		if (this.mPeerConnection) {
 			this.mPeerConnection.close();
 			this.mPeerConnection = null;
