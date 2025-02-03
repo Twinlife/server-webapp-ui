@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021-2024 twinlife SA.
+ *  Copyright (c) 2021-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -102,6 +102,7 @@ const timeFormat = new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" }
 const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" });
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
+const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
 
 // Create only one instance of PeerCallService.
 const peerCallService: PeerCallService = new PeerCallService();
@@ -835,11 +836,11 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						selectVideoDevice={this.selectVideoDevice}
 						startScreenSharing={this.startScreenSharing}
 						stopScreenSharing={this.stopScreenSharing}
-						transfer={twincode.transfer}
+						transfer={TRANSFER || twincode.transfer}
 					/>
 				)}
 
-				{CallStatusOps.isIddle(status) && (
+				{!TRANSFER && CallStatusOps.isIddle(status) && (
 					<>
 						<div className="py-6 text-center font-light">{t("next_time_app")}</div>
 						<div className="mx-auto">
