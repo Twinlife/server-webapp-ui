@@ -7,6 +7,8 @@ interface ThanksProps {
 	onCallBackClick: () => void;
 }
 
+const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
+
 export default function Thanks({ onCallBackClick }: ThanksProps) {
 	const { t } = useTranslation();
 
@@ -27,11 +29,13 @@ export default function Thanks({ onCallBackClick }: ThanksProps) {
 					<div className="my-4 text-center text-2xl text-white">
 						<Trans i18nKey="thanks_choosing" values={{ appName: import.meta.env.VITE_APP_NAME }} t={t} />
 					</div>
+					{!TRANSFER && (<>
 					<div className="mb-12 w-60 text-center font-light lg:text-left">{t("next_time_app")}</div>
 
 					<div className="lg:-ml-4">
 						<StoresBadges />
 					</div>
+					</>)}
 
 					<div className="py-6 text-center font-light">
 						{t("more_information")}{" "}
