@@ -52,7 +52,7 @@ export class ParticipantInfoIQ extends BinaryPacketIQ {
 		memberId: string,
 		name: string,
 		description: string | null,
-		thumbnailData: ArrayBuffer | null
+		thumbnailData: ArrayBuffer | null,
 	) {
 		super(serializer, requestId);
 		this.memberId = memberId;
@@ -68,7 +68,7 @@ export namespace ParticipantInfoIQ {
 			super(schemaId, schemaVersion);
 		}
 
-		public serialize(encoder: Encoder, object: any): void {
+		public serialize(encoder: Encoder, object: ParticipantInfoIQ): void {
 			super.serialize(encoder, object);
 			const participantInfoIQ: ParticipantInfoIQ = object as ParticipantInfoIQ;
 			encoder.writeString(participantInfoIQ.memberId);
@@ -77,7 +77,7 @@ export namespace ParticipantInfoIQ {
 			encoder.writeOptionalBytes(participantInfoIQ.thumbnailData);
 		}
 
-		public deserialize(decoder: Decoder): any {
+		public deserialize(decoder: Decoder): ParticipantInfoIQ {
 			const serviceRequestIQ: BinaryPacketIQ = super.deserialize(decoder) as BinaryPacketIQ;
 			const memberId: string = decoder.readString();
 			const name: string = decoder.readString();
@@ -89,7 +89,7 @@ export namespace ParticipantInfoIQ {
 				memberId,
 				name,
 				description,
-				thumbnailData
+				thumbnailData,
 			);
 		}
 	}

@@ -53,13 +53,13 @@ export namespace ParticipantTransferIQ {
 			super(schemaId, schemaVersion);
 		}
 
-		public serialize(encoder: Encoder, object: any): void {
+		public serialize(encoder: Encoder, object: ParticipantTransferIQ): void {
 			super.serialize(encoder, object);
 			const participantInfoIQ: ParticipantTransferIQ = object as ParticipantTransferIQ;
 			encoder.writeString(participantInfoIQ.memberId);
 		}
 
-		public deserialize(decoder: Decoder): any {
+		public deserialize(decoder: Decoder): ParticipantTransferIQ {
 			const serviceRequestIQ: BinaryPacketIQ = super.deserialize(decoder) as BinaryPacketIQ;
 			const memberId: string = decoder.readString();
 			return new ParticipantTransferIQ(this, serviceRequestIQ.getRequestId(), memberId);

@@ -42,7 +42,7 @@
 export class UUID {
 	private value: ArrayBuffer = new ArrayBuffer(16);
 
-	public constructor(value1: any, value2?: any) {
+	public constructor(value1: unknown, value2?: unknown) {
 		if (value1 != null && value1 instanceof ArrayBuffer && value2 === undefined) {
 			this.value = value1;
 		} else if (
@@ -196,7 +196,7 @@ export class UUID {
 		return result;
 	}
 
-	public equals(obj: any): boolean {
+	public equals(obj: unknown): boolean {
 		if (obj === undefined || obj === null || !(obj instanceof UUID)) {
 			return false;
 		}

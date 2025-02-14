@@ -14,7 +14,6 @@ export class WakelockHandler {
 
 	public acquire() {
 		try {
-
 			this.release();
 
 			navigator.wakeLock.request("screen").then(
@@ -24,7 +23,7 @@ export class WakelockHandler {
 						console.log("Wakelock acquired");
 					}
 				},
-				(reason: any) => console.error("Could not acquire wakeLock", reason)
+				(reason: unknown) => console.error("Could not acquire wakeLock", reason),
 			);
 		} catch (err) {
 			// the wake lock request fails - usually system related, such being low on battery
@@ -42,7 +41,7 @@ export class WakelockHandler {
 				},
 				(reason) => {
 					console.error("Could not release wakelock", reason);
-				}
+				},
 			);
 
 			this.wakeLock = null;

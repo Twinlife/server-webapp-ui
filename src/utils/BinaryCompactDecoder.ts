@@ -203,7 +203,7 @@ export class BinaryCompactDecoder implements Decoder {
 			this.mInputStream.readBuffer(buff, 0, buff.byteLength);
 			const reversedBuff = new Uint8Array(buff);
 			return new UUID(reversedBuff.reverse().buffer);
-		} catch (exception) {
+		} catch (ignored) {
 			throw new SerializerException();
 		}
 	}

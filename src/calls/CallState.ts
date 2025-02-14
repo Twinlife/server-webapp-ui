@@ -47,7 +47,7 @@ export class CallState {
 	private mIdentityName: string;
 	private readonly mSenderId: UUID;
 	private mPeers: Array<CallConnection> = [];
-	private mLocalRenderer: any = null;
+	private mLocalRenderer: unknown = null;
 	private mConnectionStartTime: number = 0;
 	private mPeerConnected: boolean = false;
 	private mCallRoomId: UUID | null = null;
@@ -140,7 +140,7 @@ export class CallState {
 	 *
 	 * @return {*} the local video renderer or null.
 	 */
-	public getLocalRenderer(): any {
+	public getLocalRenderer(): unknown {
 		return this.mLocalRenderer;
 	}
 
@@ -204,14 +204,14 @@ export class CallState {
 			null,
 			now,
 			message,
-			copyAllowed
+			copyAllowed,
 		);
 
 		// Serialize the message only once for each connection.
 		const pushMessageIQ: PushObjectIQ = new PushObjectIQ(
 			CallConnection.IQ_PUSH_OBJECT_SERIALIZER,
 			this.newRequestId(),
-			descriptor
+			descriptor,
 		);
 
 		// Send only to the peers that support receiving messages.
@@ -313,7 +313,7 @@ export class CallState {
 		peerCallService: PeerCallService,
 		identityName: string,
 		identityImage: ArrayBuffer,
-		transfer: boolean = false
+		transfer: boolean = false,
 	) {
 		this.mCallService = callService;
 		this.mPeerCallService = peerCallService;
@@ -328,7 +328,7 @@ export class CallState {
 	 * Set the local video renderer when the camera is opened.
 	 * @param {*} localRenderer
 	 */
-	setLocalRenderer(localRenderer: any): void {
+	setLocalRenderer(localRenderer: unknown): void {
 		this.mLocalRenderer = localRenderer;
 	}
 
@@ -439,7 +439,7 @@ export class CallState {
 	onEventParticipantTransfer(memberId: string): void {
 		this.transferToMemberId = memberId;
 
-		for (let [sessionId, callConnection] of this.mPendingCallRoomMembers) {
+		for (const [sessionId, callConnection] of this.mPendingCallRoomMembers) {
 			this.mCallService.onSessionInitiate(callConnection.getCallMemberId()!, sessionId);
 		}
 		this.mPendingCallRoomMembers.clear();
@@ -473,7 +473,7 @@ export class CallState {
 		const transferToMemberId = this.transferFromConnection.transferToMemberId;
 
 		if (transferToMemberId && transferToMemberId === transfertTarget.getCallConnection()?.getCallMemberId()) {
-			transfertTarget.transferParticipant(this.transferFromConnection.getMainParticipant()!);
+			transfertTarget.transferParticipant(this.transferFromConnection.getMainParticipant());
 			this.transferFromConnection.transferToMemberId = null;
 			this.transferFromConnection = null;
 			this.transferToMemberId = null;

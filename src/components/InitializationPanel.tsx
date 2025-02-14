@@ -4,8 +4,6 @@ import { useTranslation } from "react-i18next";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import SpinnerIcon from "./icons/SpinnerIcon";
 
-type GrantState = "pending" | "granted" | "denied" | "notfound" | "error";
-
 interface InitializationPanelProps {
 	twincodeId: string;
 	twincode: TwincodeInfo;
@@ -20,7 +18,7 @@ export default function InitializationPanel({ twincodeId, onComplete }: Initiali
 		if (twincodeId) {
 			setTwincodeError(false);
 			ContactService.getTwincode(twincodeId)
-				.then(async (response: AxiosResponse<TwincodeInfo, any>) => {
+				.then(async (response: AxiosResponse<TwincodeInfo, unknown>) => {
 					const twincode = response.data;
 					if (twincode.audio) {
 						onComplete(twincode);
@@ -33,7 +31,7 @@ export default function InitializationPanel({ twincodeId, onComplete }: Initiali
 					setTwincodeError(true);
 				});
 		}
-	}, [twincodeId]);
+	}, [twincodeId, onComplete]);
 
 	return (
 		<div className="flex flex-1 items-center justify-center">

@@ -42,10 +42,7 @@ export namespace ConversationService {
 			this.sequenceId = sequenceId;
 		}
 
-		public equals(object: any): boolean {
-			if (!(object != null && object instanceof <any>ConversationService.DescriptorId)) {
-				return false;
-			}
+		public equals(object: DescriptorId): boolean {
 			const descriptorId: ConversationService.DescriptorId = <ConversationService.DescriptorId>object;
 			return (
 				descriptorId.twincodeOutboundId.compareTo(this.twincodeOutboundId) == 0 &&
@@ -115,7 +112,7 @@ export namespace ConversationService {
 			expireTimeout: number,
 			replyTo: DescriptorId | null,
 			sendTo: UUID | null,
-			createdTimestamp: number
+			createdTimestamp: number,
 		) {
 			this.type = type;
 			this.twincodeOutboundId = twincodeOutboundId;
@@ -161,7 +158,7 @@ export namespace ConversationService {
 			sendTo: UUID | null,
 			createdTimestamp: number,
 			message: string,
-			copyAllowed: boolean
+			copyAllowed: boolean,
 		) {
 			super(
 				Descriptor.Type.OBJECT_DESCRIPTOR,
@@ -170,7 +167,7 @@ export namespace ConversationService {
 				expireTimeout,
 				replyTo,
 				sendTo,
-				createdTimestamp
+				createdTimestamp,
 			);
 			this.message = message;
 			this.copyAllowed = copyAllowed;
@@ -193,7 +190,7 @@ export namespace ConversationService {
 			createdTimestamp: number,
 			twincodeId: UUID,
 			schemaId: UUID,
-			copyAllowed: boolean
+			copyAllowed: boolean,
 		) {
 			super(
 				Descriptor.Type.TWINCODE_DESCRIPTOR,
@@ -202,7 +199,7 @@ export namespace ConversationService {
 				expireTimeout,
 				replyTo,
 				sendTo,
-				createdTimestamp
+				createdTimestamp,
 			);
 
 			this.twincodeId = twincodeId;

@@ -110,7 +110,7 @@ export class ByteArrayOutputStream {
 		for (let i: number = 0; i < srcBuffer.byteLength && i < dstBuffer.byteLength; i++) {
 			dstBuffer[i] = srcBuffer[i];
 		}
-		return dstBuffer.buffer;
+		return dstBuffer.buffer as ArrayBuffer;
 	}
 
 	public write$int(b: number) {
@@ -122,22 +122,20 @@ export class ByteArrayOutputStream {
 
 	public writeBuffer(b: ArrayBuffer, off: number, len: number) {
 		if (off < 0 || off > b.byteLength || len < 0 || off + len - b.byteLength > 0) {
-			throw Object.defineProperty(new Error(), "__classes", {
-				configurable: true,
-				value: [
-					"java.lang.Throwable",
-					"java.lang.IndexOutOfBoundsException",
-					"java.lang.Object",
-					"java.lang.RuntimeException",
-					"java.lang.Exception",
-				],
-			});
+			throw new Error("Buffer overflow");
 		}
 		this.ensureCapacity(this.count + len);
 		const srcBuffer: Uint8Array = new Uint8Array(b, off, len);
 		const dstBuffer: Uint8Array = new Uint8Array(this.buf, this.count, len);
 		dstBuffer.set(srcBuffer);
 		this.count += len;
+	}
+
+	public writeUint8Array(srcBuffer: Uint8Array) {
+		this.ensureCapacity(this.count + srcBuffer.byteLength);
+		const dstBuffer: Uint8Array = new Uint8Array(this.buf, this.count, srcBuffer.byteLength);
+		dstBuffer.set(srcBuffer);
+		this.count += srcBuffer.byteLength;
 	}
 
 	/**

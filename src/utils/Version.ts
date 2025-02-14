@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 twinlife SA.
+ *  Copyright (c) 2022-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -11,14 +11,14 @@ export class Version {
 	public minor: number;
 	public patch: number;
 
-	public constructor(major?: any, minor?: any) {
+	public constructor(major?: number | string | null, minor?: number | string | null) {
 		if ((typeof major === "number" || major === null) && (typeof minor === "number" || minor === null)) {
-			this.major = major;
-			this.minor = minor;
+			this.major = major === null ? 0 : major;
+			this.minor = minor === null ? 0 : minor;
 			this.patch = 0;
 		} else if ((typeof major === "string" || major === null) && minor === undefined) {
 			const __args = arguments;
-			const version: any = __args[0];
+			const version: string = __args[0];
 			const numbers: string[] = version.trim().split("\\.");
 			if (numbers.length > 0) {
 				this.major = Version.toInteger(numbers[0]);
@@ -73,7 +73,7 @@ export class Version {
 	static toInteger(value: string): number {
 		try {
 			return parseInt(value);
-		} catch (exception) {
+		} catch (ignored: unknown) {
 			return 0;
 		}
 	}
