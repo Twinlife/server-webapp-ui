@@ -81,3 +81,19 @@ Debug mobile chrome from desktop application:
 
 This displays a page where we can see the mobile chrome console with all Chrome debugging windows.
 
+## Lint
+
+```
+npm run lint
+```
+
+## Updating package.json dependencies
+
+```
+npx npm-check-updates
+npx npm-check-updates -f qrcode
+npm outdated
+```
+
+Note: be careful that there are very often some regressions when updating dependencies
+
