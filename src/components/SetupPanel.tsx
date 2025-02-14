@@ -46,7 +46,7 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 		if (twincodeId) {
 			setTwincodeError(false);
 			ContactService.getTwincode(twincodeId)
-				.then(async (response: AxiosResponse<TwincodeInfo, any>) => {
+				.then(async (response: AxiosResponse<TwincodeInfo, unknown>) => {
 					const twincode = response.data;
 					if (twincode.audio) {
 						setTwincode(twincode);
@@ -59,31 +59,7 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 					setTwincodeError(true);
 				});
 		}
-	}, [twincodeId]);
-
-	useEffect(() => {
-		if (twincode?.name) {
-			askForMediaPermission("audio");
-		}
-	}, [twincode]);
-
-	useEffect(() => {
-		if (twincode) {
-			// if (!twincode.video && audioGranted === "granted") {
-			// 	setTimeout(() => {
-			// 		onComplete();
-			// 	}, 2000);
-			// }
-			// if (twincode.video && audioGranted === "granted" && videoGranted === "granted") {
-			// 	setTimeout(() => {
-			// 		onComplete();
-			// 	}, 2000);
-			// }
-			if (audioGranted === "granted") {
-				onComplete();
-			}
-		}
-	}, [twincode, audioGranted]);
+	}, [twincodeId, setTwincode]);
 
 	const askForMediaPermission = (kind: "audio" | "video") => {
 		navigator.mediaDevices
@@ -133,7 +109,9 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 						grantErrorType = "notfound";
 						break;
 				}
-				kind === "audio" ? setAudioGranted(grantErrorType) : null /* setVideoGranted(grantErrorType) */;
+				if (kind === "audio") {
+					setAudioGranted(grantErrorType);
+				} /* else setVideoGranted(grantErrorType) */
 			});
 		// .finally(() => {
 		// 	if (kind === "audio" && twincode.video) {
@@ -141,6 +119,30 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 		// 	}
 		// });
 	};
+
+	useEffect(() => {
+		if (twincode?.name) {
+			askForMediaPermission("audio");
+		}
+	}, [twincode]);
+
+	useEffect(() => {
+		if (twincode) {
+			// if (!twincode.video && audioGranted === "granted") {
+			// 	setTimeout(() => {
+			// 		onComplete();
+			// 	}, 2000);
+			// }
+			// if (twincode.video && audioGranted === "granted" && videoGranted === "granted") {
+			// 	setTimeout(() => {
+			// 		onComplete();
+			// 	}, 2000);
+			// }
+			if (audioGranted === "granted") {
+				onComplete();
+			}
+		}
+	}, [twincode, audioGranted, onComplete]);
 
 	return (
 		<div className="flex flex-1 items-center justify-center">
@@ -177,7 +179,7 @@ const SetupPanel: React.FC<InitializationModalProps> = ({
 										<div className="truncate">
 											{
 												audioDevices.filter(
-													(audioDevice) => audioDevice.deviceId === usedAudioDevice
+													(audioDevice) => audioDevice.deviceId === usedAudioDevice,
 												)[0]?.label
 											}
 										</div>

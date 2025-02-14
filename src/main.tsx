@@ -39,5 +39,5 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 			<input type="hidden" name="app-version" value={__APP_VERSION__} />
 			<RouterProvider router={router} />
 		</>
-	</React.StrictMode>
+	</React.StrictMode>,
 );

@@ -10,15 +10,7 @@
  */
 import zonedTimeToUtc from "date-fns-tz/zonedTimeToUtc";
 import i18n, { TFunction } from "i18next";
-import {
-	Mic,
-	MicOff,
-	ScreenShare,
-	ScreenShareOff,
-	SwitchCamera,
-	Video,
-	VideoOff
-} from "lucide-react";
+import { Mic, MicOff, ScreenShare, ScreenShareOff, SwitchCamera, Video, VideoOff } from "lucide-react";
 import React, { Component, ReactNode, RefObject, useEffect, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
@@ -210,7 +202,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			items: [],
 		});
 
-		this.callService = null as any;
+		this.callService = new CallService(peerCallService, this, this);
 
 		setTimeout(() => {
 			this.setState({ displayThanks: true });
@@ -401,7 +393,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						return { facingMode: facingMode === "user" ? "environment" : "user" };
 					},
 					async () => {
-						const { facingMode, status } = this.state;
+						const facingMode = this.state.facingMode;
 						try {
 							const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 								audio: false,
@@ -414,7 +406,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						} catch (error) {
 							console.log("Replace video track error", error);
 						}
-					}
+					},
 				);
 			} else {
 				console.log(this.state.audioDevices);
@@ -561,7 +553,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						alertMessage = (
 							<div>
 								{this.props.t(
-									kind === "audio" ? "microphone_access_not_found" : "camera_access_not_found"
+									kind === "audio" ? "microphone_access_not_found" : "camera_access_not_found",
 								)}
 							</div>
 						);
@@ -611,7 +603,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				"Can't transfer: call active=" +
 					CallStatusOps.isActive(status) +
 					", twincode.transfer=" +
-					twincode.transfer
+					twincode.transfer,
 			);
 			return;
 		}
@@ -729,9 +721,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		const callType = twincode.transfer ? i18n.t("transfer") : i18n.t("call");
 
 		document.title = i18n.t("title", {
-			"appName": import.meta.env.VITE_APP_NAME,
-			"callType": callType,
-			"linkName": twincode.name
+			appName: import.meta.env.VITE_APP_NAME,
+			callType: callType,
+			linkName: twincode.name,
 		});
 
 		return (
@@ -861,13 +853,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 }
 
 const CallButtons = ({
-						 status,
-						 handleCallClick,
-						 handleHangUpClick: hangUpClick,
-						 handleTransferClick,
-						 audioMute,
-						 muteAudioClick,
-						 hasVideo,
+	status,
+	handleCallClick,
+	handleHangUpClick: hangUpClick,
+	handleTransferClick,
+	audioMute,
+	muteAudioClick,
+	hasVideo,
 	videoMute,
 	muteVideoClick,
 	switchCameraClick,
@@ -880,7 +872,7 @@ const CallButtons = ({
 	selectVideoDevice,
 	startScreenSharing,
 	stopScreenSharing,
-	transfer
+	transfer,
 }: {
 	status: CallStatus;
 	handleCallClick: React.MouseEventHandler;
@@ -932,7 +924,7 @@ const CallButtons = ({
 			{inTransfer && (
 				<div>
 					<button
-						className="flex items-center justify-center rounded-full bg-blue px-6 py-3 ml-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
+						className="ml-3 flex items-center justify-center rounded-full bg-blue px-6 py-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
 						onClick={handleTransferClick}
 					>
 						<img src={phoneCallIcon} alt="" className="mr-3" />

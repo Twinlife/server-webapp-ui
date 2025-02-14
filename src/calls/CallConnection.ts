@@ -14,7 +14,7 @@ import {
 	Offer,
 	PeerCallService,
 	TerminateReason,
-	TransportCandidate
+	TransportCandidate,
 } from "../services/PeerCallService";
 import { BinaryCompactDecoder } from "../utils/BinaryCompactDecoder";
 import { BinaryPacketIQ } from "../utils/BinaryPacketIQ";
@@ -36,7 +36,7 @@ import { PushTwincodeIQ } from "./PushTwincodeIQ.ts";
 
 type PacketHandler = {
 	serializer: Serializer;
-	handler: (this: PacketHandler, callConnection: CallConnection, packet: BinaryPacketIQ) => any;
+	handler: (this: PacketHandler, callConnection: CallConnection, packet: BinaryPacketIQ) => unknown;
 };
 
 type Timer = ReturnType<typeof setTimeout>;
@@ -66,31 +66,31 @@ export class CallConnection {
 	private static readonly PARTICIPANT_INFO_SCHEMA_ID = UUID.fromString("a8aa7e0d-c495-4565-89bb-0c5462b54dd0");
 	private static readonly IQ_PARTICIPANT_INFO_SERIALIZER = ParticipantInfoIQ.createSerializer(
 		CallConnection.PARTICIPANT_INFO_SCHEMA_ID,
-		1
+		1,
 	);
 
 	private static readonly TRANSFER_DONE_SCHEMA_ID = UUID.fromString("641bf1f6-ebbf-4501-9151-76abc1b9adad");
 	private static readonly IQ_TRANSFER_DONE_SERIALIZER = BinaryPacketIQ.createDefaultSerializer(
 		CallConnection.TRANSFER_DONE_SCHEMA_ID,
-		1
+		1,
 	);
 
 	private static readonly PREPARE_TRANSFER_SCHEMA_ID = UUID.fromString("9eaa4ad1-3404-4bcc-875d-dc75c748e188");
 	private static readonly IQ_PREPARE_TRANSFER_SERIALIZER = BinaryPacketIQ.createDefaultSerializer(
 		CallConnection.PREPARE_TRANSFER_SCHEMA_ID,
-		1
+		1,
 	);
 
 	private static readonly ON_PREPARE_TRANSFER_SCHEMA_ID = UUID.fromString("a17516a2-4bd2-4284-9535-726b6eb1a211");
 	private static readonly IQ_ON_PREPARE_TRANSFER_SERIALIZER = BinaryPacketIQ.createDefaultSerializer(
 		CallConnection.ON_PREPARE_TRANSFER_SCHEMA_ID,
-		1
+		1,
 	);
 
 	private static readonly PARTICIPANT_TRANSFER_SCHEMA_ID = UUID.fromString("800fd629-83c4-4d42-8910-1b4256d19eb8");
 	private static readonly IQ_PARTICIPANT_TRANSFER_SERIALIZER = ParticipantTransferIQ.createSerializer(
 		CallConnection.PARTICIPANT_TRANSFER_SCHEMA_ID,
-		1
+		1,
 	);
 
 	private static readonly PUSH_OBJECT_SCHEMA_ID = UUID.fromString("26e3a3bd-7db0-4fc5-9857-bbdb2032960e");
@@ -99,19 +99,19 @@ export class CallConnection {
 	private static readonly ON_PUSH_OBJECT_SCHEMA_ID = UUID.fromString("f95ac4b5-d20f-4e1f-8204-6d146dd5291e");
 	private static readonly IQ_ON_PUSH_OBJECT_SERIALIZER = OnPushIQ.createSerializer(
 		CallConnection.ON_PUSH_OBJECT_SCHEMA_ID,
-		3
+		3,
 	);
 
 	private static readonly PUSH_TWINCODE_SCHEMA_ID = UUID.fromString("72863c61-c0a9-437b-8b88-3b78354e54b8");
 	private static readonly IQ_PUSH_TWINCODE_SERIALIZER = PushTwincodeIQ.createSerializer(
 		CallConnection.PUSH_TWINCODE_SCHEMA_ID,
-		2
+		2,
 	);
 
 	private static readonly ON_PUSH_TWINCODE_SCHEMA_ID = UUID.fromString("e6726692-8fe6-4d29-ae64-ba321d44a247");
 	private static readonly IQ_ON_PUSH_TWINCODE_SERIALIZER = OnPushIQ.createSerializer(
 		CallConnection.ON_PUSH_TWINCODE_SCHEMA_ID,
-		2
+		2,
 	);
 
 	private readonly mCallService: CallService;
@@ -164,7 +164,7 @@ export class CallConnection {
 	 *
 	 * @return {CallParticipant} the main participant of this call.
 	 */
-	public getMainParticipant(): CallParticipant | null {
+	public getMainParticipant(): CallParticipant {
 		return this.mMainParticipant;
 	}
 
@@ -244,7 +244,7 @@ export class CallConnection {
 		memberId: string | null,
 		sdp: string | null,
 		audioDirection: RTCRtpTransceiverDirection,
-		transfer: boolean = false
+		transfer: boolean = false,
 	) {
 		this.mCallService = callService;
 		this.mPeerCallService = peerCallService;
@@ -339,7 +339,7 @@ export class CallConnection {
 		this.mPeerConnection = pc;
 
 		// Handle ICE connection state.
-		pc.oniceconnectionstatechange = (event: Event) => {
+		pc.oniceconnectionstatechange = (_event: Event) => {
 			if (this.mPeerConnection) {
 				const state = this.mPeerConnection.iceConnectionState;
 				console.info(this.mPeerConnectionId, ": IceConnectionState ", state);
@@ -398,7 +398,7 @@ export class CallConnection {
 					this.mPeerConnectionId,
 					candidate.candidate,
 					candidate.sdpMid,
-					candidate.sdpMLineIndex
+					candidate.sdpMLineIndex,
 				);
 			}
 		};
@@ -408,7 +408,7 @@ export class CallConnection {
 		};
 
 		// Handle signaling state errors.
-		pc.onsignalingstatechange = (event: Event) => {
+		pc.onsignalingstatechange = (_event: Event) => {
 			if (this.mPeerConnection) {
 				const signalingState = this.mPeerConnection.signalingState;
 				console.info(this.mPeerConnectionId, "signalingstate", signalingState);
@@ -419,7 +419,7 @@ export class CallConnection {
 		};
 
 		// Handle WebRTC renegotiation to send a new offer.
-		pc.onnegotiationneeded = (event: Event) => {
+		pc.onnegotiationneeded = (_event: Event) => {
 			if (!this.mRenegotiationNeeded || !this.mPeerConnection) {
 				return;
 			}
@@ -439,11 +439,11 @@ export class CallConnection {
 						}
 					}
 				})
-				.catch((reason: any) => {
+				.catch((reason: unknown) => {
 					console.error(
 						this.mPeerConnectionId,
 						"setLocalDescription failed after onnegotiationneeded:",
-						reason
+						reason,
 					);
 				});
 		};
@@ -470,7 +470,7 @@ export class CallConnection {
 			const channel: RTCDataChannel = event.channel;
 			// Firefox defaults to "blob", but it's not supported by Chromium
 			channel.binaryType = "arraybuffer";
-			channel.onopen = (event: Event): any => {
+			channel.onopen = (_event: Event): void => {
 				const label: string = channel.label;
 
 				// CallService:<version>:<capability>,...,<capability>.
@@ -491,7 +491,7 @@ export class CallConnection {
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_SUPPORTS_MESSAGES);
 				}
 			};
-			channel.onmessage = (event: MessageEvent<ArrayBuffer>): any => {
+			channel.onmessage = (event: MessageEvent<ArrayBuffer>): void => {
 				if (DEBUG) {
 					console.log(this.mPeerConnectionId, ": received a data channel message");
 				}
@@ -520,7 +520,7 @@ export class CallConnection {
 					console.warn(
 						this.mPeerConnectionId,
 						": exception raised when handling data channel message",
-						exception
+						exception,
 					);
 				}
 			};
@@ -528,7 +528,7 @@ export class CallConnection {
 
 		// Setup the output data channel.
 		this.mOutDataChannel = pc.createDataChannel(CallConnection.DATA_VERSION);
-		this.mOutDataChannel.onopen = (event: Event): any => {
+		this.mOutDataChannel.onopen = (_event: Event): void => {
 			if (DEBUG) {
 				console.log(this.mPeerConnectionId, ": output data channel is now opened");
 			}
@@ -588,7 +588,7 @@ export class CallConnection {
 					this.mRemoteAnswerPending = false;
 					this.createAnswer(offer);
 				})
-				.catch((error: any) => {
+				.catch((error: unknown) => {
 					console.error(this.mPeerConnectionId, ": set remote failed:", error);
 					this.mRemoteAnswerPending = false;
 				});
@@ -612,7 +612,7 @@ export class CallConnection {
 										console.log(
 											this.mPeerConnectionId,
 											": sending session-initiate with offer:",
-											offer
+											offer,
 										);
 									} else {
 										console.log("Sending first session-initiate with offer:", offer);
@@ -622,11 +622,11 @@ export class CallConnection {
 								this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
 							}
 						})
-						.catch((reason: any) => {
+						.catch((reason: unknown) => {
 							console.error(this.mPeerConnectionId, ": setLocalDescription failed:", reason);
 						});
 				})
-				.catch((reason: any) => {
+				.catch((reason: unknown) => {
 					console.error(this.mPeerConnectionId, ": createOffer failed:", reason);
 				});
 		}
@@ -664,7 +664,7 @@ export class CallConnection {
 						sessionId,
 						candidate.candidate,
 						candidate.sdpMid,
-						candidate.sdpMLineIndex
+						candidate.sdpMLineIndex,
 					);
 				}
 			}
@@ -672,7 +672,7 @@ export class CallConnection {
 		this.mIcePending = null;
 	}
 
-	onSessionAccept(sdp: string, offer: Offer, offerToReceive: Offer): boolean {
+	onSessionAccept(sdp: string, offer: Offer, _offerToReceive: Offer): boolean {
 		if (!this.mPeerConnection) {
 			return false;
 		}
@@ -695,7 +695,7 @@ export class CallConnection {
 					this.checkRemoteCandidates();
 				}
 			})
-			.catch((error: any) => {
+			.catch((error: unknown) => {
 				this.mRemoteAnswerPending = false;
 				console.error(this.mPeerConnectionId, ": set remote failed:", error);
 			});
@@ -739,7 +739,7 @@ export class CallConnection {
 					}
 					resolve(true);
 				})
-				.catch((reason: any) => {
+				.catch((reason: unknown) => {
 					this.mRemoteAnswerPending = false;
 					console.error(this.mPeerConnectionId, "setRemoteDescription failed:", reason);
 					resolve(false);
@@ -766,7 +766,7 @@ export class CallConnection {
 									this.mTo,
 									description.sdp,
 									offer,
-									DEFAULT_OFFER_TO_RECEIVE
+									DEFAULT_OFFER_TO_RECEIVE,
 								);
 								this.checkRemoteCandidates();
 							} else {
@@ -774,11 +774,11 @@ export class CallConnection {
 							}
 						}
 					})
-					.catch((reason: any) => {
+					.catch((reason: unknown) => {
 						console.error(this.mPeerConnectionId, "setLocalDescription failed:", reason);
 					});
 			})
-			.catch((reason: any) => {
+			.catch((reason: unknown) => {
 				console.error(this.mPeerConnectionId, "createAnswer failed:", reason);
 			});
 	}
@@ -829,7 +829,7 @@ export class CallConnection {
 					},
 					(err) => {
 						console.error(this.mPeerConnectionId, ": add ice candidate error for %o : ", ice, err);
-					}
+					},
 				);
 			}
 		}
@@ -942,7 +942,7 @@ export class CallConnection {
 						" state=" +
 						this.mConnectionState +
 						" dir=" +
-						direction
+						direction,
 				);
 			}
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
@@ -1040,7 +1040,7 @@ export class CallConnection {
 	 * @returns the peer connection id or null (if terminated before the creation, or, it is already terminated).
 	 */
 	terminate(terminateReason: TerminateReason): string | null {
-		const sessionId : string | null = this.mPeerConnectionId;
+		const sessionId: string | null = this.mPeerConnectionId;
 		if (sessionId != null) {
 			if (DEBUG) {
 				console.log(sessionId, ": session-terminate with ", terminateReason);
@@ -1056,7 +1056,7 @@ export class CallConnection {
 		return sessionId;
 	}
 
-	private addRemoteTrack(track: MediaStreamTrack, stream: MediaStream): void {
+	private addRemoteTrack(track: MediaStreamTrack, _stream: MediaStream): void {
 		try {
 			const participant: CallParticipant | null = this.getMainParticipant();
 			if (participant) {
@@ -1161,7 +1161,7 @@ export class CallConnection {
 	 * @param notifyPeer true if we must notify the peer.
 	 */
 	private terminateInternal(terminateReason: TerminateReason, notifyPeer: boolean): void {
-		const sessionId : string | null = this.mPeerConnectionId;
+		const sessionId: string | null = this.mPeerConnectionId;
 		if (notifyPeer && sessionId) {
 			this.mPeerCallService.sessionTerminate(sessionId, terminateReason);
 			this.mPeerConnectionId = null;
@@ -1191,7 +1191,7 @@ export class CallConnection {
 			memberId,
 			name,
 			description,
-			thumbnailData
+			thumbnailData,
 		);
 		this.sendMessage(iq);
 	}
@@ -1314,7 +1314,7 @@ export class CallConnection {
 			CallConnection.IQ_ON_PUSH_OBJECT_SERIALIZER,
 			iq.getRequestId(),
 			CallConnection.DEVICE_STATE,
-			pushObjectIQ.descriptor.receivedTimestamp
+			pushObjectIQ.descriptor.receivedTimestamp,
 		);
 		this.sendMessage(onPushObjectIQ);
 	}
@@ -1337,7 +1337,7 @@ export class CallConnection {
 			CallConnection.IQ_ON_PUSH_TWINCODE_SERIALIZER,
 			iq.getRequestId(),
 			CallConnection.DEVICE_STATE,
-			pushTwincodeIQ.twincodeDescriptor.receivedTimestamp
+			pushTwincodeIQ.twincodeDescriptor.receivedTimestamp,
 		);
 		this.sendMessage(onPushObjectIQ);
 	}

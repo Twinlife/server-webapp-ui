@@ -17,7 +17,7 @@ export class SchemaKey {
 		this.version = version;
 	}
 
-	public equals(object: any): boolean {
+	public equals(object: UUID): boolean {
 		if (!(object != null && object instanceof SchemaKey)) {
 			return false;
 		}

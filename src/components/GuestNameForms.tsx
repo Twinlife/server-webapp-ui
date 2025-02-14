@@ -60,7 +60,7 @@ function UpdateGuestNameForm({ defaultValue, updateGuestName }: UpdateGuestNameF
 		<form
 			className={clsx(
 				"-m-2 flex flex-row items-center rounded-md border-2 border-solid border-transparent p-1 transition",
-				localGuestName !== defaultValue && (localGuestName === "" ? "border-orange-600" : "border-white/50")
+				localGuestName !== defaultValue && (localGuestName === "" ? "border-orange-600" : "border-white/50"),
 			)}
 			onSubmit={(e) => {
 				e.preventDefault();

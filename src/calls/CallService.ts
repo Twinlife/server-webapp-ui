@@ -21,6 +21,7 @@ import {
 } from "../services/PeerCallService";
 import { UUID } from "../utils/UUID";
 import { Version } from "../utils/Version";
+import { WakelockHandler } from "../utils/WakelockHandler.ts";
 import { CallConnection } from "./CallConnection";
 import { CallObserver } from "./CallObserver";
 import { CallParticipant } from "./CallParticipant";
@@ -30,7 +31,6 @@ import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConnectionOperation } from "./ConnectionOperation";
 import { ConversationService } from "./ConversationService";
 import TransferDirection = CallState.TransferDirection;
-import { WakelockHandler } from "../utils/WakelockHandler.ts";
 
 // type Timer = ReturnType<typeof setTimeout>;
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
@@ -65,7 +65,7 @@ export class CallService implements PeerCallServiceObserver {
 	private mParticipantObserver: CallParticipantObserver | null = null;
 	private mAudioMute: boolean = false;
 	private mIsCameraMute: boolean = false;
-	private mPeers: Map<string, CallConnection> = new Map<any, any>();
+	private mPeers: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private mPeerTo: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private mActiveCall: CallState | null = null;
 	private mLocalStream: MediaStream = new MediaStream();
@@ -82,7 +82,7 @@ export class CallService implements PeerCallServiceObserver {
 	constructor(
 		peerCallService: PeerCallService,
 		observer: CallObserver,
-		participantObserver: CallParticipantObserver
+		participantObserver: CallParticipantObserver,
 	) {
 		this.mPeerCallService = peerCallService;
 		this.mObserver = observer;
@@ -109,7 +109,7 @@ export class CallService implements PeerCallServiceObserver {
 		video: boolean,
 		transfer: boolean,
 		contactName: string,
-		contactURL: string
+		contactURL: string,
 	): void {
 		const activeCall: CallState | null = this.mActiveCall;
 		if (activeCall && activeCall.getStatus() !== CallStatus.TERMINATED) {
@@ -133,7 +133,7 @@ export class CallService implements PeerCallServiceObserver {
 				twincodeId,
 				null,
 				this.getAudioDirection(),
-				transfer
+				transfer,
 			);
 			call.addPeerConnection(callConnection);
 			callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
@@ -173,7 +173,7 @@ export class CallService implements PeerCallServiceObserver {
 			twincodeId,
 			null,
 			this.getAudioDirection(),
-			transfer
+			transfer,
 		);
 
 		call.addPeerConnection(callConnection);
@@ -388,7 +388,7 @@ export class CallService implements PeerCallServiceObserver {
 			this.mLocalStream,
 			peerId,
 			sdp,
-			this.getAudioDirection()
+			this.getAudioDirection(),
 		);
 		callConnection.setPeerVersion(new Version(offer.version));
 		this.mPeers.set(sessionId, callConnection);
@@ -434,7 +434,7 @@ export class CallService implements PeerCallServiceObserver {
 			} else if (call.transferToMemberId === callConnection.getCallMemberId()) {
 				// We've received a ParticipantTransferIQ from the transferred participant,
 				// and this is the transfer target's connection => perform the transfer
-				call.performTransfer(callConnection.getMainParticipant()!);
+				call.performTransfer(callConnection.getMainParticipant());
 			}
 		}
 
@@ -522,7 +522,7 @@ export class CallService implements PeerCallServiceObserver {
 				this.mLocalStream,
 				peerId,
 				null,
-				this.getAudioDirection()
+				this.getAudioDirection(),
 			);
 			this.mActiveCall.addPeerConnection(callConnection);
 			this.mPeerTo.set(peerId, callConnection);
@@ -612,7 +612,11 @@ export class CallService implements PeerCallServiceObserver {
 		this.mObserver.onUpdateCallStatus(call.getStatus());
 	}
 
-	onTerminatePeerConnection(sessionId: string | null, callConnection: CallConnection, terminateReason: TerminateReason): void {
+	onTerminatePeerConnection(
+		sessionId: string | null,
+		callConnection: CallConnection,
+		terminateReason: TerminateReason,
+	): void {
 		const call: CallState = callConnection.getCall();
 		if (sessionId) {
 			if (DEBUG) {
@@ -658,7 +662,7 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-	onTransferDone(callConnection: CallConnection) {
+	onTransferDone(_callConnection: CallConnection) {
 		this.actionTerminateCall("transfer-done");
 	}
 
@@ -682,7 +686,7 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	callTimeout(callConnection: CallConnection): void {
-		const sessionId : string | null = callConnection.terminate("expired");
+		const sessionId: string | null = callConnection.terminate("expired");
 		this.onTerminatePeerConnection(sessionId, callConnection, "expired");
 	}
 
@@ -692,7 +696,6 @@ export class CallService implements PeerCallServiceObserver {
 	 * @param terminateReason the terminate reason
 	 */
 	private terminateCall(terminateReason: TerminateReason): void {
-
 		console.info("call terminated with", terminateReason);
 		this.mObserver.onTerminateCall(terminateReason);
 		this.mActiveCall = null;

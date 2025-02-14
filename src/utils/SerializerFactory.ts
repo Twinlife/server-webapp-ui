@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2022 twinlife SA.
+ *  Copyright (c) 2015-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -10,7 +10,7 @@ import { Serializer } from "./Serializer";
 import { UUID } from "./UUID";
 
 export interface SerializerFactory {
-	getObjectSerializer(object: any): Serializer;
+	getObjectSerializer(object: unknown): Serializer;
 
 	getSerializer(schemaId: UUID, schemaVersion: number): Serializer;
 }

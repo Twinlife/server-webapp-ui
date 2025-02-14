@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2017-2018 twinlife SA.
+ *  Copyright (c) 2017-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -8,26 +8,17 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 export class SerializerException extends Error {
-	public constructor(exception?: any) {
-		if (
-			(exception != null &&
-				exception["__classes"] &&
-				exception["__classes"].indexOf("java.lang.Exception") >= 0) ||
-			(exception != null && exception instanceof Error) ||
-			exception === null
-		) {
+	public constructor(exception?: unknown) {
+		if (exception === null) {
+			super("Serialize error");
+		} else if (exception instanceof Error) {
+			super(exception.message);
+			this.message = exception.message;
+		} else if (typeof exception === "string") {
 			super(exception);
 			this.message = exception;
-			Object.setPrototypeOf(this, SerializerException.prototype);
-		} else if (typeof exception === "string" || exception === null) {
-			const __args = arguments;
-			const message: any = __args[0];
-			super(message);
-			this.message = message;
-			Object.setPrototypeOf(this, SerializerException.prototype);
 		} else if (exception === undefined) {
-			super();
-			Object.setPrototypeOf(this, SerializerException.prototype);
+			super("Unknown error");
 		} else throw new Error("invalid overload");
 	}
 }

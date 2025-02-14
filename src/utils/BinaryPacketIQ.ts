@@ -25,7 +25,7 @@ export class BinaryPacketIQ {
 
 	public static createDefaultSerializer(
 		schemaId: UUID,
-		schemaVersion: number
+		schemaVersion: number,
 	): BinaryPacketIQ.BinaryPacketIQSerializer {
 		return new BinaryPacketIQ.BinaryPacketIQSerializer(schemaId, schemaVersion);
 	}
@@ -70,7 +70,7 @@ export namespace BinaryPacketIQ {
 			encoder.writeLong(serviceRequestIQ.mRequestId);
 		}
 
-		public deserialize(decoder: Decoder): any {
+		public deserialize(decoder: Decoder): unknown {
 			const requestId: number = decoder.readLong();
 			return new BinaryPacketIQ(this, requestId);
 		}

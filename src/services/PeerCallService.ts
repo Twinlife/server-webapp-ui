@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021-2024 twinlife SA.
+ *  Copyright (c) 2021-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -203,7 +203,7 @@ export const DEFAULT_OFFER_TO_RECEIVE: Offer = {
 	data: true,
 	group: false,
 	transfer: false,
-	version: "1.0.0"
+	version: "1.0.0",
 };
 
 /**
@@ -253,7 +253,7 @@ export class PeerCallService {
 	private setupWebsocket(): void {
 		// Give the session id in the protocols part.
 		this.socket = new WebSocket(url);
-		this.socket.onopen = (event: Event) => {
+		this.socket.onopen = (_event: Event) => {
 			if (DEBUG) {
 				console.log("Websocket is opened");
 			}
@@ -269,7 +269,7 @@ export class PeerCallService {
 			let req: Message;
 			try {
 				req = JSON.parse(msg.data.toString());
-			} catch (e) {
+			} catch (ignored) {
 				return;
 			}
 			if (DEBUG) {
@@ -292,7 +292,7 @@ export class PeerCallService {
 						sessionAccept.sessionId,
 						sessionAccept.sdp,
 						sessionAccept.offer,
-						sessionAccept.offerToReceive
+						sessionAccept.offerToReceive,
 					);
 				}
 			} else if (req.msg === "session-update") {
@@ -301,7 +301,7 @@ export class PeerCallService {
 					this.callObserver.onSessionUpdate(
 						sessionUpdate.sessionId,
 						sessionUpdate.updateType,
-						sessionUpdate.sdp
+						sessionUpdate.sdp,
 					);
 				}
 			} else if (req.msg === "transport-info") {
@@ -322,7 +322,7 @@ export class PeerCallService {
 						this.callObserver.onSessionInitiate(
 							initResponse.to,
 							initResponse.sessionId,
-							initResponse.status
+							initResponse.status,
 						);
 					} else {
 						this.callObserver.onSessionTerminate(null, initResponse.status);
@@ -336,7 +336,7 @@ export class PeerCallService {
 							sessionInitiate.sessionId,
 							sessionInitiate.to,
 							sessionInitiate.sdp,
-							sessionInitiate.offer
+							sessionInitiate.offer,
 						);
 					}
 				}
@@ -447,7 +447,7 @@ export class PeerCallService {
 	 *
 	 * @returns  the WebRTC configuration with turn servers.
 	 */
-	getConfiguration(): any {
+	getConfiguration(): RTCConfiguration {
 		const iceServers: Array<RTCIceServer> = [];
 		if (this.callConfig) {
 			for (let i = 0; i < this.callConfig.turnServers.length; i++) {
@@ -461,10 +461,10 @@ export class PeerCallService {
 			}
 		}
 
-		const result = {
+		const result: RTCConfiguration = {
 			iceServers: iceServers,
 			bundlePolicy: "max-bundle",
-			sdpSemantics: "unified-plan",
+			// sdpSemantics: "unified-plan",
 			// rtcpMuxPolicy: 'require',
 			// iceTransportPolicy: 'all'
 		};
@@ -493,7 +493,7 @@ export class PeerCallService {
 			to: to,
 			sdp: sdp,
 			offer: offer,
-			offerToReceive: offerToReceive
+			offerToReceive: offerToReceive,
 		};
 
 		this.sendMessage(msg);

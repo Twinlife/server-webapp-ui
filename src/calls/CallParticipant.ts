@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2024 twinlife SA.
+ *  Copyright (c) 2022-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -216,10 +216,7 @@ export class CallParticipant {
 	 * Release the remote renderer when the connexion is destroyed.
 	 */
 	release(): void {
-		const remoteRenderer: any = this.mRemoteRenderer;
-		if (remoteRenderer != null) {
-			this.mRemoteRenderer = null;
-		}
+		this.mRemoteRenderer = null;
 	}
 
 	updateSenderId(senderId: UUID) {

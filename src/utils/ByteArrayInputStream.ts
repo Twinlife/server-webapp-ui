@@ -76,21 +76,6 @@ export class ByteArrayInputStream {
 	pos: number;
 
 	/**
-	 * The currently marked position in the stream.
-	 * ByteArrayInputStream objects are marked at position zero by
-	 * default when constructed.  They may be marked at another
-	 * position within the buffer by the <code>mark()</code> method.
-	 * The current buffer position is set to this point by the
-	 * <code>reset()</code> method.
-	 * <p>
-	 * If no mark has been set, then the value of mark is the offset
-	 * passed to the constructor (or 0 if the offset was not supplied).
-	 *
-	 * @since   JDK1.1
-	 */
-	__mark: number;
-
-	/**
 	 * The index one greater than the last valid character in the input
 	 * stream buffer.
 	 * This value should always be nonnegative
@@ -105,7 +90,6 @@ export class ByteArrayInputStream {
 		this.buf = buf;
 		this.pos = 0;
 		this.count = buf.byteLength;
-		this.__mark = 0;
 	}
 
 	public read(): number {
@@ -171,47 +155,6 @@ export class ByteArrayInputStream {
 	 */
 	public available(): number {
 		return this.count - this.pos;
-	}
-
-	/**
-	 * Tests if this <code>InputStream</code> supports mark/reset. The
-	 * <code>markSupported</code> method of <code>ByteArrayInputStream</code>
-	 * always returns <code>true</code>.
-	 *
-	 * @since   JDK1.1
-	 * @return {boolean}
-	 */
-	public markSupported(): boolean {
-		return true;
-	}
-
-	/**
-	 * Set the current marked position in the stream.
-	 * ByteArrayInputStream objects are marked at position zero by
-	 * default when constructed.  They may be marked at another
-	 * position within the buffer by this method.
-	 * <p>
-	 * If no mark has been set, then the value of the mark is the
-	 * offset passed to the constructor (or 0 if the offset was not
-	 * supplied).
-	 *
-	 * <p> Note: The <code>readAheadLimit</code> for this class
-	 * has no meaning.
-	 *
-	 * @since   JDK1.1
-	 * @param {number} readAheadLimit
-	 */
-	public mark(readAheadLimit: number) {
-		this.__mark = this.pos;
-	}
-
-	/**
-	 * Resets the buffer to the marked position.  The marked position
-	 * is 0 unless another position was marked or an offset was specified
-	 * in the constructor.
-	 */
-	public reset() {
-		this.pos = this.__mark;
 	}
 
 	/**

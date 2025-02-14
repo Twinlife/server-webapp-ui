@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021 twinlife SA.
+ *  Copyright (c) 2021-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -55,7 +55,7 @@ export class PushTwincodeIQ extends BinaryPacketIQ {
 	constructor(
 		serializer: BinaryPacketIQ.BinaryPacketIQSerializer,
 		requestId: number,
-		twincodeDescriptor: ConversationService.TwincodeDescriptor
+		twincodeDescriptor: ConversationService.TwincodeDescriptor,
 	) {
 		super(serializer, requestId);
 		this.twincodeDescriptor = twincodeDescriptor;
@@ -71,14 +71,14 @@ export namespace PushTwincodeIQ {
 		constructor(schemaId: UUID, schemaVersion: number) {
 			super(schemaId, schemaVersion);
 		}
-		public serialize(encoder: Encoder, object: any): void {
+		public serialize(encoder: Encoder, object: PushTwincodeIQ): void {
 			super.serialize(encoder, object);
-			let pushTwincodeIQ: PushTwincodeIQ = <PushTwincodeIQ>object;
-			let descriptor: ConversationService.TwincodeDescriptor = pushTwincodeIQ.twincodeDescriptor;
+			const pushTwincodeIQ: PushTwincodeIQ = <PushTwincodeIQ>object;
+			const descriptor: ConversationService.TwincodeDescriptor = pushTwincodeIQ.twincodeDescriptor;
 			encoder.writeUUID(descriptor.twincodeOutboundId);
 			encoder.writeLong(descriptor.sequenceId);
 			encoder.writeOptionalUUID(descriptor.sendTo);
-			let replyTo: ConversationService.DescriptorId | null = descriptor.replyTo;
+			const replyTo: ConversationService.DescriptorId | null = descriptor.replyTo;
 			if (replyTo == null || replyTo.twincodeOutboundId == null) {
 				encoder.writeEnum(0);
 			} else {
@@ -94,26 +94,26 @@ export namespace PushTwincodeIQ {
 			encoder.writeBoolean(descriptor.copyAllowed);
 		}
 
-		public deserialize(decoder: Decoder): any {
-			let requestId: number = decoder.readLong();
-			let twincodeOutboundId: UUID = decoder.readUUID();
-			let sequenceId: number = decoder.readLong();
-			let sendTo: UUID | null = decoder.readOptionalUUID();
+		public deserialize(decoder: Decoder): PushTwincodeIQ | null {
+			const requestId: number = decoder.readLong();
+			const twincodeOutboundId: UUID = decoder.readUUID();
+			const sequenceId: number = decoder.readLong();
+			const sendTo: UUID | null = decoder.readOptionalUUID();
 			let replyTo: ConversationService.DescriptorId | null;
 			if (decoder.readEnum() == 1) {
-				let replyToTwincode = decoder.readUUID();
-				let replyToSequence = decoder.readLong();
+				const replyToTwincode = decoder.readUUID();
+				const replyToSequence = decoder.readLong();
 				replyTo = new ConversationService.DescriptorId(replyToTwincode, replyToSequence);
 			} else {
 				replyTo = null;
 			}
-			let createdTimestamp: number = decoder.readLong();
-			let sentTimestamp: number = decoder.readLong();
-			let expireTimeout: number = decoder.readLong();
-			let twincodeId: UUID = decoder.readUUID();
-			let schemaId: UUID = decoder.readUUID();
-			let copyAllowed: boolean = decoder.readBoolean();
-			let descriptor: ConversationService.TwincodeDescriptor = new ConversationService.TwincodeDescriptor(
+			const createdTimestamp: number = decoder.readLong();
+			const sentTimestamp: number = decoder.readLong();
+			const expireTimeout: number = decoder.readLong();
+			const twincodeId: UUID = decoder.readUUID();
+			const schemaId: UUID = decoder.readUUID();
+			const copyAllowed: boolean = decoder.readBoolean();
+			const descriptor: ConversationService.TwincodeDescriptor = new ConversationService.TwincodeDescriptor(
 				twincodeOutboundId,
 				sequenceId,
 				expireTimeout,
@@ -122,7 +122,7 @@ export namespace PushTwincodeIQ {
 				createdTimestamp,
 				twincodeId,
 				schemaId,
-				copyAllowed
+				copyAllowed,
 			);
 			descriptor.sentTimestamp = sentTimestamp;
 			return new PushTwincodeIQ(this, requestId, descriptor);

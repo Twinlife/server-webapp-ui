@@ -98,10 +98,10 @@ export class BinaryCompactEncoder implements Encoder {
 				this.writeZero();
 				return;
 			}
-			const bytes: ArrayBuffer | null = Utf8.getBytes(value);
+			const bytes: Uint8Array | null = Utf8.getBytes(value);
 			if (bytes) {
 				this.writeInt(bytes.byteLength);
-				this.mOutputStream.writeBuffer(bytes, 0, bytes.byteLength);
+				this.mOutputStream.writeUint8Array(bytes);
 			} else {
 				this.writeZero();
 			}

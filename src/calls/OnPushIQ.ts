@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021-2024 twinlife SA.
+ *  Copyright (c) 2021-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -45,7 +45,7 @@ export class OnPushIQ extends BinaryPacketIQ {
 		serializer: BinaryPacketIQ.BinaryPacketIQSerializer,
 		requestId: number,
 		deviceState: number,
-		receivedTimestamp: number
+		receivedTimestamp: number,
 	) {
 		super(serializer, requestId);
 		this.deviceState = deviceState;
@@ -62,17 +62,17 @@ export namespace OnPushIQ {
 		constructor(schemaId: UUID, schemaVersion: number) {
 			super(schemaId, schemaVersion);
 		}
-		public serialize(encoder: Encoder, object: any): void {
+		public serialize(encoder: Encoder, object: OnPushIQ): void {
 			super.serialize(encoder, object);
-			let onPushIQ: OnPushIQ = <OnPushIQ>object;
+			const onPushIQ: OnPushIQ = <OnPushIQ>object;
 			encoder.writeInt(onPushIQ.deviceState);
 			encoder.writeLong(onPushIQ.receivedTimestamp);
 		}
 
-		public deserialize(decoder: Decoder): any {
-			let requestId: number = decoder.readLong();
-			let deviceState: number = decoder.readInt();
-			let receivedTimestamp: number = decoder.readLong();
+		public deserialize(decoder: Decoder): OnPushIQ {
+			const requestId: number = decoder.readLong();
+			const deviceState: number = decoder.readInt();
+			const receivedTimestamp: number = decoder.readLong();
 			return new OnPushIQ(this, requestId, deviceState, receivedTimestamp);
 		}
 	}

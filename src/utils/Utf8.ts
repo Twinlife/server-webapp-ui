@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2023 twinlife SA.
+ *  Copyright (c) 2015-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -14,16 +14,16 @@ export class Utf8 {
 		return Utf8.UTF8;
 	}
 
-	public static getBytes(content: string): ArrayBuffer | null {
+	public static getBytes(content: string): Uint8Array | null {
 		if (content == null) {
 			return null;
 		}
 		const textEncoder = new TextEncoder();
-		const bytes: ArrayBuffer = textEncoder.encode(content);
+		const bytes: Uint8Array = textEncoder.encode(content);
 		return bytes;
 	}
 
-	public static create(data: ArrayBuffer, length: number): string {
+	public static create(data: ArrayBuffer, _length: number): string {
 		const textDecoder: TextDecoder = new TextDecoder("utf-8");
 		return textDecoder.decode(data);
 	}
