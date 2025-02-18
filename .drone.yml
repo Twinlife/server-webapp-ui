@@ -19,7 +19,7 @@ steps:
 
   - name: start docker-compose
     commands:
-      - HOME=/home/drone-ci && docker pull harbor.skyrock.net/twinlife/usine-nodejs-webapp:latest && docker compose up
+      - HOME=/home/drone-ci && docker pull harbor.skyrock.net/twinlife/usine-nodejs-webapp:22 && docker compose up
 
   - name: Verify docker status
     commands: 
