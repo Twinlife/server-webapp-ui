@@ -454,6 +454,7 @@ export class CallConnection {
 				console.log(this.mPeerConnectionId, ": received on track event");
 			}
 
+			// Legacy streams (does nothing on modern WebRTC)
 			for (const stream of event.streams) {
 				stream.onremovetrack = (ev: MediaStreamTrackEvent) => {
 					const trackId: string = ev.track.id;
@@ -1059,16 +1060,23 @@ export class CallConnection {
 	private addRemoteTrack(track: MediaStreamTrack, _stream: MediaStream): void {
 		try {
 			const participant: CallParticipant | null = this.getMainParticipant();
-			if (participant) {
+			if (participant && track != null) {
+				const trackId: string = track.id;
 				participant.addTrack(track);
-				if (track != null && track.kind === "video") {
-					this.mVideoTrackId = track.id;
+				if (track.kind === "video") {
+					this.mVideoTrackId = trackId;
 					participant.setCameraMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_VIDEO_ON);
-				} else if (track != null && track.kind === "audio") {
-					this.mAudioTrackId = track.id;
+					track.onmute = () => {
+						this.removeRemoteTrack(trackId);
+					};
+				} else if (track.kind === "audio") {
+					this.mAudioTrackId = trackId;
 					participant.setMicrophoneMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_ON);
+					track.onmute = () => {
+						this.removeRemoteTrack(trackId);
+					};
 				}
 			}
 		} catch (ex) {
