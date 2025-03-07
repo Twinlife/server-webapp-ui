@@ -386,7 +386,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 	switchCameraClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
 		ev.preventDefault();
-		if (this.state.twincode.video) {
+		if (this.state.twincode.video && !this.state.videoMute) {
 			if (IsMobile()) {
 				this.setState(
 					({ facingMode }) => {
@@ -398,7 +398,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 							const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 								audio: false,
 								video: {
-									facingMode,
+									facingMode: facingMode,
 								},
 							});
 							const videoTrack = mediaStream.getVideoTracks()[0];
@@ -934,8 +934,11 @@ const CallButtons = ({
 			)}
 
 			<div className="flex items-center justify-end">
-				{!videoMute && IsMobile() && hasVideo && (
-					<WhiteButton onClick={switchCameraClick} className="ml-3 !p-[10px]">
+				{IsMobile() && hasVideo && (
+					<WhiteButton
+						onClick={switchCameraClick}
+						className={["ml-3 !p-[10px]", videoMute ? "btn-white-disabled" : ""].join(" ")}
+					>
 						<SwitchCamera color="black" />
 					</WhiteButton>
 				)}

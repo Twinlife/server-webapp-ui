@@ -179,3 +179,6 @@ svg {
 .btn-white {
 	@apply rounded-full bg-white p-1 hover:bg-white/90 active:bg-white/80;
 }
+.btn-white-disabled {
+	@apply bg-white/50 hover:bg-white/50;
+}
