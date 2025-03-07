@@ -457,7 +457,6 @@ export class PeerCallService {
 					username: turnServer.username,
 					credential: turnServer.password,
 				});
-				break;
 			}
 		}
 
