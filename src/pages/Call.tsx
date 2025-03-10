@@ -192,6 +192,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	onTerminateCall(reason: TerminateReason): void {
 		console.info("Call terminated", reason);
 
+		this.leaveFullscreen();
 		this.setState({
 			terminateReason: reason,
 			status: CallStatus.TERMINATED,
@@ -384,6 +385,43 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
+	/**
+	 * Enter fullscreen if supported.
+	 */
+	private enterFullscreen = () => {
+		const element: HTMLElement = document.documentElement;
+		if (element.requestFullscreen) {
+			if (!document.fullscreenElement) {
+				element.requestFullscreen().catch((err) => {
+					console.error("cannot enter fullscreen: " + err);
+				});
+			}
+
+			// @ts-ignore
+		} else if (element.webkitRequestFullscreen) {
+			// @ts-ignore
+			element.webkitRequestFullscreen();
+		}
+	};
+
+	/**
+	 * Leave fullscreen if supported.
+	 */
+	private leaveFullscreen = () => {
+		const element: HTMLElement = document.documentElement;
+		if (document.exitFullscreen) {
+			if (document.fullscreenElement) {
+				document.exitFullscreen().catch((err) => {
+					console.error("exitfullscreen error: " + err);
+				});
+			}
+			// @ts-ignore
+		} else if (element.webkitExitFullscreen) {
+			// @ts-ignore
+			element.webkitExitFullscreen();
+		}
+	};
+
 	switchCameraClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
 		ev.preventDefault();
 		if (this.state.twincode.video && !this.state.videoMute) {
@@ -495,6 +533,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		const avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionOutgoingCall(this.props.id, video, transfer, name, avatarUrl);
 		ev.preventDefault();
+		if (IsMobile()) {
+			this.enterFullscreen();
+		}
 	};
 
 	askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
