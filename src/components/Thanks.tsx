@@ -16,30 +16,32 @@ export default function Thanks({ onCallBackClick }: ThanksProps) {
 		<div className=" flex h-full w-screen flex-col items-center bg-black p-4 ">
 			<Header messageNotificationDisplayed={false} openChatButtonDisplayed={false} />
 
-			<div className="grid w-full flex-1 grid-cols-1 lg:grid-cols-2">
-				<div className="flex justify-center lg:items-center lg:justify-end">
+			<div className="grid w-full flex-1 grid-cols-1 landscape:grid-cols-2 md:grid-cols-2">
+				<div className="flex justify-center landscape:items-center landscape:justify-end">
 					<img
 						src={"/thanks/" + import.meta.env.VITE_APP_THANKS_IMAGE}
 						alt=""
-						className=" w-full max-w-md object-contain py-3 lg:mr-10 lg:max-w-md"
+						className="object-contain py-3 landscape:mr-10 md:mr-10 landscape:max-w-md md:max-w-md thanks-image"
 					/>
 				</div>
 
-				<div className="flex w-full flex-col items-center lg:items-start lg:justify-center">
-					<div className="my-4 text-center text-2xl text-white">
+				<div className="flex w-full flex-col items-center landscape:items-start md:items-start landscape:justify-center md:justify-center">
+					<div className="portrait:my-4 landscape:my-2 landscape:lg:my-4 text-center portrait:text-2xl landscape:lg:text-2xl text-white">
 						<Trans i18nKey="thanks_choosing" values={{ appName: import.meta.env.VITE_APP_NAME }} t={t} />
 					</div>
 					{!TRANSFER && (
 						<>
-							<div className="mb-12 w-60 text-center font-light lg:text-left">{t("next_time_app")}</div>
+							<div className="mb-3 landscape:lg:mb-6 w-60 text-center font-light landscape:text-left md:text-left">
+								{t("next_time_app")}
+							</div>
 
-							<div className="lg:-ml-4">
+							<div className="landscape:lg:-ml-4">
 								<StoresBadges />
 							</div>
 						</>
 					)}
 
-					<div className="py-6 text-center font-light">
+					<div className="portrait:py-6 landscape:lg:py-6 text-center font-light">
 						{t("more_information")}{" "}
 						<strong>
 							<a href={import.meta.env.VITE_APP_WEBSITE} target="_blank" className="text-white">
@@ -49,10 +51,7 @@ export default function Thanks({ onCallBackClick }: ThanksProps) {
 					</div>
 
 					<button
-						className={[
-							"mt-6 flex items-center justify-center rounded-full px-6 py-3 text-white transition ",
-							"bg-blue hover:bg-blue/90 active:bg-blue/80",
-						].join(" ")}
+						className="mt-1 px-6 py-3 flex items-center justify-center rounded-full text-white transition bg-blue hover:bg-blue/90 active:bg-blue/80"
 						onClick={onCallBackClick}
 					>
 						<img src={phoneCallIcon} alt="" className="mr-3" />
@@ -60,7 +59,7 @@ export default function Thanks({ onCallBackClick }: ThanksProps) {
 						<span className="font-light">{t("calls_fragment_call_again_title")}</span>
 					</button>
 
-					<div className="py-2 text-center font-light">{t("call_back")}</div>
+					<div className="py-2 lg:py-6 text-center font-light">{t("call_back")}</div>
 				</div>
 			</div>
 		</div>

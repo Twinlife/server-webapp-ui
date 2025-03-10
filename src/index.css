@@ -182,3 +182,21 @@ svg {
 .btn-white-disabled {
 	@apply bg-white/50 hover:bg-white/50;
 }
+.local-view {
+	width: 25%;
+}
+.thanks-image {
+	width: 70%;
+}
+/* Adjust image size for several mobile phones to avoid scrolling */
+@media (max-width: 400px) {
+	.thanks-image {
+		width: 50%;
+	}
+}
+@media (max-height: 690px) and (orientation:landscape) {
+	.thanks-image {
+		width: 60%;
+	}
+}
+
