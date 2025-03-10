@@ -272,7 +272,10 @@ export class CallConnection {
 				console.log(peerConnectionId, ": create incoming P2P");
 			}
 			this.mParticipants.set(peerConnectionId, this.mMainParticipant);
-			this.mCall.onAddParticipant(this.mMainParticipant);
+			// Note: we don't call onAddParticipant() here because this new CallConnection()
+			// is not yet part of the CallState() and the observer will obtain an incorrect
+			// value if it calls getParticipants() to have the complete list.  It will be
+			// called from CallState.addPeerConnection().
 		} else {
 			if (DEBUG) {
 				console.log("create outgoing P2P (no sessionId yet)");

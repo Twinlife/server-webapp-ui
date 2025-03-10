@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2024 twinlife SA.
+ *  Copyright (c) 2022-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -339,6 +339,11 @@ export class CallState {
 	 */
 	addPeerConnection(callConnection: CallConnection): void {
 		this.mPeers.push(callConnection);
+
+		// If we know the peer connection id, take into account this new participant.
+		if (callConnection.getPeerConnectionId()) {
+			this.onAddParticipant(callConnection.getMainParticipant());
+		}
 	}
 
 	/**
