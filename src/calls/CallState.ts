@@ -54,7 +54,7 @@ export class CallState {
 	private mCallRoomMemberId: string | null = null;
 	private mMaxMemberCount: number = 0;
 	private mState: number = 0;
-	private mParticipantCounter: number = 0;
+	private mParticipantCounter: number = 1; // Start at 1 and use 0 for ourselves.
 	private mRequestCounter: number = 0;
 	private mSequenceCounter: number = 0;
 
