@@ -8,6 +8,7 @@ interface ParticipantGridCellProps {
 	name: string;
 	participantId?: number;
 	avatarUrl: string;
+	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 }
 
 const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
@@ -18,6 +19,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	name,
 	participantId,
 	avatarUrl,
+	videoClick,
 }) => {
 	const ref = useRef<HTMLVideoElement>(null);
 
@@ -31,6 +33,9 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 				"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
 				cellClassName,
 			].join(" ")}
+			onClick={(e) => {
+				videoClick(e, participantId);
+			}}
 		>
 			{isAudioMute && (
 				<div className="absolute left-2 top-2 z-20 text-2xl md:left-auto md:right-2">
@@ -62,12 +67,12 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 					<img
 						src={avatarUrl}
 						alt=""
-						className="pointer-events-none z-10 h-full w-full object-cover md:h-48 md:w-48 md:rounded-full md:shadow-lg"
+						className="pointer-events-none z-10 object-cover portrait:h-full portrait:w-full h-24 w-24 rounded-full shadow-lg landscape:lg:w-48 landscape:lg:h-48"
 					/>
 					<img
 						src={avatarUrl}
 						alt=""
-						className="pointer-events-none absolute left-0 top-0 hidden h-full w-full object-cover blur md:block"
+						className="pointer-events-none absolute left-0 top-0 h-full w-full object-cover blur md:block"
 					/>
 				</>
 			)}

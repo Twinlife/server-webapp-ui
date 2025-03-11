@@ -26,7 +26,7 @@ import { ConversationService } from "../calls/ConversationService";
 import Alert from "../components/Alert";
 import Header from "../components/Header";
 import InitializationPanel from "../components/InitializationPanel";
-import ParticipantsGrid from "../components/ParticipantsGrid";
+import { ParticipantsGrid, DisplayMode } from "../components/ParticipantsGrid";
 import SelectDevicesButton from "../components/SelectDevicesButton";
 import StoresBadges from "../components/StoresBadges";
 import Thanks from "../components/Thanks";
@@ -86,6 +86,7 @@ interface CallState {
 	alertOpen: boolean;
 	alertTitle: string;
 	alertContent: ReactNode;
+	displayMode: DisplayMode;
 }
 
 //e.g. "13:30"
@@ -95,6 +96,7 @@ const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" })
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
+const isMobile = IsMobile();
 
 // Create only one instance of PeerCallService.
 const peerCallService: PeerCallService = new PeerCallService();
@@ -135,6 +137,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		alertOpen: false,
 		alertTitle: "",
 		alertContent: <></>,
+		displayMode: {
+			defaultMode: true,
+			showParticipant: false,
+			showLocalThumbnail: false,
+			participantId: null,
+		},
 	};
 
 	componentDidMount = () => {
@@ -221,7 +229,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
-		this.setState({ participants: participants });
+		const displayMode: DisplayMode = this.state.displayMode;
+		displayMode.showLocalThumbnail = participants.length === 1;
+		this.setState({ participants: participants, displayMode: displayMode });
 	}
 
 	/**
@@ -234,7 +244,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			console.log("Remove", participants.length, "participants");
 		}
 		const list: Array<CallParticipant> = this.callService.getParticipants();
-		this.setState({ participants: list });
+		const displayMode: DisplayMode = this.state.displayMode;
+		if (displayMode.participantId !== null) {
+			displayMode.participantId = null;
+			displayMode.showParticipant = false;
+		}
+		displayMode.showLocalThumbnail = list.length === 1;
+		this.setState({ participants: list, displayMode: displayMode });
 		this.checkIsMessageSupported();
 	}
 
@@ -368,6 +384,14 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.toggleVideo();
 	};
 
+	videoClick = (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => {
+		ev.preventDefault();
+		const displayMode: DisplayMode = this.state.displayMode;
+		displayMode.showParticipant = !displayMode.showParticipant;
+		displayMode.participantId = participantId !== undefined ? participantId : null;
+		this.setState({ displayMode: displayMode });
+	};
+
 	private toggleVideo = () => {
 		if (this.state.twincode.video) {
 			const { videoMute } = this.state;
@@ -397,9 +421,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				});
 			}
 
-			// @ts-ignore
+			// @ts-expect-error: check for Safari specific method
 		} else if (element.webkitRequestFullscreen) {
-			// @ts-ignore
+			// @ts-expect-error: check for Safari specific method
 			element.webkitRequestFullscreen();
 		}
 	};
@@ -415,9 +439,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					console.error("exitfullscreen error: " + err);
 				});
 			}
-			// @ts-ignore
+			// @ts-expect-error: check for Safari specific method
 		} else if (element.webkitExitFullscreen) {
-			// @ts-ignore
+			// @ts-expect-error: check for Safari specific method
 			element.webkitExitFullscreen();
 		}
 	};
@@ -425,18 +449,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	switchCameraClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
 		ev.preventDefault();
 		if (this.state.twincode.video && !this.state.videoMute) {
-			if (IsMobile()) {
+			if (isMobile) {
 				this.setState(
 					({ facingMode }) => {
 						return { facingMode: facingMode === "user" ? "environment" : "user" };
 					},
 					async () => {
-						const facingMode = this.state.facingMode;
+						const fMode = this.state.facingMode;
 						try {
 							const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 								audio: false,
 								video: {
-									facingMode: facingMode,
+									facingMode: fMode === "user" ? "user" : { exact: "environment" },
 								},
 							});
 							const videoTrack = mediaStream.getVideoTracks()[0];
@@ -533,20 +557,20 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		const avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionOutgoingCall(this.props.id, video, transfer, name, avatarUrl);
 		ev.preventDefault();
-		if (IsMobile()) {
+		if (isMobile) {
 			this.enterFullscreen();
 		}
 	};
 
 	askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
-		const { facingMode } = this.state;
+		const fMode = this.state.facingMode;
 
 		try {
 			// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
 			// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
 			const mediaStream = await navigator.mediaDevices.getUserMedia({
 				audio: kind === "audio",
-				video: kind === "video" ? { facingMode } : false,
+				video: kind === "video" ? { facingMode: fMode === "user" ? "user" : { exact: "environment" } } : false,
 			});
 			for (const track of mediaStream.getTracks()) {
 				if (track.kind === "audio" && kind === "audio") {
@@ -739,6 +763,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			audioMute,
 			status,
 			participants,
+			displayMode,
 			terminateReason,
 			displayThanks,
 			audioDevices,
@@ -768,7 +793,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		});
 
 		return (
-			<div className=" flex h-full w-screen flex-col bg-black p-4">
+			<div className=" flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
 				<Header
 					messageNotificationDisplayed={messageNotificationDisplayed}
 					openChatButtonDisplayed={
@@ -814,6 +839,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 							}
 						}}
 						muteVideoClick={this.muteVideoClick}
+						videoClick={this.videoClick}
+						mode={displayMode}
 						pushMessage={(message, copyAllowed) => {
 							const descriptor = this.callService.pushMessage(message, copyAllowed);
 							if (descriptor) {
@@ -873,7 +900,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					/>
 				)}
 
-				{!TRANSFER && CallStatusOps.isIddle(status) && (
+				{!TRANSFER && !isMobile && CallStatusOps.isIddle(status) && (
 					<>
 						<div className="py-6 text-center font-light">{t("next_time_app")}</div>
 						<div className="mx-auto">
@@ -975,7 +1002,7 @@ const CallButtons = ({
 			)}
 
 			<div className="flex items-center justify-end">
-				{IsMobile() && hasVideo && (
+				{isMobile && hasVideo && (
 					<WhiteButton
 						onClick={switchCameraClick}
 						className={["ml-3 !p-[10px]", videoMute ? "btn-white-disabled" : ""].join(" ")}
@@ -993,7 +1020,7 @@ const CallButtons = ({
 						{videoMute ? <VideoOff color="black" /> : <Video color="black" />}
 					</WhiteButton>
 				)}
-				{!IsMobile() && (
+				{!isMobile && (
 					<WhiteButton
 						className="ml-3 !p-[10px]"
 						onClick={async () => {
@@ -1018,7 +1045,7 @@ const CallButtons = ({
 						{isSharingScreen ? <ScreenShareOff color="black" /> : <ScreenShare color="black" />}
 					</WhiteButton>
 				)}
-				{!IsMobile() && (
+				{!isMobile && (
 					<SelectDevicesButton
 						audioDevices={audioDevices}
 						videoDevices={videoDevices}
