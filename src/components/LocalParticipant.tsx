@@ -9,7 +9,7 @@ export const LocalParticipant: React.FC<{
 	videoMute: boolean;
 	isLocalAudioMute: boolean;
 	enableVideo: boolean;
-	isIddle: boolean;
+	isIdle: boolean;
 	guestName: string;
 	guestNameError: boolean;
 	setGuestName: (value: string) => void;
@@ -22,7 +22,7 @@ export const LocalParticipant: React.FC<{
 	videoMute,
 	isLocalAudioMute,
 	enableVideo,
-	isIddle,
+	isIdle,
 	guestName,
 	guestNameError,
 	setGuestName,
@@ -77,7 +77,7 @@ export const LocalParticipant: React.FC<{
 			>
 				{enableVideo && (
 					<span
-						className={[isIddle ? "" : "hidden md:block", "absolute top-2 mt-2 text-sm md:text-base"].join(
+						className={[isIdle ? "" : "hidden md:block", "absolute top-2 mt-2 text-sm md:text-base"].join(
 							" ",
 						)}
 					>
@@ -125,7 +125,7 @@ export const LocalParticipant: React.FC<{
 			{!localAbsolute && (
 				<div className={["absolute bottom-2 right-2 text-sm"].join(" ")}>
 					<GuestNameForms
-						update={!isIddle}
+						update={!isIdle}
 						guestName={guestName}
 						guestNameError={guestNameError}
 						setGuestName={setGuestName}

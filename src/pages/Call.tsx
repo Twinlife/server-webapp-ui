@@ -824,7 +824,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						isLocalAudioMute={audioMute}
 						twincode={twincode}
 						participants={participants}
-						isIddle={CallStatusOps.isIddle(status)}
+						isIdle={CallStatusOps.isIdle(status)}
 						guestName={guestName}
 						guestNameError={guestNameError}
 						setGuestName={(guestName: string) => {
@@ -900,7 +900,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					/>
 				)}
 
-				{!TRANSFER && !isMobile && CallStatusOps.isIddle(status) && (
+				{!TRANSFER && !isMobile && CallStatusOps.isIdle(status) && (
 					<>
 						<div className="py-6 text-center font-light">{t("next_time_app")}</div>
 						<div className="mx-auto">
@@ -965,7 +965,7 @@ const CallButtons = ({
 }) => {
 	const { t } = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
-	const isIddle = CallStatusOps.isIddle(status);
+	const isIdle = CallStatusOps.isIdle(status);
 	const inTransfer = transfer && inCall;
 	const callLabel = transfer ? t("transfer") : t("call");
 
@@ -975,17 +975,17 @@ const CallButtons = ({
 				<button
 					className={[
 						"flex items-center justify-center rounded-full px-6 py-3 text-white transition ",
-						isIddle
+						isIdle
 							? "bg-blue hover:bg-blue/90 active:bg-blue/80"
 							: "bg-red hover:bg-red/90 active:bg-red/80",
 					].join(" ")}
-					onClick={isIddle ? handleCallClick : hangUpClick}
+					onClick={isIdle ? handleCallClick : hangUpClick}
 				>
 					<img src={phoneCallIcon} alt="" className="mr-3" />
 					{inCall ? (
 						<Timer />
 					) : (
-						<span className="font-light">{isIddle ? callLabel : t("audio_call_activity_calling")}</span>
+						<span className="font-light">{isIdle ? callLabel : t("audio_call_activity_calling")}</span>
 					)}
 				</button>
 			</div>

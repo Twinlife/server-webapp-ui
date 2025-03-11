@@ -145,7 +145,7 @@ export class CallStatusOps {
 		return mode === CallStatus.IN_CALL || mode === CallStatus.IN_VIDEO_CALL;
 	}
 
-	public static isIddle(mode: CallStatus): boolean {
+	public static isIdle(mode: CallStatus): boolean {
 		return mode === CallStatus.IDDLE;
 	}
 
