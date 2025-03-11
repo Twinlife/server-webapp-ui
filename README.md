@@ -97,3 +97,6 @@ npm outdated
 
 Note: be careful that there are very often some regressions when updating dependencies
 
+## Dev notes:
+
+* https://tailwindcss.com/docs/responsive-design
