@@ -230,7 +230,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showLocalThumbnail = participants.length === 1;
+		displayMode.showLocalThumbnail = participants.length === 1 && isMobile;
 		this.setState({ participants: participants, displayMode: displayMode });
 	}
 
@@ -249,7 +249,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			displayMode.participantId = null;
 			displayMode.showParticipant = false;
 		}
-		displayMode.showLocalThumbnail = list.length === 1;
+		displayMode.showLocalThumbnail = list.length === 1 && isMobile;
 		this.setState({ participants: list, displayMode: displayMode });
 		this.checkIsMessageSupported();
 	}
@@ -514,14 +514,16 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			console.log("Start screen sharing");
 		}
 
+		const videoMute = this.state.videoMute;
 		try {
+			this.callService.stopVideoTrack();
 			const videoTrack = mediaStream.getVideoTracks()[0];
 			this.callService.addOrReplaceVideoTrack(videoTrack);
 			this.setUsedDevices();
 			this.setState({ videoMute: false, isSharingScreen: true });
-			this.callService.actionCameraMute(false);
 		} catch (error) {
 			console.log("Screen sharing error", error);
+			//this.callService.actionCameraMute(false);
 		}
 	};
 
