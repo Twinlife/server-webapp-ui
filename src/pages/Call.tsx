@@ -514,7 +514,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			console.log("Start screen sharing");
 		}
 
-		const videoMute = this.state.videoMute;
 		try {
 			this.callService.stopVideoTrack();
 			const videoTrack = mediaStream.getVideoTracks()[0];
@@ -571,10 +570,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		try {
 			// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
 			// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
-			const mediaStream = await navigator.mediaDevices.getUserMedia({
+			const constraints: MediaStreamConstraints = {
 				audio: kind === "audio",
 				video: kind === "video" ? { facingMode: fMode === "user" ? "user" : { exact: "environment" } } : false,
-			});
+			};
+
+			const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
 			for (const track of mediaStream.getTracks()) {
 				if (track.kind === "audio" && kind === "audio") {
 					this.callService.addOrReplaceAudioTrack(track);
