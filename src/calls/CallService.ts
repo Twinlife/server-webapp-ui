@@ -314,7 +314,7 @@ export class CallService implements PeerCallServiceObserver {
 
 	addOrReplaceVideoTrack(videoTrack: MediaStreamTrack) {
 		if (this.mLocalStream) {
-			const tracks : MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
+			const tracks: MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
 			if (tracks.length > 0) {
 				// Replace track
 				const currentTrack = tracks[0];
