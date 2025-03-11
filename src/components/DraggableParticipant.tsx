@@ -10,7 +10,7 @@ export const DraggableParticipant: React.FC<{
 	videoMute: boolean;
 	isLocalAudioMute: boolean;
 	enableVideo: boolean;
-	isIddle: boolean;
+	isIdle: boolean;
 	guestName: string;
 	guestNameError: boolean;
 	setGuestName: (value: string) => void;
@@ -25,7 +25,7 @@ export const DraggableParticipant: React.FC<{
 	videoMute,
 	isLocalAudioMute,
 	enableVideo,
-	isIddle,
+	isIdle,
 	guestName,
 	guestNameError,
 	setGuestName,
@@ -35,7 +35,7 @@ export const DraggableParticipant: React.FC<{
 }) => {
 	const dragStartPositionXYRef = useRef<{ x: number; y: number }>();
 	const cl = [
-		localAbsolute ? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16" : isIddle ? "relative" : "relative",
+		localAbsolute ? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16" : isIdle ? "relative" : "relative",
 		"overflow-hidden rounded-md",
 		videoMute && localAbsolute ? "hidden" : "",
 		className,
@@ -50,7 +50,7 @@ export const DraggableParticipant: React.FC<{
 			<div
 				className={cl}
 				onClick={(e) => {
-					if (!isIddle && !videoMute) {
+					if (!isIdle && !videoMute) {
 						videoClick(e, 0);
 					}
 				}}
@@ -61,7 +61,7 @@ export const DraggableParticipant: React.FC<{
 					localAbsolute={localAbsolute}
 					videoMute={videoMute}
 					isLocalAudioMute={isLocalAudioMute}
-					isIddle={isIddle}
+					isIdle={isIdle}
 					enableVideo={enableVideo}
 					guestName={guestName}
 					guestNameError={guestNameError}
@@ -106,7 +106,7 @@ export const DraggableParticipant: React.FC<{
 					localAbsolute={true}
 					videoMute={videoMute}
 					isLocalAudioMute={isLocalAudioMute}
-					isIddle={isIddle}
+					isIdle={isIdle}
 					enableVideo={enableVideo}
 					guestName={guestName}
 					guestNameError={guestNameError}

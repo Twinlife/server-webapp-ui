@@ -24,7 +24,7 @@ export const ParticipantsGrid: React.FC<{
 	isLocalAudioMute: boolean;
 	twincode: TwincodeInfo;
 	participants: CallParticipant[];
-	isIddle: boolean;
+	isIdle: boolean;
 	guestName: string;
 	guestNameError: boolean;
 	items: Item[];
@@ -43,7 +43,7 @@ export const ParticipantsGrid: React.FC<{
 	isLocalAudioMute,
 	twincode,
 	participants,
-	isIddle,
+	isIdle,
 	guestName,
 	guestNameError,
 	items,
@@ -71,7 +71,7 @@ export const ParticipantsGrid: React.FC<{
 						localAbsolute={false}
 						videoMute={videoMute}
 						isLocalAudioMute={isLocalAudioMute}
-						isIddle={isIddle}
+						isIdle={isIdle}
 						enableVideo={twincode.video}
 						guestName={guestName}
 						guestNameError={guestNameError}
@@ -158,7 +158,7 @@ export const ParticipantsGrid: React.FC<{
 				localAbsolute={localAbsolute}
 				videoMute={videoMute}
 				isLocalAudioMute={isLocalAudioMute}
-				isIddle={isIddle}
+				isIdle={isIdle}
 				enableVideo={twincode.video}
 				guestName={guestName}
 				guestNameError={guestNameError}
@@ -171,14 +171,14 @@ export const ParticipantsGrid: React.FC<{
 			{localAbsolute && (
 				<div
 					className={[
-						isIddle ? "relative" : "relative ring-2 ring-black",
+						isIdle ? "relative" : "relative ring-2 ring-black",
 						"overflow-hidden rounded-md",
 						getCellClass(participants.length + 1),
 					].join(" ")}
 				>
 					<div className={["relative bottom-2 right-2 text-sm"].join(" ")}>
 						<GuestNameForms
-							update={!isIddle}
+							update={!isIdle}
 							guestName={guestName}
 							guestNameError={guestNameError}
 							setGuestName={setGuestName}
