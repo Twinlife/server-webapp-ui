@@ -457,6 +457,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					async () => {
 						const fMode = this.state.facingMode;
 						try {
+							this.callService.stopVideoTrack();
 							const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
 								audio: false,
 								video: {
