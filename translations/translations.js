@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { readFile, readdir, writeFile } from "fs/promises";
 import { join } from "path";
 
