@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023-2024 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { useTranslation } from "react-i18next";
 
 export default function ErrorPage() {

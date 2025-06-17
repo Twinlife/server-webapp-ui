@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023-2025 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { Dialog, Transition } from "@headlessui/react";
 import { ExclamationTriangleIcon } from "@heroicons/react/20/solid";
 import { FC, Fragment, ReactNode } from "react";

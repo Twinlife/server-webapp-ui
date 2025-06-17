@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2024 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { FC, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 

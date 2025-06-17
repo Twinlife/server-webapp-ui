@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023-2025 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import chatIcon from "../assets/chat.svg";
 
 interface HeaderProps {

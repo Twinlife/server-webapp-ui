@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023-2025 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import clsx from "clsx";
 import { X } from "lucide-react";
 import { useRef, useState } from "react";

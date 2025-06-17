@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023-2025 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import appStoreBadge from "../assets/store-badges/appstore-badge.svg";
 import androidPlayBadge from "../assets/store-badges/google-play-badge.png";
 import { AgentType, getAgent } from "../utils/DetectAgent";

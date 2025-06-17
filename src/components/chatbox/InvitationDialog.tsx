@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2024 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import QRCode from "qrcode";
 import React, { useEffect, useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
