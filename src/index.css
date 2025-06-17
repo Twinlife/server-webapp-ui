@@ -1,4 +1,13 @@
-@import url("assets/fonts/fonts.css");
+/*
+ *  Copyright (c) 2023-2025 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
+ */
+ @import url("assets/fonts/fonts.css");
 
 @tailwind base;
 @tailwind components;

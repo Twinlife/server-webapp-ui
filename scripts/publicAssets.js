@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { copyFileSync, readdirSync } from "fs";
 import { join } from "path";
 
