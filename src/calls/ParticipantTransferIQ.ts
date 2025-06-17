@@ -1,7 +1,6 @@
 /*
  *  Copyright (c) 2023-2024 twinlife SA.
- *
- *  All Rights Reserved.
+ *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Romain Kolb (romain.kolb@skyrock.com)

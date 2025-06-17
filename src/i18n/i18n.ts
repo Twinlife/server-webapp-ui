@@ -1,7 +1,6 @@
 /*
  *  Copyright (c) 2023 twinlife SA.
- *
- *  All Rights Reserved.
+ *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>

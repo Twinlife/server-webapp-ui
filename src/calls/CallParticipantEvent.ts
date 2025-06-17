@@ -1,7 +1,6 @@
 /*
  *  Copyright (c) 2022, 2023 twinlife SA.
- *
- *  All Rights Reserved.
+ *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
