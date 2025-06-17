@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2023 twinlife SA.
+ *  Copyright (c) 2015-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -157,15 +157,10 @@ export class BinaryCompactEncoder implements Encoder {
 	 */
 	public writeUUID(value: UUID): void {
 		try {
-			const least = new Uint8Array(value.getLeastSignificantBits());
-			const most = new Uint8Array(value.getMostSignificantBits());
+			const srcBuffer : Uint8Array = value.getValue();
 			const dstBuffer: Uint8Array = new Uint8Array(this.mBuffer, 0, 16);
-			for (let index = 0; index < 8; index++) {
-				dstBuffer[index] = least[7 - index];
-			}
-
-			for (let index = 0; index < 8; index++) {
-				dstBuffer[8 + index] = most[7 - index];
+			for (let index = 0; index < 16; index++) {
+				dstBuffer[index] = srcBuffer[15 - index];
 			}
 
 			this.mOutputStream.writeBuffer(this.mBuffer, 0, 16);
