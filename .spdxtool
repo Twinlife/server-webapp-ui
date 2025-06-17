@@ -1,0 +1,12 @@
+[default]
+ignore=[
+"*.svg",
+"*.webp",
+"*.woff2",
+"*.ico",
+"*.xlsx",
+"*.csv",
+".env.*",
+"*.webmanifest",
+"*.yml"
+]
