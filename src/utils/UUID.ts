@@ -1,11 +1,12 @@
 /*
- *  Copyright (c) 2019-2020 twinlife SA.
+ *  Copyright (c) 2019-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
  *  Contributors:
  *   Christian Jacquemot (Christian.Jacquemot@twin.life)
  *   Olivier Dupont (Oliver.Dupont@twin.life)
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 
 /*
@@ -40,33 +41,12 @@
  */
 
 export class UUID {
-	private value: ArrayBuffer = new ArrayBuffer(16);
+	private readonly value: Uint8Array;
 
-	public constructor(value1: unknown, value2?: unknown) {
-		if (value1 != null && value1 instanceof ArrayBuffer && value2 === undefined) {
-			this.value = value1;
-		} else if (
-			value1 !== null &&
-			value1 instanceof Uint8Array &&
-			value1.byteLength === 16 &&
-			value2 === undefined
-		) {
-			this.value = new ArrayBuffer(16);
-			const srcBuffer: Uint8Array = new Uint8Array(value1);
-			const dstBuffer: Uint8Array = new Uint8Array(this.value);
-			dstBuffer.set(srcBuffer);
-		} else if (value1 === 0 && value2 === 0) {
-			this.value = new ArrayBuffer(16);
-			const dstBuffer: Uint8Array = new Uint8Array(this.value);
-			for (let i = 0; i < 16; i++) {
-				dstBuffer[i] = 0;
-			}
-		} else {
-			throw new Error("Invalid UUID constructor");
+	public constructor(value: Uint8Array) {
+		if (value.length != 16) {
+			throw new Error("Invalid UUID value");
 		}
-	}
-
-	public constructor$byte_A(value: ArrayBuffer) {
 		this.value = value;
 	}
 
@@ -164,36 +144,11 @@ export class UUID {
 			}
 			dstBuffer[index++] = high * 16 + low;
 		}
-		return new UUID(buffer);
+		return new UUID(dstBuffer);
 	}
 
-	public getValue(): ArrayBuffer {
+	public getValue(): Uint8Array {
 		return this.value;
-	}
-
-	public getLeastSignificantBits(): ArrayBuffer {
-		const srcBuffer: Uint8Array = new Uint8Array(this.value, 8, 8);
-		const buffer: ArrayBuffer = new ArrayBuffer(8);
-		const dstBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
-		dstBuffer.set(srcBuffer);
-		return buffer;
-	}
-
-	public getMostSignificantBits(): ArrayBuffer {
-		const srcBuffer: Uint8Array = new Uint8Array(this.value, 0, 8);
-		const buffer: ArrayBuffer = new ArrayBuffer(8);
-		const dstBuffer: Uint8Array = new Uint8Array(buffer, 0, 8);
-		dstBuffer.set(srcBuffer);
-		return buffer;
-	}
-
-	public hashCode(): number {
-		const srcBuffer: Uint8Array = new Uint8Array(this.value);
-		let result: number = 1;
-		for (let i = 0; i < 16; i++) {
-			result = 31 * result + srcBuffer[i];
-		}
-		return result;
 	}
 
 	public equals(obj: unknown): boolean {
@@ -203,20 +158,12 @@ export class UUID {
 		if (obj.value.byteLength !== 16) {
 			return false;
 		}
-		for (let i = 0; i < 16; i++) {
-			const srcBuffer1: Uint8Array = new Uint8Array(this.value);
-			const srcBuffer2: Uint8Array = new Uint8Array(obj.getValue());
-			if (srcBuffer1[i] !== srcBuffer2[i]) {
-				return false;
-			}
-		}
-		return true;
+		return this.compareTo(obj) === 0;
 	}
 
 	public isNull(): boolean {
 		for (let i = 0; i < 16; i++) {
-			const srcBuffer: Uint8Array = new Uint8Array(this.value);
-			if (srcBuffer[i] !== 0) {
+			if (this.value[i] !== 0) {
 				return false;
 			}
 		}
@@ -224,19 +171,18 @@ export class UUID {
 	}
 
 	public compareTo(val: UUID): number {
+		const secondBuffer : Uint8Array = val.getValue();
 		for (let i = 0; i < 16; i++) {
-			const srcBuffer1: Uint8Array = new Uint8Array(this.value);
-			const srcBuffer2: Uint8Array = new Uint8Array(val.getValue());
-			if (srcBuffer1[i] === srcBuffer2[i]) {
+			if (this.value[i] === secondBuffer[i]) {
 				continue;
 			}
-			return srcBuffer1[i] > srcBuffer2[i] ? 1 : -1;
+			return this.value[i] > secondBuffer[i] ? 1 : -1;
 		}
 		return 0;
 	}
 
 	public toString(): string {
-		const srcBuffer: Uint8Array = new Uint8Array(this.value);
+		const srcBuffer: Uint8Array = this.value;
 		let string: string = "";
 		for (let i = 0; i < 16; i++) {
 			for (let j = 0; j < 2; j++) {
@@ -322,5 +268,3 @@ export class UUID {
 		return string;
 	}
 }
-// UUID["__class"] = "java.util.UUID";
-// UUID["__interfaces"] = ["java.io.Serializable"];

@@ -16,7 +16,6 @@ import { CallState } from "./CallState";
  * @class
  */
 export class ConnectionOperation {
-	// static GET_CONTACT: number = 1;
 
 	static START_CALL: number = 1 << 2;
 
@@ -38,10 +37,6 @@ export class ConnectionOperation {
 
 	static TERMINATE_CALL_DONE: number = 1 << 11;
 
-	// static CREATE_CALL_ROOM: number = 1 << 12;
-
-	// static CREATE_CALL_ROOM_DONE: number = 1 << 13;
-
 	static JOIN_CALL_ROOM: number = 1 << 14;
 
 	static JOIN_CALL_ROOM_DONE: number = 1 << 15;
@@ -62,4 +57,3 @@ export class ConnectionOperation {
 		this.operation = operation;
 	}
 }
-// ConnectionOperation["__class"] = "org.twinlife.twinme.calls.ConnectionOperation";

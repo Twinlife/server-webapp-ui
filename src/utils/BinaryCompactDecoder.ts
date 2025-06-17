@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2015-2024 twinlife SA.
+ *  Copyright (c) 2015-2025 twinlife SA.
  *
  *  All Rights Reserved.
  *
@@ -202,7 +202,7 @@ export class BinaryCompactDecoder implements Decoder {
 			const buff = new ArrayBuffer(16);
 			this.mInputStream.readBuffer(buff, 0, buff.byteLength);
 			const reversedBuff = new Uint8Array(buff);
-			return new UUID(reversedBuff.reverse().buffer);
+			return new UUID(reversedBuff.reverse());
 		} catch (ignored) {
 			throw new SerializerException();
 		}
