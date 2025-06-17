@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2024 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 const WarningIcon: React.FC<IconProps> = ({ className }) => {
 	return (
 		<svg

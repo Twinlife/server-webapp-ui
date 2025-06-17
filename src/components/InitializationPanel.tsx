@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023-2025 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { AxiosResponse } from "axios";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";

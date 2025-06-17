@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023-2025 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { RefObject } from "react";
 import { CallParticipant } from "../calls/CallParticipant";
 import { CallService } from "../calls/CallService";

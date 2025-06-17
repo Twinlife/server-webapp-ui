@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023-2025 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { Menu, Transition } from "@headlessui/react";
 import { CheckIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { Fragment } from "react";

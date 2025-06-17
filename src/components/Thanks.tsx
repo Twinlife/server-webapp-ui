@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2023-2025 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { Trans, useTranslation } from "react-i18next";
 import phoneCallIcon from "../assets/phone-call.svg";
 import Header from "./Header";

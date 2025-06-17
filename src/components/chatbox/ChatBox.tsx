@@ -1,3 +1,11 @@
+/*
+ *  Copyright (c) 2024 twinlife SA.
+ *
+ *  All Rights Reserved.
+ *
+ *  Contributors:
+ *   Olivier Dupont <olivier.dupont@twin.life>
+ */
 import { useEffect, useRef, useState } from "react";
 import closeImage from "../../assets/close.png";
 import collapseIcon from "../../assets/collapse.svg";
