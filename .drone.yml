@@ -1,0 +1,51 @@
+kind: pipeline
+type: ssh
+name: MEP twin/skred UI
+
+server:
+  host: wp.skred.mobi
+  user: drone-ci
+  ssh_key:
+       from_secret: private_key
+
+steps:
+
+  - name: start docker-compose
+    commands:
+      - HOME=/home/drone-ci && docker pull harbor.skyrock.net/twinlife/usine-nodejs-webapp:22 && docker compose up
+
+  - name: Verify docker status
+    commands: 
+      - bash check_container_exit_code.sh
+
+  - name: remove docker container
+    commands:
+      - docker rm usine-webapp-twinlife
+
+  - name: Backup old folder
+    commands: 
+      - sudo mv /opt/call.skred/apache-webapp-skred/call.skred.mobi /opt/call.skred/apache-webapp-skred/call.skred.mobi.old
+      - sudo mv /opt/call.twinme/apache-webapp-twinme/call.twin.me /opt/call.twinme/apache-webapp-twinme/call.twin.me.old
+      - sudo mv /opt/call.skred/apache-webapp-skred/transfer.skred.mobi /opt/call.skred/apache-webapp-skred/transfer.skred.mobi.old
+      - sudo mv /opt/call.twinme/apache-webapp-twinme/transfer.twin.me /opt/call.twinme/apache-webapp-twinme/transfer.twin.me.old
+
+  - name: MEP
+    commands: 
+      - sudo mkdir -p /opt/call.skred/apache-webapp-skred/call.skred.mobi
+      - sudo mkdir -p /opt/call.twinme/apache-webapp-twinme/call.twin.me
+      - sudo mkdir -p /opt/call.skred/apache-webapp-skred/transfer.skred.mobi
+      - sudo mkdir -p /opt/call.twinme/apache-webapp-twinme/transfer.twin.me
+      - sudo mv skred-webapp-ui/* /opt/call.skred/apache-webapp-skred/call.skred.mobi
+      - sudo chown -R 1000:1000 /opt/call.skred/apache-webapp-skred/call.skred.mobi
+      - sudo mv twinme-webapp-ui/* /opt/call.twinme/apache-webapp-twinme/call.twin.me
+      - sudo chown -R 1000:1000 /opt/call.twinme/apache-webapp-twinme/call.twin.me
+      - sudo mv skred-webapp-transfer/* /opt/call.skred/apache-webapp-skred/transfer.skred.mobi
+      - sudo chown -R 1000:1000 /opt/call.skred/apache-webapp-skred/transfer.skred.mobi
+      - sudo mv twinme-webapp-transfer/* /opt/call.twinme/apache-webapp-twinme/transfer.twin.me
+      - sudo chown -R 1000:1000 /opt/call.twinme/apache-webapp-twinme/transfer.twin.me
+      - sudo docker compose -f /opt/call.twinme/docker-compose.yml restart apache-webapp-twinme
+      - sudo docker compose -f /opt/call.skred/docker-compose.yml restart apache-webapp-skred
+
+trigger:
+  event:
+  - tag
