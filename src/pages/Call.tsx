@@ -463,8 +463,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 									facingMode: fMode === "user" ? "user" : { exact: "environment" },
 								},
 							});
-							const videoTrack = mediaStream.getVideoTracks()[0];
-							this.callService.addOrReplaceVideoTrack(videoTrack);
+							this.callService.addOrReplaceVideoTrack(mediaStream);
 						} catch (error) {
 							console.log("Replace video track error", error);
 						}
@@ -499,8 +498,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					audio: false,
 					video: { deviceId },
 				});
-				const videoTrack = mediaStream.getVideoTracks()[0];
-				this.callService.addOrReplaceVideoTrack(videoTrack);
+				this.callService.addOrReplaceVideoTrack(mediaStream);
 				this.setUsedDevices();
 			}
 		} catch (error) {
@@ -515,8 +513,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		try {
 			this.callService.stopVideoTrack();
-			const videoTrack = mediaStream.getVideoTracks()[0];
-			this.callService.addOrReplaceVideoTrack(videoTrack);
+			this.callService.addOrReplaceVideoTrack(mediaStream);
 			this.setUsedDevices();
 			this.setState({ videoMute: false, isSharingScreen: true });
 		} catch (error) {
@@ -532,7 +529,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		this.setState({ videoMute: true, isSharingScreen: false });
 		this.callService.actionCameraMute(true);
-		this.callService.actionCameraStop();
 		this.setUsedDevices();
 	};
 
@@ -1033,8 +1029,8 @@ const CallButtons = ({
 										video: true,
 										audio: false,
 									});
-									console.log("mediaStream", mediaStream);
 									if (mediaStream) {
+										console.info("Selecting display stream", mediaStream.id);
 										startScreenSharing(mediaStream);
 									}
 								} catch (error) {

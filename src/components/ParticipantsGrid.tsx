@@ -15,6 +15,8 @@ import ParticipantGridCell from "./ParticipantGridCell";
 import ChatBox from "./chatbox/ChatBox";
 import { DraggableParticipant } from "./DraggableParticipant";
 
+const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
+
 export type DisplayMode = {
 	defaultMode: boolean;
 	showParticipant: boolean;
@@ -66,7 +68,9 @@ export const ParticipantsGrid: React.FC<{
 	const divClass = mode.showParticipant
 		? "relative grid flex-1 gap-4 overflow-hidden py-4 transition-all"
 		: "relative grid flex-1 gap-4 overflow-hidden py-4 landscape:py-2 lg:py-4 transition-all";
-	console.log("Local absolute=" + localAbsolute + " nbParticipants=" + nbParticipants);
+	if (DEBUG) {
+		console.log("Local absolute=" + localAbsolute + " nbParticipants=" + nbParticipants);
+	}
 	return (
 		<div
 			className={[

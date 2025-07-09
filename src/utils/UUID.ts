@@ -170,7 +170,7 @@ export class UUID {
 	}
 
 	public compareTo(val: UUID): number {
-		const secondBuffer : Uint8Array = val.getValue();
+		const secondBuffer: Uint8Array = val.getValue();
 		for (let i = 0; i < 16; i++) {
 			if (this.value[i] === secondBuffer[i]) {
 				continue;

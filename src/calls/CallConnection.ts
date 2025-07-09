@@ -55,12 +55,12 @@ const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
  */
 export class CallConnection {
 	// Label with data version and capabilities supported by the web app ('stream' is not supported yet).
-	static DATA_VERSION: string = "twinlife:data:conversation.CallService:1.3.0:group,transfer,message";
-	static CAP_MESSAGE: string = "message";
+	static readonly DATA_VERSION: string = "twinlife:data:conversation.CallService:1.3.0:group,transfer,message";
+	static readonly CAP_MESSAGE: string = "message";
 
-	static CONNECT_TIMEOUT: number = 15000; // 15 second timeout between accept and connection.
+	static readonly CONNECT_TIMEOUT: number = 15000; // 15 second timeout between accept and connection.
 
-	static DEVICE_STATE: number = 2;
+	static readonly DEVICE_STATE: number = 2;
 
 	private static readonly PARTICIPANT_INFO_SCHEMA_ID = UUID.fromString("a8aa7e0d-c495-4565-89bb-0c5462b54dd0");
 	private static readonly IQ_PARTICIPANT_INFO_SERIALIZER = ParticipantInfoIQ.createSerializer(
@@ -635,21 +635,6 @@ export class CallConnection {
 		}
 	}
 
-	addVideoTrack(track: MediaStreamTrack) {
-		// Don't add this track on the peer connection if it's already associated with an RTCRtpSender
-		if (this.mVideoTrack === track) {
-			return;
-		}
-
-		// If this is our first video track, add it otherwise replace it.
-		if (!this.mVideoTrack) {
-			this.mVideoTrack = track;
-			this.mPeerConnection?.addTrack(track);
-		} else {
-			this.replaceVideoTrack(track);
-		}
-	}
-
 	onSessionInitiate(sessionId: string): void {
 		if (DEBUG) {
 			console.log(sessionId, ": session-initiate created");
@@ -913,15 +898,27 @@ export class CallConnection {
 			}
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
 			for (const transceiver of transceivers) {
-				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "audio") {
+				const currentDirection = transceiver.currentDirection;
+				if (currentDirection !== "stopped" && transceiver.receiver.track.kind === "audio") {
 					const sender: RTCRtpSender = transceiver.sender;
-					this.mRenegotiationNeeded = true;
+					if (currentDirection != direction) {
+						if (DEBUG) {
+							console.log(
+								this.mPeerConnectionId,
+								": changing direction from",
+								currentDirection,
+								"to",
+								direction,
+							);
+						}
+						this.mRenegotiationNeeded = true;
+						transceiver.direction = direction;
+					}
 					if (direction !== "sendrecv") {
 						sender.replaceTrack(null);
 					} else {
 						sender.replaceTrack(this.mAudioTrack);
 					}
-					transceiver.direction = direction;
 					break;
 				}
 			}
@@ -953,15 +950,27 @@ export class CallConnection {
 				if (DEBUG) {
 					console.log(this.mPeerConnectionId, ": TRANSCEIVER", transceiver.receiver.track.kind, transceiver);
 				}
-				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
+				const currentDirection = transceiver.currentDirection;
+				if (currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
 					const sender: RTCRtpSender = transceiver.sender;
-					this.mRenegotiationNeeded = true;
+					if (currentDirection != direction) {
+						if (DEBUG) {
+							console.log(
+								this.mPeerConnectionId,
+								": changing direction from",
+								currentDirection,
+								"to",
+								direction,
+							);
+						}
+						this.mRenegotiationNeeded = true;
+						transceiver.direction = direction;
+					}
 					if (direction !== "sendrecv" && direction !== "sendonly") {
 						sender.replaceTrack(null);
 					} else {
 						sender.replaceTrack(this.mVideoTrack);
 					}
-					transceiver.direction = direction;
 					break;
 				}
 			}
@@ -987,7 +996,7 @@ export class CallConnection {
 					const sender: RTCRtpSender = transceiver.sender;
 					this.mRenegotiationNeeded = true;
 					sender.replaceTrack(null);
-					transceiver.direction = "inactive";
+					transceiver.direction = "recvonly";
 					break;
 				}
 			}
@@ -997,7 +1006,7 @@ export class CallConnection {
 	replaceAudioTrack(track: MediaStreamTrack): void {
 		if (this.mPeerConnection != null && this.mAudioTrack) {
 			if (DEBUG) {
-				console.log(this.mPeerConnectionId, ": replace Audio Track");
+				console.log(this.mPeerConnectionId, ": replace Audio Track", track.label);
 			}
 			this.mAudioTrack = track;
 
@@ -1005,7 +1014,7 @@ export class CallConnection {
 			for (const transceiver of transceivers) {
 				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "audio") {
 					const sender: RTCRtpSender = transceiver.sender;
-					this.mRenegotiationNeeded = true;
+					// Replace the audio track (no renegociation needed).
 					sender.replaceTrack(this.mAudioTrack);
 					break;
 				}
@@ -1013,24 +1022,55 @@ export class CallConnection {
 		}
 	}
 
+	addVideoTrack(track: MediaStreamTrack) {
+		// Don't add this track on the peer connection if it's already associated with an RTCRtpSender
+		if (this.mVideoTrack === track) {
+			return;
+		}
+
+		this.replaceVideoTrack(track);
+	}
+
 	replaceVideoTrack(track: MediaStreamTrack): void {
-		if (this.mPeerConnection != null && this.mVideoTrack) {
+		this.mVideoTrack = track;
+		if (this.mPeerConnection != null) {
 			if (DEBUG) {
-				console.log(this.mPeerConnectionId, ": replace Video Track");
+				console.log(this.mPeerConnectionId, ": replace Video Track to", track.label);
 			}
-			this.mVideoTrack = track;
 
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
+			let sender: RTCRtpSender | null = null;
 			for (const transceiver of transceivers) {
 				if (DEBUG) {
 					console.log(this.mPeerConnectionId, ": TRANSCEIVER", transceiver.receiver.track.kind, transceiver);
 				}
-				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
-					const sender: RTCRtpSender = transceiver.sender;
-					this.mRenegotiationNeeded = true;
+				const currentDirection = transceiver.currentDirection;
+				if (currentDirection !== "stopped" && transceiver.receiver.track.kind === "video") {
+					sender = transceiver.sender;
+					if (currentDirection != "sendrecv") {
+						if (DEBUG) {
+							console.log(
+								this.mPeerConnectionId,
+								": changing direction from",
+								currentDirection,
+								"to",
+								"sendrecv",
+							);
+						}
+						this.mRenegotiationNeeded = true;
+						transceiver.direction = "sendrecv";
+					}
 					sender.replaceTrack(this.mVideoTrack);
-					break;
 				}
+			}
+
+			// When no sender was found for the track, use addTrack().
+			if (sender == null) {
+				if (DEBUG) {
+					console.log(this.mPeerConnectionId, ": no transceiver adding track");
+				}
+				this.mRenegotiationNeeded = true;
+				this.mPeerConnection.addTrack(track);
 			}
 		}
 	}

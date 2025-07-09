@@ -15,7 +15,6 @@ import { CallState } from "./CallState";
  * @class
  */
 export class ConnectionOperation {
-
 	static START_CALL: number = 1 << 2;
 
 	static START_CALL_DONE: number = 1 << 3;

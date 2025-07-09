@@ -39,8 +39,12 @@ export const LocalParticipant: React.FC<{
 	const { t } = useTranslation();
 
 	useEffect(() => {
-		console.log("Update local " + localVideoRef.current);
-		console.log("Stream=" + localMediaStream + " mute=" + videoMute);
+		console.log(
+			"Update local ref " + localVideoRef.current + " with stream",
+			localMediaStream.id,
+			" mute ",
+			videoMute,
+		);
 		if (localVideoRef.current) {
 			localVideoRef.current.srcObject = localMediaStream;
 		} else {
