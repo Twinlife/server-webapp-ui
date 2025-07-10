@@ -1023,7 +1023,7 @@ const CallButtons = ({
 						<SwitchCamera color="black" />
 					</WhiteButton>
 				)}
-				{inCall && (
+				{(
 					<WhiteButton onClick={muteAudioClick} className="ml-3 !p-[10px] ">
 						{audioMute ? <MicOff color="black" /> : <Mic color="black" />}
 					</WhiteButton>

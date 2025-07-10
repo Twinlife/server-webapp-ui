@@ -203,13 +203,14 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	actionAudioMute(audioMute: boolean): void {
+		console.info("User audio mute", audioMute);
+
+		this.mAudioMute = audioMute;
 		const call: CallState | null = this.mActiveCall;
 		if (!call) {
 			return;
 		}
 
-		console.info("User audio mute", audioMute);
-		this.mAudioMute = audioMute;
 		const connections: Array<CallConnection> = call.getConnections();
 		for (const callConnection of connections) {
 			callConnection.setAudioDirection(this.getAudioDirection());
