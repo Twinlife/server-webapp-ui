@@ -156,7 +156,7 @@ export class BinaryCompactEncoder implements Encoder {
 	 */
 	public writeUUID(value: UUID): void {
 		try {
-			const srcBuffer : Uint8Array = value.getValue();
+			const srcBuffer: Uint8Array = value.getValue();
 			const dstBuffer: Uint8Array = new Uint8Array(this.mBuffer, 0, 16);
 			for (let index = 0; index < 16; index++) {
 				dstBuffer[index] = srcBuffer[15 - index];

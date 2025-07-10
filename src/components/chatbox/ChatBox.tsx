@@ -1,14 +1,15 @@
 /*
- *  Copyright (c) 2024 twinlife SA.
+ *  Copyright (c) 2024-2025 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { useEffect, useRef, useState } from "react";
 import closeImage from "../../assets/close.png";
-import collapseIcon from "../../assets/collapse.svg";
-import expandIcon from "../../assets/expand.svg";
+import CollapseIcon from "../../assets/collapse.svg";
+import ExpandIcon from "../../assets/expand.svg";
 import sendImage from "../../assets/send.png";
 import { CallService } from "../../calls/CallService";
 import { ConversationService } from "../../calls/ConversationService";
@@ -74,7 +75,7 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 			>
 				<div className="flex w-full items-center justify-between px-4">
 					<button onClick={() => setChatPanelFull(!chatPanelFull)}>
-						<img src={chatPanelFull ? collapseIcon : expandIcon} alt="" />
+						{chatPanelFull ? <CollapseIcon /> : <ExpandIcon />}
 					</button>
 					<button onClick={closeChatPanel}>
 						<img className="w-6" src={closeImage} alt="" />

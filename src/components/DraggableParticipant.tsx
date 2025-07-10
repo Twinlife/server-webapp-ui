@@ -4,6 +4,7 @@
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { RefObject, useRef } from "react";
 import DraggableCore from "react-draggable";
@@ -15,6 +16,7 @@ export const DraggableParticipant: React.FC<{
 	localMediaStream: MediaStream;
 	localAbsolute: boolean;
 	videoMute: boolean;
+	isSharingScreen: boolean;
 	isLocalAudioMute: boolean;
 	enableVideo: boolean;
 	isIdle: boolean;
@@ -30,6 +32,7 @@ export const DraggableParticipant: React.FC<{
 	localMediaStream,
 	localAbsolute,
 	videoMute,
+	isSharingScreen,
 	isLocalAudioMute,
 	enableVideo,
 	isIdle,
@@ -44,7 +47,7 @@ export const DraggableParticipant: React.FC<{
 	const cl = [
 		localAbsolute ? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16" : isIdle ? "relative" : "relative",
 		"overflow-hidden rounded-md",
-		videoMute && localAbsolute ? "hidden" : "",
+		(videoMute && !isSharingScreen) && localAbsolute ? "hidden" : "",
 		className,
 	].join(" ");
 	if (!localAbsolute) {
@@ -66,7 +69,7 @@ export const DraggableParticipant: React.FC<{
 					localVideoRef={localVideoRef}
 					localMediaStream={localMediaStream}
 					localAbsolute={localAbsolute}
-					videoMute={videoMute}
+					videoMute={videoMute && !isSharingScreen}
 					isLocalAudioMute={isLocalAudioMute}
 					isIdle={isIdle}
 					enableVideo={enableVideo}
@@ -111,7 +114,7 @@ export const DraggableParticipant: React.FC<{
 					localVideoRef={localVideoRef}
 					localMediaStream={localMediaStream}
 					localAbsolute={true}
-					videoMute={videoMute}
+					videoMute={videoMute || isSharingScreen}
 					isLocalAudioMute={isLocalAudioMute}
 					isIdle={isIdle}
 					enableVideo={enableVideo}

@@ -4,6 +4,7 @@
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { RefObject } from "react";
 import { CallParticipant } from "../calls/CallParticipant";
@@ -14,6 +15,8 @@ import GuestNameForms from "./GuestNameForms";
 import ParticipantGridCell from "./ParticipantGridCell";
 import ChatBox from "./chatbox/ChatBox";
 import { DraggableParticipant } from "./DraggableParticipant";
+
+const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 export type DisplayMode = {
 	defaultMode: boolean;
@@ -28,6 +31,7 @@ export const ParticipantsGrid: React.FC<{
 	localVideoRef: RefObject<HTMLVideoElement>;
 	localMediaStream: MediaStream;
 	videoMute: boolean;
+	isSharingScreen: boolean;
 	isLocalAudioMute: boolean;
 	twincode: TwincodeInfo;
 	participants: CallParticipant[];
@@ -47,6 +51,7 @@ export const ParticipantsGrid: React.FC<{
 	localVideoRef,
 	localMediaStream,
 	videoMute,
+	isSharingScreen,
 	isLocalAudioMute,
 	twincode,
 	participants,
@@ -66,7 +71,9 @@ export const ParticipantsGrid: React.FC<{
 	const divClass = mode.showParticipant
 		? "relative grid flex-1 gap-4 overflow-hidden py-4 transition-all"
 		: "relative grid flex-1 gap-4 overflow-hidden py-4 landscape:py-2 lg:py-4 transition-all";
-	console.log("Local absolute=" + localAbsolute + " nbParticipants=" + nbParticipants);
+	if (DEBUG) {
+		console.log("Local absolute=" + localAbsolute + " nbParticipants=" + nbParticipants);
+	}
 	return (
 		<div
 			className={[
@@ -106,6 +113,7 @@ export const ParticipantsGrid: React.FC<{
 				localMediaStream={localMediaStream}
 				localAbsolute={localAbsolute}
 				videoMute={videoMute}
+				isSharingScreen={isSharingScreen}
 				isLocalAudioMute={isLocalAudioMute}
 				isIdle={isIdle}
 				enableVideo={twincode.video}

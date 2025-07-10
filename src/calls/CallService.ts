@@ -64,10 +64,10 @@ export class CallService implements PeerCallServiceObserver {
 	private mParticipantObserver: CallParticipantObserver | null = null;
 	private mAudioMute: boolean = false;
 	private mIsCameraMute: boolean = false;
-	private mPeers: Map<string, CallConnection> = new Map<string, CallConnection>();
-	private mPeerTo: Map<string, CallConnection> = new Map<string, CallConnection>();
+	private readonly mPeers: Map<string, CallConnection> = new Map<string, CallConnection>();
+	private readonly mPeerTo: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private mActiveCall: CallState | null = null;
-	private mLocalStream: MediaStream = new MediaStream();
+	private readonly mLocalStream: MediaStream = new MediaStream();
 	private mIdentityName: string = "Unknown";
 	private mIdentityImage: ArrayBuffer = new ArrayBuffer(0);
 	private wakeLock: WakelockHandler | null = null;
@@ -203,13 +203,14 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	actionAudioMute(audioMute: boolean): void {
+		console.info("User audio mute", audioMute);
+
+		this.mAudioMute = audioMute;
 		const call: CallState | null = this.mActiveCall;
 		if (!call) {
 			return;
 		}
 
-		console.info("User audio mute", audioMute);
-		this.mAudioMute = audioMute;
 		const connections: Array<CallConnection> = call.getConnections();
 		for (const callConnection of connections) {
 			callConnection.setAudioDirection(this.getAudioDirection());
@@ -220,45 +221,32 @@ export class CallService implements PeerCallServiceObserver {
 		console.info("User camera mute", cameraMute);
 
 		const call: CallState | null = this.mActiveCall;
-		const track = this.mLocalStream.getVideoTracks()[0];
-
+		const videoTracks: MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
 		this.mIsCameraMute = cameraMute;
-		if (call) {
-			const connections: Array<CallConnection> = call.getConnections();
-			for (const connection of connections) {
-				if (!cameraMute) {
-					if (DEBUG) {
-						console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
-					}
-					if (track) {
+		if (videoTracks.length === 0) {
+			return;
+		}
+		const track = videoTracks[0];
+		if (track) {
+			// Release the camera and stop the track before removing it.
+			if (cameraMute) {
+				track.stop();
+				this.mLocalStream.removeTrack(track);
+			}
+
+			if (call) {
+				const connections: Array<CallConnection> = call.getConnections();
+				for (const connection of connections) {
+					if (!cameraMute) {
+						if (DEBUG) {
+							console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
+						}
 						connection.addVideoTrack(track);
+					} else {
+						connection.stopVideoTrack();
 					}
 				}
-
-				connection.setVideoDirection(cameraMute ? "recvonly" : "sendrecv");
 			}
-		}
-
-		// Release the camera
-		if (cameraMute && track) {
-			track.stop();
-			this.mLocalStream.removeTrack(track);
-		}
-	}
-
-	actionCameraStop(): void {
-		const call: CallState | null = this.mActiveCall;
-		if (call) {
-			const connections: Array<CallConnection> = call.getConnections();
-			for (const connection of connections) {
-				connection.stopVideoTrack();
-			}
-		}
-
-		const track = this.mLocalStream.getVideoTracks()[0];
-		if (track) {
-			track.stop();
-			this.mLocalStream.removeTrack(track);
 		}
 	}
 
@@ -282,22 +270,22 @@ export class CallService implements PeerCallServiceObserver {
 	}
 
 	addOrReplaceAudioTrack(audioTrack: MediaStreamTrack) {
-		if (this.mLocalStream) {
-			if (this.hasAudioTrack()) {
-				// Replace track
-				const currentTrack = this.mLocalStream.getAudioTracks()[0];
-				currentTrack.stop();
-				this.mLocalStream.removeTrack(currentTrack);
-				const call = this.mActiveCall;
-				if (call && CallStatusOps.isActive(call.getStatus())) {
-					const connections: Array<CallConnection> = call.getConnections();
-					for (const callConnection of connections) {
-						callConnection.replaceAudioTrack(audioTrack);
-					}
+		console.info("Replace audio track with ", audioTrack.label);
+
+		if (this.hasAudioTrack()) {
+			// Replace track
+			const currentTrack = this.mLocalStream.getAudioTracks()[0];
+			currentTrack.stop();
+			this.mLocalStream.removeTrack(currentTrack);
+			const call = this.mActiveCall;
+			if (call && CallStatusOps.isActive(call.getStatus())) {
+				const connections: Array<CallConnection> = call.getConnections();
+				for (const callConnection of connections) {
+					callConnection.replaceAudioTrack(audioTrack);
 				}
 			}
-			this.mLocalStream.addTrack(audioTrack);
 		}
+		this.mLocalStream.addTrack(audioTrack);
 	}
 
 	/**
@@ -311,24 +299,35 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-	addOrReplaceVideoTrack(videoTrack: MediaStreamTrack) {
-		if (this.mLocalStream) {
-			const tracks: MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
-			if (tracks.length > 0) {
-				// Replace track
-				const currentTrack = tracks[0];
-				currentTrack.stop();
-				this.mLocalStream.removeTrack(currentTrack);
-				const call = this.mActiveCall;
-				if (call && CallStatusOps.isActive(call.getStatus())) {
-					const connections: Array<CallConnection> = call.getConnections();
-					for (const callConnection of connections) {
-						callConnection.replaceVideoTrack(videoTrack);
-					}
+	addOrReplaceVideoTrack(mediaStream: MediaStream | MediaStreamTrack) {
+		const tracks: MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
+		let videoTrack;
+		if (mediaStream instanceof MediaStreamTrack) {
+			videoTrack = mediaStream;
+		} else {
+			videoTrack = mediaStream.getVideoTracks()[0];
+		}
+
+		console.info("Replace video track with ", videoTrack.label);
+		const call = this.mActiveCall;
+		if (tracks.length > 0) {
+			// Replace track
+			const currentTrack = tracks[0];
+			currentTrack.stop();
+			this.mLocalStream.removeTrack(currentTrack);
+			if (call && CallStatusOps.isActive(call.getStatus())) {
+				const connections: Array<CallConnection> = call.getConnections();
+				for (const callConnection of connections) {
+					callConnection.replaceVideoTrack(videoTrack);
 				}
 			}
-			this.mLocalStream.addTrack(videoTrack);
+		} else if (call && CallStatusOps.isActive(call.getStatus())) {
+			const connections: Array<CallConnection> = call.getConnections();
+			for (const callConnection of connections) {
+				callConnection.addVideoTrack(videoTrack);
+			}
 		}
+		this.mLocalStream.addTrack(videoTrack);
 	}
 
 	hasAudioTrack(): boolean {
