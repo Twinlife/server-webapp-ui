@@ -9,12 +9,14 @@
  */
 import zonedTimeToUtc from "date-fns-tz/zonedTimeToUtc";
 import i18n, { TFunction } from "i18next";
-import { Mic, MicOff, ScreenShare, ScreenShareOff, SwitchCamera, Video, VideoOff } from "lucide-react";
+import { Mic, MicOff, SwitchCamera, Video, VideoOff } from "lucide-react";
 import React, { Component, ReactNode, RefObject, useEffect, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
 import { NavigateFunction, useNavigate, useParams } from "react-router-dom";
-import phoneCallIcon from "../assets/phone-call.svg";
+import PhoneCallIcon from "../assets/phone-call.svg";
+import MonitorOff from "../assets/monitor-off.svg";
+import MonitorOn from "../assets/monitor.svg";
 import { CallObserver } from "../calls/CallObserver";
 import { CallParticipant } from "../calls/CallParticipant";
 import { CallParticipantEvent } from "../calls/CallParticipantEvent";
@@ -393,9 +395,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 	private toggleVideo = () => {
 		if (this.state.twincode.video) {
-			const { videoMute } = this.state;
+			const { videoMute, isSharingScreen } = this.state;
 
-			this.setState({ videoMute: !videoMute }, async () => {
+			if (isSharingScreen) {
+				this.callService.actionCameraMute(true);
+				this.setUsedDevices();
+			}
+			this.setState({ videoMute: !videoMute && !isSharingScreen, isSharingScreen: false }, async () => {
 				const { videoMute } = this.state;
 				if (!videoMute && !this.callService.hasVideoTrack()) {
 					await this.askForMediaPermission("video");
@@ -511,14 +517,16 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			console.log("Start screen sharing");
 		}
 
-		try {
-			this.callService.stopVideoTrack();
-			this.callService.addOrReplaceVideoTrack(mediaStream);
-			this.setUsedDevices();
-			this.setState({ videoMute: false, isSharingScreen: true });
-		} catch (error) {
-			console.log("Screen sharing error", error);
-			//this.callService.actionCameraMute(false);
+		if (this.state.twincode.video) {
+			try {
+				this.callService.stopVideoTrack();
+				this.callService.addOrReplaceVideoTrack(mediaStream);
+				this.setUsedDevices();
+				this.setState({ isSharingScreen: true });
+			} catch (error) {
+				console.log("Screen sharing error", error);
+				//this.callService.actionCameraMute(false);
+			}
 		}
 	};
 
@@ -527,7 +535,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			console.log("Stop screen sharing");
 		}
 
-		this.setState({ videoMute: true, isSharingScreen: false });
+		this.setState({ isSharingScreen: false }, async () => {
+			const { videoMute, twincode } = this.state;
+			if (!videoMute && twincode.video) {
+				await this.askForMediaPermission("video");
+			}
+		});
 		this.callService.actionCameraMute(true);
 		this.setUsedDevices();
 	};
@@ -820,6 +833,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						localVideoRef={this.localVideoRef}
 						localMediaStream={this.callService.getMediaStream()}
 						videoMute={videoMute}
+						isSharingScreen={isSharingScreen}
 						isLocalAudioMute={audioMute}
 						twincode={twincode}
 						participants={participants}
@@ -980,8 +994,8 @@ const CallButtons = ({
 					].join(" ")}
 					onClick={isIdle ? handleCallClick : hangUpClick}
 				>
-					<img src={phoneCallIcon} alt="" className="mr-3" />
-					{inCall ? (
+						<span className="mr-3"><PhoneCallIcon/></span>
+						{inCall ? (
 						<Timer />
 					) : (
 						<span className="font-light">{isIdle ? callLabel : t("audio_call_activity_calling")}</span>
@@ -994,7 +1008,7 @@ const CallButtons = ({
 						className="ml-3 flex items-center justify-center rounded-full bg-blue px-6 py-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
 						onClick={handleTransferClick}
 					>
-						<img src={phoneCallIcon} alt="" className="mr-3" />
+						<span className="mr-3"><PhoneCallIcon/></span>
 						<span className="font-light">{t("transfer")}</span>
 					</button>
 				</div>
@@ -1014,9 +1028,9 @@ const CallButtons = ({
 						{audioMute ? <MicOff color="black" /> : <Mic color="black" />}
 					</WhiteButton>
 				)}
-				{hasVideo && !isSharingScreen && (
+				{hasVideo && (
 					<WhiteButton onClick={muteVideoClick} className="ml-3 !p-[10px]">
-						{videoMute ? <VideoOff color="black" /> : <Video color="black" />}
+						{videoMute || isSharingScreen ? <VideoOff color="black" /> : <Video color="black" />}
 					</WhiteButton>
 				)}
 				{!isMobile && (
@@ -1041,7 +1055,7 @@ const CallButtons = ({
 							}
 						}}
 					>
-						{isSharingScreen ? <ScreenShareOff color="black" /> : <ScreenShare color="black" />}
+						{isSharingScreen ? <MonitorOn /> : <MonitorOff />}
 					</WhiteButton>
 				)}
 				{!isMobile && (

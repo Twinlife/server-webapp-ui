@@ -4,8 +4,9 @@
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import chatIcon from "../assets/chat.svg";
+import ChatIcon from "../assets/chat.svg";
 
 interface HeaderProps {
 	messageNotificationDisplayed: boolean;
@@ -27,7 +28,7 @@ export default function Header({ messageNotificationDisplayed, openChatButtonDis
 							<span className="relative inline-flex h-2 w-2 rounded-full bg-red"></span>
 						</span>
 					)}
-					<img src={chatIcon} alt="" />
+					<ChatIcon />
 				</button>
 			)}
 		</div>

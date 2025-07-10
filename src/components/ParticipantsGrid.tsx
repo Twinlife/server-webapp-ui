@@ -4,6 +4,7 @@
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { RefObject } from "react";
 import { CallParticipant } from "../calls/CallParticipant";
@@ -30,6 +31,7 @@ export const ParticipantsGrid: React.FC<{
 	localVideoRef: RefObject<HTMLVideoElement>;
 	localMediaStream: MediaStream;
 	videoMute: boolean;
+	isSharingScreen: boolean;
 	isLocalAudioMute: boolean;
 	twincode: TwincodeInfo;
 	participants: CallParticipant[];
@@ -49,6 +51,7 @@ export const ParticipantsGrid: React.FC<{
 	localVideoRef,
 	localMediaStream,
 	videoMute,
+	isSharingScreen,
 	isLocalAudioMute,
 	twincode,
 	participants,
@@ -110,6 +113,7 @@ export const ParticipantsGrid: React.FC<{
 				localMediaStream={localMediaStream}
 				localAbsolute={localAbsolute}
 				videoMute={videoMute}
+				isSharingScreen={isSharingScreen}
 				isLocalAudioMute={isLocalAudioMute}
 				isIdle={isIdle}
 				enableVideo={twincode.video}
