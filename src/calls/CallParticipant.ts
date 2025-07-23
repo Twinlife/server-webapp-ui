@@ -48,6 +48,7 @@ export class CallParticipant {
 	private mVideoWidth: number = 0;
 	private mVideoHeight: number = 0;
 	private mSenderId: UUID | null = null;
+	private mIsScreenSharing: boolean = false;
 
 	/**
 	 * Get the call connection associated with this participant.
@@ -83,6 +84,15 @@ export class CallParticipant {
 	 */
 	public isCameraMute(): boolean {
 		return this.mCameraMute;
+	}
+
+	/**
+	 * Returns true if the peer is sharing its screen.
+	 *
+	 * @return {boolean} true if the peer is sharing its screen.
+	 */
+	public isScreenSharing(): boolean {
+		return this.mIsScreenSharing;
 	}
 
 	/**
@@ -206,6 +216,10 @@ export class CallParticipant {
 		this.mName = name;
 		this.mDescription = description;
 		this.mAvatarUrl = avatarUrl;
+	}
+
+	setScreenSharing(state: boolean) {
+		this.mIsScreenSharing = state;
 	}
 
 	/**

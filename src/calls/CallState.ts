@@ -8,7 +8,7 @@
  *   Fabrice Trescartes (Fabrice.Trescartes@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
-import { PeerCallService } from "../services/PeerCallService";
+import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 import { UUID } from "../utils/UUID";
 import { CallConnection } from "./CallConnection";
 import { CallParticipant } from "./CallParticipant";
@@ -56,6 +56,7 @@ export class CallState {
 	private mParticipantCounter: number = 1; // Start at 1 and use 0 for ourselves.
 	private mRequestCounter: number = 0;
 	private mSequenceCounter: number = 0;
+	private mIsScreenSharing: boolean = false;
 
 	public readonly transfer: boolean = false;
 	public transferDirection: CallState.TransferDirection | null = null;
@@ -107,6 +108,10 @@ export class CallState {
 	 */
 	public isGroupCall(): boolean {
 		return this.mCallRoomId !== null || this.mPeers.length > 1;
+	}
+
+	public isScreenSharing(): boolean {
+		return this.mIsScreenSharing;
 	}
 
 	/**
@@ -298,15 +303,6 @@ export class CallState {
 		return this.mParticipantCounter++;
 	}
 
-	/**
-	 * Get the list of connections.
-	 *
-	 * @return {CallConnection[]} the current frozen list of connections.
-	 */
-	getConnections(): Array<CallConnection> {
-		return this.mPeers.concat();
-	}
-
 	constructor(
 		callService: CallService,
 		peerCallService: PeerCallService,
@@ -329,6 +325,92 @@ export class CallState {
 	 */
 	setLocalRenderer(localRenderer: unknown): void {
 		this.mLocalRenderer = localRenderer;
+	}
+
+	/**
+	 * Set the audio direction to either 'recvonly' or 'sendrecv'.
+	 *
+	 * @param direction the audio direction to set.
+	 */
+	setAudioDirection(direction: RTCRtpTransceiverDirection): void {
+		console.info("User audio direction", direction);
+
+		for (const callConnection of this.mPeers) {
+			callConnection.setAudioDirection(direction);
+		}
+	}
+
+	setAudioTrack(audioTrack: MediaStreamTrack) {
+		console.info("Replace audio track with ", audioTrack.label);
+
+		if (CallStatusOps.isActive(this.getStatus())) {
+			for (const callConnection of this.mPeers) {
+				callConnection.replaceAudioTrack(audioTrack);
+			}
+		}
+	}
+
+	setVideoTrack(videoTrack: MediaStreamTrack | null, isScreenSharing: boolean, replace: boolean): void {
+		let scaleDown;
+		if (videoTrack) {
+			const settings = videoTrack.getSettings();
+			console.info(
+				"Replace video",
+				videoTrack.label,
+				"width",
+				settings.width,
+				"height",
+				settings.height,
+				"scale down",
+				scaleDown,
+				"screenSharing",
+				isScreenSharing,
+			);
+			scaleDown = this.scaleDownFactor(settings.width, settings.height);
+		} else {
+			scaleDown = 0;
+			console.info("Stop video track");
+		}
+
+		if (CallStatusOps.isActive(this.getStatus())) {
+			for (const connection of this.mPeers) {
+				if (!videoTrack) {
+					connection.stopVideoTrack();
+				} else if (replace) {
+					connection.replaceVideoTrack(videoTrack, scaleDown);
+				} else {
+					connection.addVideoTrack(videoTrack, scaleDown);
+				}
+				if (this.mIsScreenSharing != isScreenSharing) {
+					connection.sendScreenSharingIQ(isScreenSharing);
+				}
+			}
+		}
+		this.mIsScreenSharing = isScreenSharing;
+	}
+
+	scaleDownFactor(width: number | undefined, height: number | undefined): number {
+		const MAX_WIDTH = 1280;
+		const MAX_HEIGHT = 1024;
+
+		// No scaling needed
+		if (width === undefined || height === undefined || (width <= MAX_WIDTH && height <= MAX_HEIGHT)) {
+			return 1;
+		}
+
+		return 2;
+		/*const scaleWidth = width / MAX_WIDTH;
+		const scaleHeight = height / MAX_HEIGHT;
+		const scale = Math.max(scaleWidth, scaleHeight);
+
+		// Choose the smallest factor from the allowed set that is >= scale
+		if (scale <= 1.5) {
+			return 1.5;
+		} else if (scale <= 2.0) {
+			return 2.0;
+		} else {
+			return 3.0; // fallback to max scale-down if still too big
+		}*/
 	}
 
 	/**
@@ -423,6 +505,22 @@ export class CallState {
 	}
 
 	/**
+	 * Terminate the call with the given reason.
+	 *
+	 * @param terminateReason the call terminate reason.
+	 */
+	terminateCall(terminateReason: TerminateReason): void {
+		console.info("User terminate call", terminateReason);
+
+		for (const callConnection of this.mPeers) {
+			if (callConnection.getStatus() !== CallStatus.TERMINATED) {
+				const sessionId: string | null = callConnection.terminate(terminateReason);
+				this.mCallService.onTerminatePeerConnection(sessionId, callConnection, terminateReason);
+			}
+		}
+	}
+
+	/**
 	 * Release all the resources used by the call participants.
 	 */
 	release(): void {
@@ -488,6 +586,17 @@ export class CallState {
 		}
 
 		return false;
+	}
+
+	prepareTransfer(sessionId: string): void {
+		for (const connection of this.mPeers) {
+			const peerConnectionId = connection.getPeerConnectionId();
+
+			if (peerConnectionId && peerConnectionId != sessionId) {
+				connection.sendPrepareTransferIQ();
+				this.addPendingPrepareTransfer(peerConnectionId);
+			}
+		}
 	}
 
 	private newRequestId(): number {

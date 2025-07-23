@@ -272,6 +272,17 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		if (event === CallParticipantEvent.EVENT_SUPPORTS_MESSAGES) {
 			this.checkIsMessageSupported();
 		}
+		if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_ON) {
+			const displayMode: DisplayMode = this.state.displayMode;
+			displayMode.showParticipant = true; // !displayMode.showParticipant;
+			displayMode.participantId = participant.getParticipantId();
+			this.setState({ displayMode: displayMode });
+		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_OFF) {
+			const displayMode: DisplayMode = this.state.displayMode;
+			displayMode.showParticipant = false;
+			displayMode.participantId = null;
+			this.setState({ displayMode: displayMode });
+		}
 	}
 
 	checkIsMessageSupported = () => {
@@ -470,7 +481,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 									facingMode: fMode === "user" ? "user" : { exact: "environment" },
 								},
 							});
-							this.callService.addOrReplaceVideoTrack(mediaStream);
+							this.callService.addOrReplaceVideoTrack(mediaStream, false);
 						} catch (error) {
 							console.log("Replace video track error", error);
 						}
@@ -505,7 +516,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					audio: false,
 					video: { deviceId },
 				});
-				this.callService.addOrReplaceVideoTrack(mediaStream);
+				this.callService.addOrReplaceVideoTrack(mediaStream, false);
 				this.setUsedDevices();
 			}
 		} catch (error) {
@@ -521,12 +532,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		if (this.state.twincode.video) {
 			try {
 				this.callService.stopVideoTrack();
-				this.callService.addOrReplaceVideoTrack(mediaStream).onended = ((_event: Event) => {
+				this.callService.addOrReplaceVideoTrack(mediaStream, true).onended = (_event: Event) => {
 					// onended is called if the user stops screen sharing from its browser
 					if (this.state.isSharingScreen) {
 						this.stopScreenSharing();
 					}
-				});
+				};
 				this.setUsedDevices();
 				this.setState({ isSharingScreen: true });
 			} catch (error) {
@@ -596,7 +607,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					this.setUsedDevices();
 				}
 				if (track.kind === "video" && kind === "video") {
-					this.callService.addOrReplaceVideoTrack(track);
+					this.callService.addOrReplaceVideoTrack(track, true);
 					this.setUsedDevices();
 				}
 				mediaStream.removeTrack(track);

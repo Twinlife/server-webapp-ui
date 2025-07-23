@@ -191,15 +191,7 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		console.info("User terminate call", terminateReason);
-
-		const connections: Array<CallConnection> = call.getConnections();
-		for (const callConnection of connections) {
-			if (callConnection.getStatus() !== CallStatus.TERMINATED) {
-				const sessionId: string | null = callConnection.terminate(terminateReason);
-				this.onTerminatePeerConnection(sessionId, callConnection, terminateReason);
-			}
-		}
+		call.terminateCall(terminateReason);
 	}
 
 	actionAudioMute(audioMute: boolean): void {
@@ -211,10 +203,7 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		const connections: Array<CallConnection> = call.getConnections();
-		for (const callConnection of connections) {
-			callConnection.setAudioDirection(this.getAudioDirection());
-		}
+		call.setAudioDirection(this.getAudioDirection());
 	}
 
 	actionCameraMute(cameraMute: boolean): void {
@@ -235,17 +224,7 @@ export class CallService implements PeerCallServiceObserver {
 			}
 
 			if (call) {
-				const connections: Array<CallConnection> = call.getConnections();
-				for (const connection of connections) {
-					if (!cameraMute) {
-						if (DEBUG) {
-							console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
-						}
-						connection.addVideoTrack(track, null);
-					} else {
-						connection.stopVideoTrack();
-					}
-				}
+				call.setVideoTrack(cameraMute ? null : track, false, true);
 			}
 		}
 	}
@@ -278,11 +257,8 @@ export class CallService implements PeerCallServiceObserver {
 			currentTrack.stop();
 			this.mLocalStream.removeTrack(currentTrack);
 			const call = this.mActiveCall;
-			if (call && CallStatusOps.isActive(call.getStatus())) {
-				const connections: Array<CallConnection> = call.getConnections();
-				for (const callConnection of connections) {
-					callConnection.replaceAudioTrack(audioTrack);
-				}
+			if (call) {
+				call.setAudioTrack(audioTrack);
 			}
 		}
 		this.mLocalStream.addTrack(audioTrack);
@@ -299,7 +275,7 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-	addOrReplaceVideoTrack(mediaStream: MediaStream | MediaStreamTrack) : MediaStreamTrack {
+	addOrReplaceVideoTrack(mediaStream: MediaStream | MediaStreamTrack, isScreenSharing: boolean): MediaStreamTrack {
 		const tracks: MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
 		let videoTrack;
 		if (mediaStream instanceof MediaStreamTrack) {
@@ -308,63 +284,20 @@ export class CallService implements PeerCallServiceObserver {
 			videoTrack = mediaStream.getVideoTracks()[0];
 		}
 
-		const settings = videoTrack.getSettings();
-		const scaleDown = this.scaleDownFactor(settings.width, settings.height);
 		const call = this.mActiveCall;
-		console.info(
-			"Replace video track with ",
-			videoTrack.label,
-			"width",
-			settings.width,
-			"height",
-			settings.height,
-			"scale down",
-			scaleDown,
-		);
-
 		if (tracks.length > 0) {
 			// Replace track
 			const currentTrack = tracks[0];
 			currentTrack.stop();
 			this.mLocalStream.removeTrack(currentTrack);
-			if (call && CallStatusOps.isActive(call.getStatus())) {
-				const connections: Array<CallConnection> = call.getConnections();
-				for (const callConnection of connections) {
-					callConnection.replaceVideoTrack(videoTrack, scaleDown);
-				}
+			if (call) {
+				call.setVideoTrack(videoTrack, isScreenSharing, true);
 			}
 		} else if (call && CallStatusOps.isActive(call.getStatus())) {
-			const connections: Array<CallConnection> = call.getConnections();
-			for (const callConnection of connections) {
-				callConnection.addVideoTrack(videoTrack, scaleDown);
-			}
+			call.setVideoTrack(videoTrack, isScreenSharing, false);
 		}
 		this.mLocalStream.addTrack(videoTrack);
 		return videoTrack;
-	}
-
-	scaleDownFactor(width: number | undefined, height: number | undefined): number {
-		const MAX_WIDTH = 1280;
-		const MAX_HEIGHT = 1024;
-
-		// No scaling needed
-		if (width === undefined || height === undefined || (width <= MAX_WIDTH && height <= MAX_HEIGHT)) {
-			return 1;
-		}
-
-		return 2;
-		/*const scaleWidth = width / MAX_WIDTH;
-		const scaleHeight = height / MAX_HEIGHT;
-		const scale = Math.max(scaleWidth, scaleHeight);
-
-		// Choose the smallest factor from the allowed set that is >= scale
-		if (scale <= 1.5) {
-			return 1.5;
-		} else if (scale <= 2.0) {
-			return 2.0;
-		} else {
-			return 3.0; // fallback to max scale-down if still too big
-		}*/
 	}
 
 	hasAudioTrack(): boolean {
@@ -501,14 +434,7 @@ export class CallService implements PeerCallServiceObserver {
 					}
 					break;
 				case TransferDirection.TO_DEVICE:
-					for (const connection of call.getConnections()) {
-						const peerConnectionId = connection.getPeerConnectionId();
-
-						if (peerConnectionId && peerConnectionId != sessionId) {
-							connection.sendPrepareTransferIQ();
-							call.addPendingPrepareTransfer(peerConnectionId);
-						}
-					}
+					call.prepareTransfer(sessionId);
 					break;
 			}
 		}
@@ -726,16 +652,6 @@ export class CallService implements PeerCallServiceObserver {
 	 */
 	public needConnection(): boolean {
 		return this.mActiveCall ? this.mActiveCall.getStatus() !== CallStatus.TERMINATED : false;
-	}
-
-	/**
-	 * Get the list of connections.
-	 *
-	 * @return {CallConnection[]} the current frozen list of connections.
-	 * @private
-	 */
-	getConnections(): Array<CallConnection> {
-		return Array.from(this.mPeers.values());
 	}
 
 	callTimeout(callConnection: CallConnection): void {

@@ -113,6 +113,18 @@ export class CallConnection {
 		2,
 	);
 
+	private static readonly SCREEN_SHARING_ON_SCHEMA_ID = UUID.fromString("c52596ad-23b4-45fe-bba1-5992e7aa872b");
+	private static readonly IQ_SCREEN_SHARING_ON_SERIALIZER = BinaryPacketIQ.createDefaultSerializer(
+		CallConnection.SCREEN_SHARING_ON_SCHEMA_ID,
+		1,
+	);
+
+	private static readonly SCREEN_SHARING_OFF_SCHEMA_ID = UUID.fromString("b35971e1-b4ae-45c1-a0a8-73cf2a78ee3c");
+	private static readonly IQ_SCREEN_SHARING_OFF_SERIALIZER = BinaryPacketIQ.createDefaultSerializer(
+		CallConnection.SCREEN_SHARING_OFF_SCHEMA_ID,
+		1,
+	);
+
 	private readonly mCallService: CallService;
 	private readonly mPeerCallService: PeerCallService;
 	private readonly mTo: string;
@@ -335,6 +347,18 @@ export class CallConnection {
 				callConnection.onPushObjectResponseIQ(iq);
 			},
 		});
+		this.addListener({
+			serializer: CallConnection.IQ_SCREEN_SHARING_ON_SERIALIZER,
+			handler: (callConnection: CallConnection, _: BinaryPacketIQ) => {
+				callConnection.onScreenSharingIQ(true);
+			},
+		});
+		this.addListener({
+			serializer: CallConnection.IQ_SCREEN_SHARING_OFF_SERIALIZER,
+			handler: (callConnection: CallConnection, _: BinaryPacketIQ) => {
+				callConnection.onScreenSharingIQ(false);
+			},
+		});
 
 		const config: RTCConfiguration = peerCallService.getConfiguration();
 		const pc: RTCPeerConnection = new RTCPeerConnection(config);
@@ -492,6 +516,11 @@ export class CallConnection {
 				const participant: CallParticipant | null = this.getMainParticipant();
 				if (participant) {
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_SUPPORTS_MESSAGES);
+				}
+
+				// If we are sharing the screen, notify the peer.
+				if (this.mCall.isScreenSharing()) {
+					this.sendScreenSharingIQ(true);
 				}
 			};
 			channel.onmessage = (event: MessageEvent<ArrayBuffer>): void => {
@@ -1305,6 +1334,18 @@ export class CallConnection {
 		this.sendMessage(iq);
 	}
 
+	public sendScreenSharingIQ(state: boolean): void {
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": sending screen sharing state to: ", this.mMainParticipant);
+		}
+
+		const iq = new BinaryPacketIQ(
+			state ? CallConnection.IQ_SCREEN_SHARING_ON_SERIALIZER : CallConnection.IQ_SCREEN_SHARING_OFF_SERIALIZER,
+			1,
+		);
+		this.sendMessage(iq);
+	}
+
 	sendMessage(iq: BinaryPacketIQ): boolean {
 		if (this.mOutDataChannel == null) {
 			return false;
@@ -1360,6 +1401,22 @@ export class CallConnection {
 		}
 
 		this.mCallService.onTransferDone(this);
+	}
+
+	public onScreenSharingIQ(state: boolean): void {
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": received ScreenSharingIQ from: ", this.mMainParticipant);
+		}
+
+		if (!this.mPeerConnectionId) {
+			return;
+		}
+
+		this.mMainParticipant.setScreenSharing(state);
+		this.mCall.onEventParticipant(
+			this.mMainParticipant,
+			state ? CallParticipantEvent.EVENT_SCREEN_SHARING_ON : CallParticipantEvent.EVENT_SCREEN_SHARING_OFF,
+		);
 	}
 
 	/**
