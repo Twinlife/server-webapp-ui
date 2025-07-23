@@ -86,7 +86,7 @@ export const ParticipantsGrid: React.FC<{
 				<ParticipantGridCell
 					key={participant.getParticipantId()}
 					cellClassName={getCellClass(participant.getParticipantId(), mode, participants.length + 1)}
-					setRemoteRenderer={(ref) => participant.setRemoteRenderer(ref)}
+					setRemoteRenderer={(videoRef, audioRef) => participant.setRemoteRenderer(videoRef, audioRef)}
 					isAudioMute={participant.isAudioMute()}
 					isCameraMute={participant.isCameraMute()}
 					name={participant.getName() ?? ""}

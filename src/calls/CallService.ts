@@ -241,7 +241,7 @@ export class CallService implements PeerCallServiceObserver {
 						if (DEBUG) {
 							console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
 						}
-						connection.addVideoTrack(track);
+						connection.addVideoTrack(track, null);
 					} else {
 						connection.stopVideoTrack();
 					}
@@ -299,7 +299,7 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-	addOrReplaceVideoTrack(mediaStream: MediaStream | MediaStreamTrack) {
+	addOrReplaceVideoTrack(mediaStream: MediaStream | MediaStreamTrack) : MediaStreamTrack {
 		const tracks: MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
 		let videoTrack;
 		if (mediaStream instanceof MediaStreamTrack) {
@@ -308,8 +308,20 @@ export class CallService implements PeerCallServiceObserver {
 			videoTrack = mediaStream.getVideoTracks()[0];
 		}
 
-		console.info("Replace video track with ", videoTrack.label);
+		const settings = videoTrack.getSettings();
+		const scaleDown = this.scaleDownFactor(settings.width, settings.height);
 		const call = this.mActiveCall;
+		console.info(
+			"Replace video track with ",
+			videoTrack.label,
+			"width",
+			settings.width,
+			"height",
+			settings.height,
+			"scale down",
+			scaleDown,
+		);
+
 		if (tracks.length > 0) {
 			// Replace track
 			const currentTrack = tracks[0];
@@ -318,16 +330,41 @@ export class CallService implements PeerCallServiceObserver {
 			if (call && CallStatusOps.isActive(call.getStatus())) {
 				const connections: Array<CallConnection> = call.getConnections();
 				for (const callConnection of connections) {
-					callConnection.replaceVideoTrack(videoTrack);
+					callConnection.replaceVideoTrack(videoTrack, scaleDown);
 				}
 			}
 		} else if (call && CallStatusOps.isActive(call.getStatus())) {
 			const connections: Array<CallConnection> = call.getConnections();
 			for (const callConnection of connections) {
-				callConnection.addVideoTrack(videoTrack);
+				callConnection.addVideoTrack(videoTrack, scaleDown);
 			}
 		}
 		this.mLocalStream.addTrack(videoTrack);
+		return videoTrack;
+	}
+
+	scaleDownFactor(width: number | undefined, height: number | undefined): number {
+		const MAX_WIDTH = 1280;
+		const MAX_HEIGHT = 1024;
+
+		// No scaling needed
+		if (width === undefined || height === undefined || (width <= MAX_WIDTH && height <= MAX_HEIGHT)) {
+			return 1;
+		}
+
+		return 2;
+		/*const scaleWidth = width / MAX_WIDTH;
+		const scaleHeight = height / MAX_HEIGHT;
+		const scale = Math.max(scaleWidth, scaleHeight);
+
+		// Choose the smallest factor from the allowed set that is >= scale
+		if (scale <= 1.5) {
+			return 1.5;
+		} else if (scale <= 2.0) {
+			return 2.0;
+		} else {
+			return 3.0; // fallback to max scale-down if still too big
+		}*/
 	}
 
 	hasAudioTrack(): boolean {

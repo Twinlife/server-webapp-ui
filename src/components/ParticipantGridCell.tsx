@@ -4,12 +4,13 @@
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { useEffect, useRef } from "react";
 
 interface ParticipantGridCellProps {
 	cellClassName: string;
-	setRemoteRenderer?: (remoteRenderer: HTMLVideoElement) => void;
+	setRemoteRenderer?: (remoteRenderer: HTMLVideoElement, audioRenderer: HTMLAudioElement | null) => void;
 	isAudioMute: boolean;
 	isCameraMute: boolean;
 	name: string;
@@ -28,11 +29,12 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	avatarUrl,
 	videoClick,
 }) => {
-	const ref = useRef<HTMLVideoElement>(null);
+	const refVideo = useRef<HTMLVideoElement>(null);
+	const refAudio = useRef<HTMLAudioElement>(null);
 
 	useEffect(() => {
-		if (ref.current && setRemoteRenderer) setRemoteRenderer(ref.current);
-	}, [setRemoteRenderer, ref]);
+		if (refVideo.current && setRemoteRenderer) setRemoteRenderer(refVideo.current, refAudio.current);
+	}, [setRemoteRenderer, refVideo, refAudio]);
 
 	return (
 		<div
@@ -85,12 +87,13 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 			)}
 
 			<video
-				ref={ref}
+				ref={refVideo}
 				autoPlay={true}
 				playsInline={true}
 				id={"videoElement-" + participantId}
 				className={["h-full w-full object-cover", isCameraMute ? "hidden" : ""].join(" ")}
 			></video>
+			<audio ref={refAudio} autoPlay={true} playsInline={true} id={"audioElement-" + participantId}></audio>
 			<div
 				className={[
 					"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm",

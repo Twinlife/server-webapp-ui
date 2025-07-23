@@ -1022,16 +1022,16 @@ export class CallConnection {
 		}
 	}
 
-	addVideoTrack(track: MediaStreamTrack) {
+	addVideoTrack(track: MediaStreamTrack, scaleDown: number | null) {
 		// Don't add this track on the peer connection if it's already associated with an RTCRtpSender
 		if (this.mVideoTrack === track) {
 			return;
 		}
 
-		this.replaceVideoTrack(track);
+		this.replaceVideoTrack(track, scaleDown);
 	}
 
-	replaceVideoTrack(track: MediaStreamTrack): void {
+	replaceVideoTrack(track: MediaStreamTrack, scaleDown: number | null): void {
 		this.mVideoTrack = track;
 		if (this.mPeerConnection != null) {
 			if (DEBUG) {
@@ -1061,6 +1061,7 @@ export class CallConnection {
 						transceiver.direction = "sendrecv";
 					}
 					sender.replaceTrack(this.mVideoTrack);
+					break;
 				}
 			}
 
@@ -1070,7 +1071,22 @@ export class CallConnection {
 					console.log(this.mPeerConnectionId, ": no transceiver adding track");
 				}
 				this.mRenegotiationNeeded = true;
-				this.mPeerConnection.addTrack(track);
+				sender = this.mPeerConnection.addTrack(track);
+			}
+
+			// If scale parameter is defined, setup on the RTCRtpSender.
+			if (scaleDown && sender.setParameters) {
+				const parameters = sender.getParameters();
+				if (
+					parameters &&
+					parameters.encodings &&
+					parameters.encodings.length > 0 &&
+					parameters.encodings[0].scaleResolutionDownBy != scaleDown
+				) {
+					console.info("Scale down to ", scaleDown, "on", sender, "with", parameters);
+					parameters.encodings[0].scaleResolutionDownBy = scaleDown;
+					sender.setParameters(parameters);
+				}
 			}
 		}
 	}
@@ -1104,8 +1120,8 @@ export class CallConnection {
 			const participant: CallParticipant | null = this.getMainParticipant();
 			if (participant && track != null) {
 				const trackId: string = track.id;
-				participant.addTrack(track);
 				if (track.kind === "video") {
+					participant.addVideoTrack(track);
 					this.mVideoTrackId = trackId;
 					participant.setCameraMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_VIDEO_ON);
@@ -1113,6 +1129,7 @@ export class CallConnection {
 						this.removeRemoteTrack(trackId);
 					};
 				} else if (track.kind === "audio") {
+					participant.addAudioTrack(track);
 					this.mAudioTrackId = trackId;
 					participant.setMicrophoneMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_ON);

@@ -209,6 +209,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			alertTitle: "",
 			alertContent: <></>,
 			chatPanelOpened: false,
+			isSharingScreen: false,
 			items: [],
 		});
 
@@ -520,7 +521,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		if (this.state.twincode.video) {
 			try {
 				this.callService.stopVideoTrack();
-				this.callService.addOrReplaceVideoTrack(mediaStream);
+				this.callService.addOrReplaceVideoTrack(mediaStream).onended = ((_event: Event) => {
+					// onended is called if the user stops screen sharing from its browser
+					if (this.state.isSharingScreen) {
+						this.stopScreenSharing();
+					}
+				});
 				this.setUsedDevices();
 				this.setState({ isSharingScreen: true });
 			} catch (error) {
@@ -562,7 +568,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.callService.setIdentity(guestName, new ArrayBuffer(0));
 
 		const name: string = twincode.name ? twincode.name : "Unknown";
-		const video: boolean = !this.state.videoMute;
+		const video: boolean = !this.state.videoMute || this.state.isSharingScreen;
 		const transfer: boolean = twincode.transfer;
 		const avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionOutgoingCall(this.props.id, video, transfer, name, avatarUrl);
@@ -994,8 +1000,10 @@ const CallButtons = ({
 					].join(" ")}
 					onClick={isIdle ? handleCallClick : hangUpClick}
 				>
-						<span className="mr-3"><PhoneCallIcon/></span>
-						{inCall ? (
+					<span className="mr-3">
+						<PhoneCallIcon />
+					</span>
+					{inCall ? (
 						<Timer />
 					) : (
 						<span className="font-light">{isIdle ? callLabel : t("audio_call_activity_calling")}</span>
@@ -1008,7 +1016,9 @@ const CallButtons = ({
 						className="ml-3 flex items-center justify-center rounded-full bg-blue px-6 py-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
 						onClick={handleTransferClick}
 					>
-						<span className="mr-3"><PhoneCallIcon/></span>
+						<span className="mr-3">
+							<PhoneCallIcon />
+						</span>
 						<span className="font-light">{t("transfer")}</span>
 					</button>
 				</div>
@@ -1023,11 +1033,11 @@ const CallButtons = ({
 						<SwitchCamera color="black" />
 					</WhiteButton>
 				)}
-				{(
+				{
 					<WhiteButton onClick={muteAudioClick} className="ml-3 !p-[10px] ">
 						{audioMute ? <MicOff color="black" /> : <Mic color="black" />}
 					</WhiteButton>
-				)}
+				}
 				{hasVideo && (
 					<WhiteButton onClick={muteVideoClick} className="ml-3 !p-[10px]">
 						{videoMute || isSharingScreen ? <VideoOff color="black" /> : <Video color="black" />}

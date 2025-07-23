@@ -37,16 +37,16 @@ export class CallParticipant {
 	 */
 	public transferredFromParticipantId: number | null = null;
 	private readonly mConnection: CallConnection;
+	private readonly mVideoStream: MediaStream = new MediaStream();
+	private readonly mAudioStream: MediaStream = new MediaStream();
+	public readonly transfer: boolean;
 	private mAvatarUrl: string | null = null;
 	private mName: string | null;
 	private mDescription: string | null;
-	public readonly transfer: boolean;
-	private mRemoteRenderer: HTMLVideoElement | null = null;
 	private mAudioMute: boolean = false;
 	private mCameraMute: boolean = false;
 	private mVideoWidth: number = 0;
 	private mVideoHeight: number = 0;
-	private mediaStream: MediaStream = new MediaStream();
 	private mSenderId: UUID | null = null;
 
 	/**
@@ -65,15 +65,6 @@ export class CallParticipant {
 	 */
 	public isGroupSupported(): boolean | null {
 		return this.mConnection ? this.mConnection.isGroupSupported() : null;
-	}
-
-	/**
-	 * Get the remote renderer for this peer connection.
-	 *
-	 * @return {*} the remote renderer or null if this peer connection has no video.
-	 */
-	public getRemoteRenderer(): HTMLVideoElement | null {
-		return this.mRemoteRenderer;
 	}
 
 	/**
@@ -172,16 +163,22 @@ export class CallParticipant {
 	 * Set the video and audio renderer (HTMLVideoElement) for this participant.
 	 * Then affect the participant mediaStream to its srcObject
 	 */
-	public setRemoteRenderer(remoteRenderer: HTMLVideoElement) {
-		this.mRemoteRenderer = remoteRenderer;
-		this.mRemoteRenderer.srcObject = this.mediaStream;
+	public setRemoteRenderer(remoteRenderer: HTMLVideoElement, audioRenderer: HTMLAudioElement | null) {
+		remoteRenderer.srcObject = this.mVideoStream;
+		if (audioRenderer) {
+			audioRenderer.srcObject = this.mAudioStream;
+		}
 		if (DEBUG) {
 			console.log(this.mSenderId, ": set remote renderer for participant");
 		}
 	}
 
-	public addTrack(track: MediaStreamTrack) {
-		this.mediaStream.addTrack(track);
+	public addAudioTrack(track: MediaStreamTrack) {
+		this.mAudioStream.addTrack(track);
+	}
+
+	public addVideoTrack(track: MediaStreamTrack) {
+		this.mVideoStream.addTrack(track);
 	}
 
 	constructor(callConnection: CallConnection, participantId: number, transfer: boolean = false) {
@@ -214,17 +211,13 @@ export class CallParticipant {
 	/**
 	 * Release the remote renderer when the connexion is destroyed.
 	 */
-	release(): void {
-		this.mRemoteRenderer = null;
-	}
+	release(): void {}
 
 	updateSenderId(senderId: UUID) {
 		if (this.mSenderId == null) {
 			this.mSenderId = senderId;
 		}
 	}
-
-	public onFirstFrameRendered(): void {}
 
 	public onFrameResolutionChanged(videoWidth: number, videoHeight: number, rotation: number): void {
 		if (rotation === 90 || rotation === 270) {
