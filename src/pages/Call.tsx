@@ -271,10 +271,9 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.setState({ participants: participants });
 		if (event === CallParticipantEvent.EVENT_SUPPORTS_MESSAGES) {
 			this.checkIsMessageSupported();
-		}
-		if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_ON) {
+		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_ON) {
 			const displayMode: DisplayMode = this.state.displayMode;
-			displayMode.showParticipant = true; // !displayMode.showParticipant;
+			displayMode.showParticipant = true;
 			displayMode.participantId = participant.getParticipantId();
 			this.setState({ displayMode: displayMode });
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_OFF) {
@@ -285,7 +284,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	}
 
-	checkIsMessageSupported = () => {
+	private checkIsMessageSupported = () => {
 		if (DEBUG) {
 			console.log("Check if participants support messages");
 		}
@@ -333,7 +332,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.updateItems(items);
 	}
 
-	updateItems = (items: Item[]) => {
+	private updateItems = (items: Item[]) => {
 		const previousItem: Item = items[items.length - 2];
 		const item = items[items.length - 1];
 
@@ -357,7 +356,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.setState({ items, messageNotificationDisplayed: !chatPanelOpened });
 	};
 
-	setUsedDevices() {
+	private setUsedDevices() {
 		const mediaStream = this.callService.getMediaStream();
 		for (const track of mediaStream.getTracks()) {
 			if (track.kind === "audio") {
@@ -473,17 +472,17 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					},
 					async () => {
 						const fMode = this.state.facingMode;
-						try {
-							this.callService.stopVideoTrack();
-							const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
-								audio: false,
-								video: {
-									facingMode: fMode === "user" ? "user" : { exact: "environment" },
-								},
-							});
+
+						this.callService.stopVideoTrack();
+						const constraints = {
+							audio: false,
+							video: {
+								facingMode: fMode === "user" ? "user" : { exact: "environment" },
+							},
+						};
+						const mediaStream = await this.getUserMedia(constraints);
+						if (mediaStream) {
 							this.callService.addOrReplaceVideoTrack(mediaStream, false);
-						} catch (error) {
-							console.log("Replace video track error", error);
 						}
 					},
 				);
@@ -495,59 +494,74 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	};
 
 	selectAudioDevice = async (deviceId: string) => {
-		try {
-			const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
-				audio: { deviceId },
-				video: false,
-			});
-			const audioTrack = mediaStream.getAudioTracks()[0];
-			this.callService.addOrReplaceAudioTrack(audioTrack);
+		const constraints = {
+			audio: { deviceId },
+			video: false,
+		};
+
+		const audioStream: MediaStream | null = await this.getUserMedia(constraints);
+		if (audioStream) {
+			this.callService.addOrReplaceAudioTrack(audioStream.getAudioTracks()[0]);
 			this.setUsedDevices();
-		} catch (error) {
-			console.log("Select audio device error", error);
 		}
 	};
 
 	selectVideoDevice = async (deviceId: string) => {
-		try {
-			if (this.callService.hasVideoTrack()) {
-				this.setState({ isSharingScreen: false });
-				const mediaStream: MediaStream = await navigator.mediaDevices.getUserMedia({
-					audio: false,
-					video: { deviceId },
-				});
+		if (this.callService.hasVideoTrack()) {
+			this.setState({ isSharingScreen: false });
+			const mediaStream: MediaStream | null = await this.getUserMedia({
+				audio: false,
+				video: { deviceId },
+			});
+			if (mediaStream) {
 				this.callService.addOrReplaceVideoTrack(mediaStream, false);
 				this.setUsedDevices();
 			}
-		} catch (error) {
-			console.log("Select video device error", error);
 		}
 	};
 
-	startScreenSharing = async (mediaStream: MediaStream) => {
+	sharingScreenClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+		ev.preventDefault();
+		if (!this.state.isSharingScreen) {
+			this.startScreenSharing();
+		} else {
+			this.stopScreenSharing();
+		}
+	};
+
+	private startScreenSharing = async () => {
 		if (DEBUG) {
 			console.log("Start screen sharing");
 		}
 
 		if (this.state.twincode.video) {
 			try {
-				this.callService.stopVideoTrack();
-				this.callService.addOrReplaceVideoTrack(mediaStream, true).onended = (_event: Event) => {
-					// onended is called if the user stops screen sharing from its browser
-					if (this.state.isSharingScreen) {
-						this.stopScreenSharing();
-					}
-				};
-				this.setUsedDevices();
-				this.setState({ isSharingScreen: true });
-			} catch (error) {
-				console.log("Screen sharing error", error);
-				//this.callService.actionCameraMute(false);
+				const mediaStream = await navigator.mediaDevices.getDisplayMedia({
+					video: true,
+					audio: false,
+				});
+				if (mediaStream) {
+					console.info("Selecting display stream", mediaStream.id);
+					this.callService.stopVideoTrack();
+					this.callService.addOrReplaceVideoTrack(mediaStream, true).onended = (_event: Event) => {
+						// onended is called if the user stops screen sharing from its browser
+						if (this.state.isSharingScreen) {
+							this.stopScreenSharing();
+						}
+					};
+					this.setUsedDevices();
+					this.setState({ isSharingScreen: true });
+				}
+			} catch (error: unknown) {
+				console.error("Screen sharing error or denied : ", error);
+				if (error instanceof DOMException) {
+					this.alertError(this.props.t("screen_sharing_access"), this.state.videoMute, error.message);
+				}
 			}
 		}
 	};
 
-	stopScreenSharing = () => {
+	private stopScreenSharing = () => {
 		if (DEBUG) {
 			console.log("Stop screen sharing");
 		}
@@ -589,29 +603,41 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
+	private askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
 		const fMode = this.state.facingMode;
 
+		// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
+		// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
+		const constraints: MediaStreamConstraints = {
+			audio: kind === "audio",
+			video: kind === "video" ? { facingMode: fMode === "user" ? "user" : { exact: "environment" } } : false,
+		};
+
+		const mediaStream = await this.getUserMedia(constraints);
+		if (mediaStream == null) {
+			return false;
+		}
+
+		for (const track of mediaStream.getTracks()) {
+			if (track.kind === "audio" && kind === "audio") {
+				this.callService.addOrReplaceAudioTrack(track);
+				this.setUsedDevices();
+			}
+			if (track.kind === "video" && kind === "video") {
+				this.callService.addOrReplaceVideoTrack(track, true);
+				this.setUsedDevices();
+			}
+			mediaStream.removeTrack(track);
+		}
+		return true;
+	};
+
+	private getUserMedia = async (constraints: MediaStreamConstraints): Promise<MediaStream | null> => {
+		const kind = constraints.video ? "video" : "audio";
 		try {
 			// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
 			// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
-			const constraints: MediaStreamConstraints = {
-				audio: kind === "audio",
-				video: kind === "video" ? { facingMode: fMode === "user" ? "user" : { exact: "environment" } } : false,
-			};
-
 			const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-			for (const track of mediaStream.getTracks()) {
-				if (track.kind === "audio" && kind === "audio") {
-					this.callService.addOrReplaceAudioTrack(track);
-					this.setUsedDevices();
-				}
-				if (track.kind === "video" && kind === "video") {
-					this.callService.addOrReplaceVideoTrack(track, true);
-					this.setUsedDevices();
-				}
-				mediaStream.removeTrack(track);
-			}
 
 			const devices = await navigator.mediaDevices.enumerateDevices();
 			const enumeratedDevices = {
@@ -620,10 +646,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			};
 			this.setState(enumeratedDevices);
 
-			for (const track of mediaStream.getTracks()) {
-				track.stop();
-			}
-			return true;
+			return mediaStream;
 		} catch (error: unknown) {
 			if (error instanceof DOMException) {
 				// Inside this block, err is known to be a ValidationError
@@ -663,30 +686,16 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						);
 						break;
 				}
-				this.setState({
-					videoMute: kind === "video" || this.state.videoMute,
-					alertOpen: true,
-					alertTitle: this.props.t(kind === "audio" ? "microphone_access" : "camera_access"),
-					alertContent: (
-						<>
-							{alertMessage}
-							<div className="mt-6 text-right">
-								<button
-									type="button"
-									className="inline-flex w-full justify-center rounded-md bg-white/90 px-2 py-1 text-xs text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
-									onClick={() => this.setState({ alertOpen: false })}
-								>
-									OK
-								</button>
-							</div>
-						</>
-					),
-				});
+				this.alertError(
+					this.props.t(kind === "audio" ? "microphone_access" : "camera_access"),
+					kind === "video" || this.state.videoMute,
+					alertMessage,
+				);
 			} else {
 				console.error(error);
 			}
+			return null;
 		}
-		return false;
 	};
 
 	handleTransferClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -709,6 +718,28 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		const avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionAddCallParticipant(this.props.id, transfer, name, avatarUrl);
 		ev.preventDefault();
+	};
+
+	alertError = (alertTitle: string, videoMute: boolean, alertMessage: unknown) => {
+		this.setState({
+			videoMute: videoMute,
+			alertOpen: true,
+			alertTitle: alertTitle,
+			alertContent: (
+				<>
+					{alertMessage}
+					<div className="mt-6 text-right">
+						<button
+							type="button"
+							className="inline-flex w-full justify-center rounded-md bg-white/90 px-2 py-1 text-xs text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50 sm:mt-0 sm:w-auto"
+							onClick={() => this.setState({ alertOpen: false })}
+						>
+							OK
+						</button>
+					</div>
+				</>
+			),
+		});
 	};
 
 	private terminateMessages: { [key in TerminateReason]: string } = {
@@ -917,6 +948,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						videoMute={videoMute}
 						muteVideoClick={this.muteVideoClick}
 						switchCameraClick={this.switchCameraClick}
+						sharingScreenClick={this.sharingScreenClick}
 						audioDevices={audioDevices}
 						videoDevices={videoDevices}
 						usedAudioDevice={usedAudioDevice}
@@ -924,8 +956,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						isSharingScreen={isSharingScreen}
 						selectAudioDevice={this.selectAudioDevice}
 						selectVideoDevice={this.selectVideoDevice}
-						startScreenSharing={this.startScreenSharing}
-						stopScreenSharing={this.stopScreenSharing}
 						transfer={TRANSFER || twincode.transfer}
 					/>
 				)}
@@ -961,6 +991,7 @@ const CallButtons = ({
 	videoMute,
 	muteVideoClick,
 	switchCameraClick,
+	sharingScreenClick,
 	audioDevices,
 	videoDevices,
 	usedAudioDevice,
@@ -968,8 +999,6 @@ const CallButtons = ({
 	isSharingScreen,
 	selectAudioDevice,
 	selectVideoDevice,
-	startScreenSharing,
-	stopScreenSharing,
 	transfer,
 }: {
 	status: CallStatus;
@@ -982,6 +1011,7 @@ const CallButtons = ({
 	videoMute: boolean;
 	muteVideoClick: React.MouseEventHandler;
 	switchCameraClick: React.MouseEventHandler;
+	sharingScreenClick: React.MouseEventHandler;
 	audioDevices: MediaDeviceInfo[];
 	videoDevices: MediaDeviceInfo[];
 	usedAudioDevice: string;
@@ -989,8 +1019,6 @@ const CallButtons = ({
 	isSharingScreen: boolean;
 	selectAudioDevice: (deviceId: string) => void;
 	selectVideoDevice: (deviceId: string) => void;
-	startScreenSharing: (mediaStream: MediaStream) => void;
-	stopScreenSharing: () => void;
 	transfer: boolean;
 }) => {
 	const { t } = useTranslation();
@@ -1055,27 +1083,7 @@ const CallButtons = ({
 					</WhiteButton>
 				)}
 				{hasVideo && !isMobile && (
-					<WhiteButton
-						className="ml-3 !p-[10px]"
-						onClick={async () => {
-							if (!isSharingScreen) {
-								try {
-									const mediaStream = await navigator.mediaDevices.getDisplayMedia({
-										video: true,
-										audio: false,
-									});
-									if (mediaStream) {
-										console.info("Selecting display stream", mediaStream.id);
-										startScreenSharing(mediaStream);
-									}
-								} catch (error) {
-									console.error("Screen sharing error or denied : ", error);
-								}
-							} else {
-								stopScreenSharing();
-							}
-						}}
-					>
+					<WhiteButton onClick={sharingScreenClick} className="ml-3 !p-[10px]">
 						{isSharingScreen ? <MonitorOn /> : <MonitorOff />}
 					</WhiteButton>
 				)}
