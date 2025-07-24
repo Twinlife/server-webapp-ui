@@ -72,6 +72,7 @@ export const DraggableParticipant: React.FC<{
 					videoMute={videoMute && !isSharingScreen}
 					isLocalAudioMute={isLocalAudioMute}
 					isIdle={isIdle}
+					isScreenSharing={isSharingScreen}
 					enableVideo={enableVideo}
 					guestName={guestName}
 					guestNameError={guestNameError}
@@ -117,6 +118,7 @@ export const DraggableParticipant: React.FC<{
 					videoMute={videoMute || isSharingScreen}
 					isLocalAudioMute={isLocalAudioMute}
 					isIdle={isIdle}
+					isScreenSharing={isSharingScreen}
 					enableVideo={enableVideo}
 					guestName={guestName}
 					guestNameError={guestNameError}

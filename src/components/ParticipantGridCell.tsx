@@ -13,6 +13,7 @@ interface ParticipantGridCellProps {
 	setRemoteRenderer?: (remoteRenderer: HTMLVideoElement, audioRenderer: HTMLAudioElement | null) => void;
 	isAudioMute: boolean;
 	isCameraMute: boolean;
+	isScreenSharing: boolean;
 	name: string;
 	participantId?: number;
 	avatarUrl: string;
@@ -24,6 +25,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	setRemoteRenderer,
 	isAudioMute,
 	isCameraMute,
+	isScreenSharing,
 	name,
 	participantId,
 	avatarUrl,
@@ -91,7 +93,11 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 				autoPlay={true}
 				playsInline={true}
 				id={"videoElement-" + participantId}
-				className={["h-full w-full object-cover", isCameraMute ? "hidden" : ""].join(" ")}
+				className={[
+					"h-full w-full",
+					isScreenSharing ? "object-contain" : "object-cover",
+					isCameraMute ? "hidden" : "",
+				].join(" ")}
 			></video>
 			<audio ref={refAudio} autoPlay={true} playsInline={true} id={"audioElement-" + participantId}></audio>
 			<div

@@ -89,6 +89,7 @@ export const ParticipantsGrid: React.FC<{
 					setRemoteRenderer={(videoRef, audioRef) => participant.setRemoteRenderer(videoRef, audioRef)}
 					isAudioMute={participant.isAudioMute()}
 					isCameraMute={participant.isCameraMute()}
+					isScreenSharing={participant.isScreenSharing()}
 					name={participant.getName() ?? ""}
 					participantId={participant.getParticipantId()}
 					videoClick={videoClick}
@@ -102,6 +103,7 @@ export const ParticipantsGrid: React.FC<{
 					cellClassName={getCellClass(0, mode, nbParticipants)}
 					isAudioMute={false}
 					isCameraMute={true}
+					isScreenSharing={false}
 					name={twincode.name ?? ""}
 					videoClick={videoClick}
 					avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
