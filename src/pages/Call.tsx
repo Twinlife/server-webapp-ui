@@ -1054,7 +1054,7 @@ const CallButtons = ({
 						{videoMute || isSharingScreen ? <VideoOff color="black" /> : <Video color="black" />}
 					</WhiteButton>
 				)}
-				{!isMobile && (
+				{hasVideo && !isMobile && (
 					<WhiteButton
 						className="ml-3 !p-[10px]"
 						onClick={async () => {
