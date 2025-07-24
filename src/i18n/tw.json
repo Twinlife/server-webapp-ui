@@ -17,6 +17,7 @@
 		"camera_access_denied": "您必須先授予對相機的訪問權限，然後才能使用它。",
 		"camera_access_not_found": "沒有找到相機。",
 		"camera_access_error": "發生錯誤，請檢查相機是否被其他應用程序使用並刷新頁面。",
+		"screen_sharing_access": "螢幕分享",
 		"twincode_error": "您輸入的“點擊通話”鏈接似乎無效。",
 		"general_error_title": "哎呀！",
 		"general_error_message": "抱歉，出了一些問題。"

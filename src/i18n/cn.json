@@ -17,6 +17,7 @@
 		"camera_access_denied": "您必须先授予对相机的访问权限，然后才能使用它。",
 		"camera_access_not_found": "没有找到相机。",
 		"camera_access_error": "发生错误，请检查相机是否被其他应用程序使用并刷新页面。",
+		"screen_sharing_access": "屏幕共享",
 		"twincode_error": "您输入的“点击通话”链接似乎无效。",
 		"general_error_title": "哎呀！",
 		"general_error_message": "抱歉，出了一些问题。"

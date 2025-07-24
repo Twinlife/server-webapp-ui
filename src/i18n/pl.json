@@ -17,6 +17,7 @@
 		"camera_access_denied": "Musisz przyznać dostęp do swojego kamery, zanim będziesz mógł go używać.",
 		"camera_access_not_found": "Nie znaleziono kamery.",
 		"camera_access_error": "Wystąpił błąd, sprawdź, czy kamera nie jest używana przez inną aplikację i odśwież stronę.",
+		"screen_sharing_access": "Udostępnianie ekranu",
 		"twincode_error": "Wprowadzony link „Click-to-Call” wydaje się nieprawidłowy.",
 		"general_error_title": "Ups!",
 		"general_error_message": "Przepraszam, coś poszło nie tak."

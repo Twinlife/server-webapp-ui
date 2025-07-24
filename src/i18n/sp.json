@@ -17,6 +17,7 @@
 		"camera_access_denied": "Debe otorgar acceso a su cámara antes de poder usarla.",
 		"camera_access_not_found": "No se encontró ninguna cámara.",
 		"camera_access_error": "Ocurrió un error, verifique que otra aplicación no esté usando la cámara y actualice la página.",
+		"screen_sharing_access": "Compartir pantalla",
 		"twincode_error": "El vínculo \"Click-to-Call\" que ingresó parece no ser válido.",
 		"general_error_title": "¡Ups!",
 		"general_error_message": "Perdón, algo salió mal."

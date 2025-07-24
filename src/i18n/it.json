@@ -17,6 +17,7 @@
 		"camera_access_denied": "Devi concedere l'accesso alla videocamera prima di poterla utilizzare.",
 		"camera_access_not_found": "Nessuna fotocamera è stata trovata.",
 		"camera_access_error": "Si è verificato un errore, verificare che la fotocamera non sia utilizzata da un'altra applicazione e aggiornare la pagina.",
+		"screen_sharing_access": "Condivisione schermo",
 		"twincode_error": "Il link \"Click-to-Call\" che hai inserito sembra non essere valido.",
 		"general_error_title": "Ops!",
 		"general_error_message": "Scusa, qualcosa è andato storto."

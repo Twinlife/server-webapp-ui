@@ -17,6 +17,7 @@
 		"camera_access_denied": "يجب أن تمنح حق الوصول إلى الكاميرا الخاصة بك قبل أن تتمكن من استخدامها.",
 		"camera_access_not_found": "لم يتم العثور على كاميرا.",
 		"camera_access_error": "حدث خطأ ، تحقق من أن الكاميرا ليست قيد الاستخدام بواسطة تطبيق آخر وقم بتحديث الصفحة.",
+		"screen_sharing_access": "مشاركة الشاشة",
 		"twincode_error": "يبدو أن رابط \"Click-to-Call\" الذي أدخلته غير صالح.",
 		"general_error_title": "أُووبس!",
 		"general_error_message": "عذرا، هناك خطأ ما."

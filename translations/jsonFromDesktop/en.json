@@ -1,5 +1,7 @@
 {
+	"title": "{{appName}} - {{callType}} - {{linkName}}",
 	"audio": "Audio",
+	"transfer": "Transfer",
 	"audio_call_activity_calling": "Calling…",
 	"calls_fragment_call_again_title": "Call back",
 	"audio_call_activity_cannot_call": "Cannot make a voice call",
@@ -14,5 +16,16 @@
 	"audio_call_activity_terminate_gone": "Call terminated: <strong>{{contactName}}</strong> is off-line",
 	"audio_call_activity_terminate_revoked": "Call terminated: <strong>{{contactName}}</strong> has revoked this identity",
 	"audio_call_activity_terminate_success": "Call terminated by <strong>{{contactName}}</strong>",
-	"audio_call_activity_terminate_timeout": "Call terminated: <strong>{{contactName}}</strong> does not answer"
+	"audio_call_activity_terminate_timeout": "Call terminated: <strong>{{contactName}}</strong> does not answer",
+	"audio_call_activity_terminate_schedule_single_day": "Call scheduled on <strong>{{startDate}}</strong> from <strong>{{startTime}}</strong> to <strong>{{endTime}}</strong>",
+	"audio_call_activity_terminate_schedule_multiple_days": "Call scheduled from <strong>{{startDate}}</strong> at <strong>{{startTime}}</strong> to <strong>{{endDate}}</strong> at <strong>{{endTime}}</strong>",
+	"accept_invitation_activity_message": "{{contactName}} wants to connect with you",
+	"fullscreen_qrcode_activity_save_message": "Import or scan this invitation QR-Code with twinme to add this contact.",
+	"conversation_activity_message": "Type a message",
+	"application_accept": "Accept",
+	"application_cancel": "Cancel",
+	"open_invitation": "Open invite",
+	"streaming_audio_activity_error_message": "An error has occured. Please try again.",
+	"application_no_network_connectivity": "No network connectivity",
+	"call_activity_transfert_call_message": "The on-going call has been transferred."
 }
