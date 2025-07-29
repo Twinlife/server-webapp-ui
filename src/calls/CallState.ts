@@ -512,10 +512,13 @@ export class CallState {
 	terminateCall(terminateReason: TerminateReason): void {
 		console.info("User terminate call", terminateReason);
 
-		for (const callConnection of this.mPeers) {
+		while (this.mPeers.length > 0) {
+			const callConnection = this.mPeers[0];
 			if (callConnection.getStatus() !== CallStatus.TERMINATED) {
 				const sessionId: string | null = callConnection.terminate(terminateReason);
 				this.mCallService.onTerminatePeerConnection(sessionId, callConnection, terminateReason);
+			} else {
+				this.remove(callConnection);
 			}
 		}
 	}
