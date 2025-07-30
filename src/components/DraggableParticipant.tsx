@@ -60,7 +60,7 @@ export const DraggableParticipant: React.FC<{
 			<div
 				className={cl}
 				onClick={(e) => {
-					if (!isIdle && !videoMute) {
+					if (!isIdle && (!videoMute || isSharingScreen)) {
 						videoClick(e, 0);
 					}
 				}}
