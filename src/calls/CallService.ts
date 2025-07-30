@@ -64,6 +64,7 @@ export class CallService implements PeerCallServiceObserver {
 	private mParticipantObserver: CallParticipantObserver | null = null;
 	private mAudioMute: boolean = false;
 	private mIsCameraMute: boolean = false;
+	private mIsScreenSharing: boolean = false;
 	private readonly mPeers: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private readonly mPeerTo: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private mActiveCall: CallState | null = null;
@@ -116,7 +117,14 @@ export class CallService implements PeerCallServiceObserver {
 		}
 
 		console.info("Calling", twincodeId);
-		const call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage, transfer);
+		const call = new CallState(
+			this,
+			this.mPeerCallService,
+			this.mIdentityName,
+			this.mIdentityImage,
+			transfer,
+			this.mIsScreenSharing,
+		);
 		const callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
 		this.mActiveCall = call;
 		this.mIsCameraMute = !video;
@@ -297,6 +305,7 @@ export class CallService implements PeerCallServiceObserver {
 			call.setVideoTrack(videoTrack, isScreenSharing, false);
 		}
 		this.mLocalStream.addTrack(videoTrack);
+		this.mIsScreenSharing = isScreenSharing;
 		return videoTrack;
 	}
 

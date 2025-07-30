@@ -1336,7 +1336,7 @@ export class CallConnection {
 
 	public sendScreenSharingIQ(state: boolean): void {
 		if (DEBUG) {
-			console.log(this.mPeerConnectionId, ": sending screen sharing state to: ", this.mMainParticipant);
+			console.log(this.mPeerConnectionId, ": sending screen sharing", state, "to:", this.mMainParticipant);
 		}
 
 		const iq = new BinaryPacketIQ(

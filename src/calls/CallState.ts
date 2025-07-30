@@ -309,12 +309,14 @@ export class CallState {
 		identityName: string,
 		identityImage: ArrayBuffer,
 		transfer: boolean = false,
+		isScreenSharing: boolean = false,
 	) {
 		this.mCallService = callService;
 		this.mPeerCallService = peerCallService;
 		this.mIdentityName = identityName;
 		this.mIdentityAvatar = identityImage;
 		this.transfer = transfer;
+		this.mIsScreenSharing = isScreenSharing;
 		const bytes = crypto.getRandomValues(new Uint8Array(16));
 		this.mSenderId = new UUID(bytes);
 	}
