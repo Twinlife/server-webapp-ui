@@ -491,20 +491,24 @@ export class CallService implements PeerCallServiceObserver {
 				}
 				continue;
 			}
+
+			// Create a P2P connection for the peer if we don't know it already.
 			const peerId: string = member.memberId;
-			const callConnection: CallConnection = new CallConnection(
-				this,
-				this.mPeerCallService,
-				this.mActiveCall,
-				null,
-				mode,
-				this.mLocalStream,
-				peerId,
-				null,
-				this.getAudioDirection(),
-			);
-			this.mActiveCall.addPeerConnection(callConnection);
-			this.mPeerTo.set(peerId, callConnection);
+			if (!this.mPeerTo.has(peerId)) {
+				const callConnection: CallConnection = new CallConnection(
+					this,
+					this.mPeerCallService,
+					this.mActiveCall,
+					null,
+					mode,
+					this.mLocalStream,
+					peerId,
+					null,
+					this.getAudioDirection(),
+				);
+				this.mActiveCall.addPeerConnection(callConnection);
+				this.mPeerTo.set(peerId, callConnection);
+			}
 		}
 	}
 
