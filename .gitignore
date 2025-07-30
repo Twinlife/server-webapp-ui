@@ -11,7 +11,6 @@ node_modules
 dist
 dist-ssr
 *.local
-src/config.json
 
 # Files installed by scripts/publicAssets.js
 public/android-chrome-192x192.png
