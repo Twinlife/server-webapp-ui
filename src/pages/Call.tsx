@@ -408,20 +408,26 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		if (this.state.twincode.video) {
 			const { videoMute, isSharingScreen } = this.state;
 
+			const displayMode: DisplayMode = this.state.displayMode;
 			if (isSharingScreen) {
 				this.callService.actionCameraMute(true);
 				this.setUsedDevices();
+				displayMode.showParticipant = false;
+				displayMode.participantId = null;
 			}
-			this.setState({ videoMute: !videoMute && !isSharingScreen, isSharingScreen: false }, async () => {
-				const { videoMute } = this.state;
-				if (!videoMute && !this.callService.hasVideoTrack()) {
-					await this.askForMediaPermission("video");
-				}
+			this.setState(
+				{ videoMute: !videoMute && !isSharingScreen, isSharingScreen: false, displayMode: displayMode },
+				async () => {
+					const { videoMute } = this.state;
+					if (!videoMute && !this.callService.hasVideoTrack()) {
+						await this.askForMediaPermission("video");
+					}
 
-				if (this.callService.hasVideoTrack()) {
-					this.callService.actionCameraMute(videoMute);
-				}
-			});
+					if (this.callService.hasVideoTrack()) {
+						this.callService.actionCameraMute(videoMute);
+					}
+				},
+			);
 		}
 	};
 
@@ -549,8 +555,11 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 							this.stopScreenSharing();
 						}
 					};
+					const displayMode: DisplayMode = this.state.displayMode;
+					displayMode.showParticipant = true;
+					displayMode.participantId = 0;
 					this.setUsedDevices();
-					this.setState({ isSharingScreen: true });
+					this.setState({ isSharingScreen: true, displayMode: displayMode });
 				}
 			} catch (error: unknown) {
 				console.error("Screen sharing error or denied : ", error);
@@ -566,7 +575,10 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			console.log("Stop screen sharing");
 		}
 
-		this.setState({ isSharingScreen: false }, async () => {
+		const displayMode: DisplayMode = this.state.displayMode;
+		displayMode.showParticipant = false;
+		displayMode.participantId = null;
+		this.setState({ isSharingScreen: false, displayMode: displayMode }, async () => {
 			const { videoMute, twincode } = this.state;
 			if (!videoMute && twincode.video) {
 				await this.askForMediaPermission("video");
@@ -624,7 +636,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				this.setUsedDevices();
 			}
 			if (track.kind === "video" && kind === "video") {
-				this.callService.addOrReplaceVideoTrack(track, true);
+				this.callService.addOrReplaceVideoTrack(track, false);
 				this.setUsedDevices();
 			}
 			mediaStream.removeTrack(track);
