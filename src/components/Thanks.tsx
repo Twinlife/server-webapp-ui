@@ -62,7 +62,9 @@ export default function Thanks({ onCallBackClick }: ThanksProps) {
 						className="mt-1 px-6 py-3 flex items-center justify-center rounded-full text-white transition bg-blue hover:bg-blue/90 active:bg-blue/80"
 						onClick={onCallBackClick}
 					>
-						<span className="mr-3"><PhoneCallIcon /></span>
+						<span className="mr-3">
+							<PhoneCallIcon />
+						</span>
 
 						<span className="font-light">{t("calls_fragment_call_again_title")}</span>
 					</button>

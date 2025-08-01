@@ -113,6 +113,18 @@ export class CallConnection {
 		2,
 	);
 
+	private static readonly SCREEN_SHARING_ON_SCHEMA_ID = UUID.fromString("c52596ad-23b4-45fe-bba1-5992e7aa872b");
+	private static readonly IQ_SCREEN_SHARING_ON_SERIALIZER = BinaryPacketIQ.createDefaultSerializer(
+		CallConnection.SCREEN_SHARING_ON_SCHEMA_ID,
+		1,
+	);
+
+	private static readonly SCREEN_SHARING_OFF_SCHEMA_ID = UUID.fromString("b35971e1-b4ae-45c1-a0a8-73cf2a78ee3c");
+	private static readonly IQ_SCREEN_SHARING_OFF_SERIALIZER = BinaryPacketIQ.createDefaultSerializer(
+		CallConnection.SCREEN_SHARING_OFF_SCHEMA_ID,
+		1,
+	);
+
 	private readonly mCallService: CallService;
 	private readonly mPeerCallService: PeerCallService;
 	private readonly mTo: string;
@@ -335,6 +347,18 @@ export class CallConnection {
 				callConnection.onPushObjectResponseIQ(iq);
 			},
 		});
+		this.addListener({
+			serializer: CallConnection.IQ_SCREEN_SHARING_ON_SERIALIZER,
+			handler: (callConnection: CallConnection, _: BinaryPacketIQ) => {
+				callConnection.onScreenSharingIQ(true);
+			},
+		});
+		this.addListener({
+			serializer: CallConnection.IQ_SCREEN_SHARING_OFF_SERIALIZER,
+			handler: (callConnection: CallConnection, _: BinaryPacketIQ) => {
+				callConnection.onScreenSharingIQ(false);
+			},
+		});
 
 		const config: RTCConfiguration = peerCallService.getConfiguration();
 		const pc: RTCPeerConnection = new RTCPeerConnection(config);
@@ -492,6 +516,11 @@ export class CallConnection {
 				const participant: CallParticipant | null = this.getMainParticipant();
 				if (participant) {
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_SUPPORTS_MESSAGES);
+				}
+
+				// If we are sharing the screen, notify the peer.
+				if (this.mCall.isScreenSharing()) {
+					this.sendScreenSharingIQ(true);
 				}
 			};
 			channel.onmessage = (event: MessageEvent<ArrayBuffer>): void => {
@@ -1022,16 +1051,16 @@ export class CallConnection {
 		}
 	}
 
-	addVideoTrack(track: MediaStreamTrack) {
+	addVideoTrack(track: MediaStreamTrack, scaleDown: number | null) {
 		// Don't add this track on the peer connection if it's already associated with an RTCRtpSender
 		if (this.mVideoTrack === track) {
 			return;
 		}
 
-		this.replaceVideoTrack(track);
+		this.replaceVideoTrack(track, scaleDown);
 	}
 
-	replaceVideoTrack(track: MediaStreamTrack): void {
+	replaceVideoTrack(track: MediaStreamTrack, scaleDown: number | null): void {
 		this.mVideoTrack = track;
 		if (this.mPeerConnection != null) {
 			if (DEBUG) {
@@ -1061,6 +1090,7 @@ export class CallConnection {
 						transceiver.direction = "sendrecv";
 					}
 					sender.replaceTrack(this.mVideoTrack);
+					break;
 				}
 			}
 
@@ -1070,7 +1100,22 @@ export class CallConnection {
 					console.log(this.mPeerConnectionId, ": no transceiver adding track");
 				}
 				this.mRenegotiationNeeded = true;
-				this.mPeerConnection.addTrack(track);
+				sender = this.mPeerConnection.addTrack(track);
+			}
+
+			// If scale parameter is defined, setup on the RTCRtpSender.
+			if (scaleDown && sender.setParameters) {
+				const parameters = sender.getParameters();
+				if (
+					parameters &&
+					parameters.encodings &&
+					parameters.encodings.length > 0 &&
+					parameters.encodings[0].scaleResolutionDownBy != scaleDown
+				) {
+					console.info("Scale down to ", scaleDown, "on", sender, "with", parameters);
+					parameters.encodings[0].scaleResolutionDownBy = scaleDown;
+					sender.setParameters(parameters);
+				}
 			}
 		}
 	}
@@ -1104,8 +1149,8 @@ export class CallConnection {
 			const participant: CallParticipant | null = this.getMainParticipant();
 			if (participant && track != null) {
 				const trackId: string = track.id;
-				participant.addTrack(track);
 				if (track.kind === "video") {
+					participant.addVideoTrack(track);
 					this.mVideoTrackId = trackId;
 					participant.setCameraMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_VIDEO_ON);
@@ -1113,6 +1158,7 @@ export class CallConnection {
 						this.removeRemoteTrack(trackId);
 					};
 				} else if (track.kind === "audio") {
+					participant.addAudioTrack(track);
 					this.mAudioTrackId = trackId;
 					participant.setMicrophoneMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_ON);
@@ -1288,6 +1334,18 @@ export class CallConnection {
 		this.sendMessage(iq);
 	}
 
+	public sendScreenSharingIQ(state: boolean): void {
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": sending screen sharing", state, "to:", this.mMainParticipant);
+		}
+
+		const iq = new BinaryPacketIQ(
+			state ? CallConnection.IQ_SCREEN_SHARING_ON_SERIALIZER : CallConnection.IQ_SCREEN_SHARING_OFF_SERIALIZER,
+			1,
+		);
+		this.sendMessage(iq);
+	}
+
 	sendMessage(iq: BinaryPacketIQ): boolean {
 		if (this.mOutDataChannel == null) {
 			return false;
@@ -1343,6 +1401,22 @@ export class CallConnection {
 		}
 
 		this.mCallService.onTransferDone(this);
+	}
+
+	public onScreenSharingIQ(state: boolean): void {
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, ": received ScreenSharingIQ from: ", this.mMainParticipant);
+		}
+
+		if (!this.mPeerConnectionId) {
+			return;
+		}
+
+		this.mMainParticipant.setScreenSharing(state);
+		this.mCall.onEventParticipant(
+			this.mMainParticipant,
+			state ? CallParticipantEvent.EVENT_SCREEN_SHARING_ON : CallParticipantEvent.EVENT_SCREEN_SHARING_OFF,
+		);
 	}
 
 	/**

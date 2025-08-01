@@ -17,6 +17,7 @@ export const LocalParticipant: React.FC<{
 	isLocalAudioMute: boolean;
 	enableVideo: boolean;
 	isIdle: boolean;
+	isScreenSharing: boolean;
 	guestName: string;
 	guestNameError: boolean;
 	setGuestName: (value: string) => void;
@@ -30,6 +31,7 @@ export const LocalParticipant: React.FC<{
 	isLocalAudioMute,
 	enableVideo,
 	isIdle,
+	isScreenSharing,
 	guestName,
 	guestNameError,
 	setGuestName,
@@ -74,7 +76,11 @@ export const LocalParticipant: React.FC<{
 
 			<video
 				ref={localVideoRef}
-				className={["h-full w-full object-cover", videoMute ? "hidden" : ""].join(" ")}
+				className={[
+					"h-full w-full",
+					isScreenSharing ? "object-contains" : "object-cover",
+					videoMute ? "hidden" : "",
+				].join(" ")}
 				autoPlay={true}
 				playsInline={true}
 				muted={true}

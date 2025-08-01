@@ -47,7 +47,7 @@ export const DraggableParticipant: React.FC<{
 	const cl = [
 		localAbsolute ? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16" : isIdle ? "relative" : "relative",
 		"overflow-hidden rounded-md",
-		(videoMute && !isSharingScreen) && localAbsolute ? "hidden" : "",
+		videoMute && !isSharingScreen && localAbsolute ? "hidden" : "",
 		className,
 	].join(" ");
 	if (!localAbsolute) {
@@ -60,7 +60,7 @@ export const DraggableParticipant: React.FC<{
 			<div
 				className={cl}
 				onClick={(e) => {
-					if (!isIdle && !videoMute) {
+					if (!isIdle && (!videoMute || isSharingScreen)) {
 						videoClick(e, 0);
 					}
 				}}
@@ -72,6 +72,7 @@ export const DraggableParticipant: React.FC<{
 					videoMute={videoMute && !isSharingScreen}
 					isLocalAudioMute={isLocalAudioMute}
 					isIdle={isIdle}
+					isScreenSharing={isSharingScreen}
 					enableVideo={enableVideo}
 					guestName={guestName}
 					guestNameError={guestNameError}
@@ -117,6 +118,7 @@ export const DraggableParticipant: React.FC<{
 					videoMute={videoMute || isSharingScreen}
 					isLocalAudioMute={isLocalAudioMute}
 					isIdle={isIdle}
+					isScreenSharing={isSharingScreen}
 					enableVideo={enableVideo}
 					guestName={guestName}
 					guestNameError={guestNameError}

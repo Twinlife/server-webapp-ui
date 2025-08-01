@@ -17,6 +17,7 @@
 		"camera_access_denied": "עליך להעניק גישה למצלמה שלך לפני שתוכל להשתמש בה.",
 		"camera_access_not_found": "לא נמצאה מצלמה.",
 		"camera_access_error": "אירעה שגיאה, בדוק שהמצלמה אינה בשימוש על ידי אפליקציה אחרת ורענן את הדף.",
+		"screen_sharing_access": "שיתוף מסך",
 		"twincode_error": "הקישור \"Click-to-Call\" שהזנת נראה לא חוקי.",
 		"general_error_title": "אופס!",
 		"general_error_message": "מצטערים, משהו השתבש."

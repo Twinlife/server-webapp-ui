@@ -17,6 +17,7 @@
 		"camera_access_denied": "Du måste ge åtkomst till din kamera innan du kan använda den.",
 		"camera_access_not_found": "Ingen kamera hittades.",
 		"camera_access_error": "Ett fel uppstod, kontrollera att kameran inte används av en annan applikation och uppdatera sidan.",
+		"screen_sharing_access": "Delning av skärm",
 		"twincode_error": "Click-to-Call-länken du angav verkar ogiltig.",
 		"general_error_title": "hoppsan!",
 		"general_error_message": "Förlåt, något gick fel."

@@ -17,6 +17,7 @@
 		"camera_access_denied": "Kullanmadan önce kameranıza erişim izni vermelisiniz.",
 		"camera_access_not_found": "Kamera bulunamadı.",
 		"camera_access_error": "Bir hata oluştu, kameranın başka bir uygulama tarafından kullanılmadığını kontrol edin ve sayfayı yenileyin.",
+		"screen_sharing_access": "Ekran paylaşımı",
 		"twincode_error": "Girdiğiniz \"Click-to-Call\" bağlantısı geçersiz görünüyor.",
 		"general_error_title": "Hata!",
 		"general_error_message": "Üzgünüm, bir şeyler ters gitti."

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022, 2023 twinlife SA.
+ *  Copyright (c) 2022, 2025 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -23,6 +23,8 @@ export enum CallParticipantEvent {
 	EVENT_AUDIO_OFF,
 	EVENT_VIDEO_ON,
 	EVENT_VIDEO_OFF,
+	EVENT_SCREEN_SHARING_ON,
+	EVENT_SCREEN_SHARING_OFF,
 	EVENT_RINGING,
 	EVENT_SUPPORTS_MESSAGES,
 }

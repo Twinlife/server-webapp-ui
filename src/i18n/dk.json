@@ -17,6 +17,7 @@
 		"camera_access_denied": "Du skal give adgang til dit kamera, før du kan bruge det.",
 		"camera_access_not_found": "Intet kamera blev fundet.",
 		"camera_access_error": "Der opstod en fejl. Kontroller, at kameraet ikke er i brug af et andet program, og opdater siden.",
+		"screen_sharing_access": "Skærmdeling",
 		"twincode_error": "Det \"Click-to-Call\"-linket, du indtastede, ser ud til at være ugyldigt.",
 		"general_error_title": "Ups!",
 		"general_error_message": "Undskyld, noget gik galt."

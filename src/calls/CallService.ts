@@ -64,6 +64,7 @@ export class CallService implements PeerCallServiceObserver {
 	private mParticipantObserver: CallParticipantObserver | null = null;
 	private mAudioMute: boolean = false;
 	private mIsCameraMute: boolean = false;
+	private mIsScreenSharing: boolean = false;
 	private readonly mPeers: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private readonly mPeerTo: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private mActiveCall: CallState | null = null;
@@ -116,7 +117,14 @@ export class CallService implements PeerCallServiceObserver {
 		}
 
 		console.info("Calling", twincodeId);
-		const call = new CallState(this, this.mPeerCallService, this.mIdentityName, this.mIdentityImage, transfer);
+		const call = new CallState(
+			this,
+			this.mPeerCallService,
+			this.mIdentityName,
+			this.mIdentityImage,
+			transfer,
+			this.mIsScreenSharing,
+		);
 		const callStatus: CallStatus = video ? CallStatus.OUTGOING_VIDEO_CALL : CallStatus.OUTGOING_CALL;
 		this.mActiveCall = call;
 		this.mIsCameraMute = !video;
@@ -191,15 +199,7 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		console.info("User terminate call", terminateReason);
-
-		const connections: Array<CallConnection> = call.getConnections();
-		for (const callConnection of connections) {
-			if (callConnection.getStatus() !== CallStatus.TERMINATED) {
-				const sessionId: string | null = callConnection.terminate(terminateReason);
-				this.onTerminatePeerConnection(sessionId, callConnection, terminateReason);
-			}
-		}
+		call.terminateCall(terminateReason);
 	}
 
 	actionAudioMute(audioMute: boolean): void {
@@ -211,10 +211,7 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		const connections: Array<CallConnection> = call.getConnections();
-		for (const callConnection of connections) {
-			callConnection.setAudioDirection(this.getAudioDirection());
-		}
+		call.setAudioDirection(this.getAudioDirection());
 	}
 
 	actionCameraMute(cameraMute: boolean): void {
@@ -235,17 +232,7 @@ export class CallService implements PeerCallServiceObserver {
 			}
 
 			if (call) {
-				const connections: Array<CallConnection> = call.getConnections();
-				for (const connection of connections) {
-					if (!cameraMute) {
-						if (DEBUG) {
-							console.log("NEED ACTIVATE CAMERA for participant: ", connection.getMainParticipant());
-						}
-						connection.addVideoTrack(track);
-					} else {
-						connection.stopVideoTrack();
-					}
-				}
+				call.setVideoTrack(cameraMute ? null : track, false, true);
 			}
 		}
 	}
@@ -278,11 +265,8 @@ export class CallService implements PeerCallServiceObserver {
 			currentTrack.stop();
 			this.mLocalStream.removeTrack(currentTrack);
 			const call = this.mActiveCall;
-			if (call && CallStatusOps.isActive(call.getStatus())) {
-				const connections: Array<CallConnection> = call.getConnections();
-				for (const callConnection of connections) {
-					callConnection.replaceAudioTrack(audioTrack);
-				}
+			if (call) {
+				call.setAudioTrack(audioTrack);
 			}
 		}
 		this.mLocalStream.addTrack(audioTrack);
@@ -299,7 +283,7 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-	addOrReplaceVideoTrack(mediaStream: MediaStream | MediaStreamTrack) {
+	addOrReplaceVideoTrack(mediaStream: MediaStream | MediaStreamTrack, isScreenSharing: boolean): MediaStreamTrack {
 		const tracks: MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
 		let videoTrack;
 		if (mediaStream instanceof MediaStreamTrack) {
@@ -308,26 +292,21 @@ export class CallService implements PeerCallServiceObserver {
 			videoTrack = mediaStream.getVideoTracks()[0];
 		}
 
-		console.info("Replace video track with ", videoTrack.label);
 		const call = this.mActiveCall;
 		if (tracks.length > 0) {
 			// Replace track
 			const currentTrack = tracks[0];
 			currentTrack.stop();
 			this.mLocalStream.removeTrack(currentTrack);
-			if (call && CallStatusOps.isActive(call.getStatus())) {
-				const connections: Array<CallConnection> = call.getConnections();
-				for (const callConnection of connections) {
-					callConnection.replaceVideoTrack(videoTrack);
-				}
+			if (call) {
+				call.setVideoTrack(videoTrack, isScreenSharing, true);
 			}
 		} else if (call && CallStatusOps.isActive(call.getStatus())) {
-			const connections: Array<CallConnection> = call.getConnections();
-			for (const callConnection of connections) {
-				callConnection.addVideoTrack(videoTrack);
-			}
+			call.setVideoTrack(videoTrack, isScreenSharing, false);
 		}
 		this.mLocalStream.addTrack(videoTrack);
+		this.mIsScreenSharing = isScreenSharing;
+		return videoTrack;
 	}
 
 	hasAudioTrack(): boolean {
@@ -464,14 +443,7 @@ export class CallService implements PeerCallServiceObserver {
 					}
 					break;
 				case TransferDirection.TO_DEVICE:
-					for (const connection of call.getConnections()) {
-						const peerConnectionId = connection.getPeerConnectionId();
-
-						if (peerConnectionId && peerConnectionId != sessionId) {
-							connection.sendPrepareTransferIQ();
-							call.addPendingPrepareTransfer(peerConnectionId);
-						}
-					}
+					call.prepareTransfer(sessionId);
 					break;
 			}
 		}
@@ -528,20 +500,24 @@ export class CallService implements PeerCallServiceObserver {
 				}
 				continue;
 			}
+
+			// Create a P2P connection for the peer if we don't know it already.
 			const peerId: string = member.memberId;
-			const callConnection: CallConnection = new CallConnection(
-				this,
-				this.mPeerCallService,
-				this.mActiveCall,
-				null,
-				mode,
-				this.mLocalStream,
-				peerId,
-				null,
-				this.getAudioDirection(),
-			);
-			this.mActiveCall.addPeerConnection(callConnection);
-			this.mPeerTo.set(peerId, callConnection);
+			if (!this.mPeerTo.has(peerId)) {
+				const callConnection: CallConnection = new CallConnection(
+					this,
+					this.mPeerCallService,
+					this.mActiveCall,
+					null,
+					mode,
+					this.mLocalStream,
+					peerId,
+					null,
+					this.getAudioDirection(),
+				);
+				this.mActiveCall.addPeerConnection(callConnection);
+				this.mPeerTo.set(peerId, callConnection);
+			}
 		}
 	}
 
@@ -689,16 +665,6 @@ export class CallService implements PeerCallServiceObserver {
 	 */
 	public needConnection(): boolean {
 		return this.mActiveCall ? this.mActiveCall.getStatus() !== CallStatus.TERMINATED : false;
-	}
-
-	/**
-	 * Get the list of connections.
-	 *
-	 * @return {CallConnection[]} the current frozen list of connections.
-	 * @private
-	 */
-	getConnections(): Array<CallConnection> {
-		return Array.from(this.mPeers.values());
 	}
 
 	callTimeout(callConnection: CallConnection): void {

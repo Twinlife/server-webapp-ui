@@ -17,6 +17,7 @@
 		"camera_access_denied": "Sie müssen Zugriff auf Ihre Kamera gewähren, bevor Sie sie verwenden können.",
 		"camera_access_not_found": "Es wurde keine Kamera gefunden.",
 		"camera_access_error": "Es ist ein Fehler aufgetreten. Überprüfen Sie, ob die Kamera nicht von einer anderen Anwendung verwendet wird, und aktualisieren Sie die Seite.",
+		"screen_sharing_access": "Bildschirmfreigabe",
 		"twincode_error": "Der von Ihnen eingegebene „Click-to-Call“-Link scheint ungültig zu sein.",
 		"general_error_title": "Hoppla!",
 		"general_error_message": "Entschuldigung, etwas ist schief gelaufen."

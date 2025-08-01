@@ -17,6 +17,7 @@
 		"camera_access_denied": "Sinun on myönnettävä käyttöoikeus kamerallesi, ennen kuin voit käyttää sitä.",
 		"camera_access_not_found": "Kameraa ei löytynyt.",
 		"camera_access_error": "Tapahtui virhe, tarkista, ettei kamera ole toisen sovelluksen käytössä, ja päivitä sivu.",
+		"screen_sharing_access": "Näytön jakaminen",
 		"twincode_error": "Antamasi \"Click-to-Call\" -linkki vaikuttaa virheelliseltä.",
 		"general_error_title": "Oho!",
 		"general_error_message": "Pahoittelut, jotain meni pieleen."
