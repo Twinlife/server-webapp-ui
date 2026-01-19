@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -18,6 +18,7 @@ import { CallService } from "./CallService";
 import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConversationService } from "./ConversationService";
 import { PushObjectIQ } from "./PushObjectIQ.ts";
+import { ConnectionOperation } from "./ConnectionOperation.ts";
 
 /**
  * The call state associated with an Audio or Video call:
@@ -121,9 +122,28 @@ export class CallState {
 	 */
 	public getStatus(): CallStatus {
 		if (this.mPeers.length === 0) {
+			if (
+				this.isDoneOperation(ConnectionOperation.WAIT_MEETING) &&
+				!this.isDoneOperation(ConnectionOperation.WAIT_MEETING_DONE)
+			) {
+				return CallStatus.WAIT_MEETING;
+			}
 			return CallStatus.TERMINATED;
 		}
 		return this.mPeers[0].getStatus();
+	}
+
+	/**
+	 * Check whether we have an active call and the websocket to the server proxy is necessary.
+	 *
+	 * @returns true if a call is active (connected or not) and we need the server connection.
+	 */
+	public needConnection(): boolean {
+		return (
+			this.mPeers.length > 0 ||
+			(this.isDoneOperation(ConnectionOperation.WAIT_MEETING) &&
+				!this.isDoneOperation(ConnectionOperation.WAIT_MEETING_DONE))
+		);
 	}
 
 	/**
@@ -491,6 +511,18 @@ export class CallState {
 	}
 
 	/**
+	 * Join the meeting represented by the given callroom.
+	 *
+	 * @param callRoomId
+	 * @param memberId
+	 * @param members
+	 */
+	joinMeeting(callRoomId: string, memberId: string, members: string[]): void {
+		this.mCallRoomId = UUID.fromString(callRoomId);
+		this.mCallRoomMemberId = memberId;
+	}
+
+	/**
 	 * Remove the peer connection and release the resources allocated for it (remote renderer).
 	 *
 	 * @param {CallConnection} callConnection the peer connection to remove.
@@ -522,6 +554,9 @@ export class CallState {
 			} else {
 				this.remove(callConnection);
 			}
+		}
+		if (this.mCallRoomId) {
+			this.mPeerCallService.leaveMeeting(this.mCallRoomId.toString());
 		}
 	}
 

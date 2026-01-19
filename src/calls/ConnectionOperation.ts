@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -15,6 +15,9 @@ import { CallState } from "./CallState";
  * @class
  */
 export class ConnectionOperation {
+	static WAIT_MEETING: number = 1;
+	static WAIT_MEETING_DONE: number = 1 << 1;
+
 	static START_CALL: number = 1 << 2;
 
 	static START_CALL_DONE: number = 1 << 3;

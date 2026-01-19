@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2019-2025 twinlife SA.
+ *  Copyright (c) 2019-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -15,6 +15,7 @@ import {
 	Offer,
 	PeerCallService,
 	PeerCallServiceObserver,
+	CallConfigMessage,
 	TerminateReason,
 	TransportCandidate,
 } from "../services/PeerCallService";
@@ -129,26 +130,30 @@ export class CallService implements PeerCallServiceObserver {
 		this.mActiveCall = call;
 		this.mIsCameraMute = !video;
 		// Start the CallConnection once the peer call service is ready.
-		this.mPeerCallService.onReady(() => {
-			const callConnection: CallConnection = new CallConnection(
-				this,
-				this.mPeerCallService,
-				call,
-				null,
-				callStatus,
-				this.mLocalStream,
-				twincodeId,
-				null,
-				this.getAudioDirection(),
-				transfer,
-			);
-			call.addPeerConnection(callConnection);
-			callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
-			if (transfer) {
-				call.transferDirection = TransferDirection.TO_BROWSER;
-				call.transferToConnection = callConnection;
+		this.mPeerCallService.onStartCall(twincodeId, (config: CallConfigMessage) => {
+			if (!config.wait) {
+				const callConnection: CallConnection = new CallConnection(
+					this,
+					this.mPeerCallService,
+					call,
+					null,
+					callStatus,
+					this.mLocalStream,
+					twincodeId,
+					null,
+					this.getAudioDirection(),
+					transfer,
+				);
+				call.addPeerConnection(callConnection);
+				callConnection.getMainParticipant()?.setInformation(contactName, "", contactURL);
+				if (transfer) {
+					call.transferDirection = TransferDirection.TO_BROWSER;
+					call.transferToConnection = callConnection;
+				}
+				this.mPeerTo.set(twincodeId, callConnection);
+			} else {
+				call.checkOperation(ConnectionOperation.WAIT_MEETING);
 			}
-			this.mPeerTo.set(twincodeId, callConnection);
 
 			this.wakeLock = new WakelockHandler();
 			this.wakeLock.acquire();
@@ -200,6 +205,12 @@ export class CallService implements PeerCallServiceObserver {
 		}
 
 		call.terminateCall(terminateReason);
+		if (
+			call.isDoneOperation(ConnectionOperation.WAIT_MEETING) &&
+			call.checkOperation(ConnectionOperation.WAIT_MEETING_DONE)
+		) {
+			this.terminateCall(terminateReason);
+		}
 	}
 
 	actionAudioMute(audioMute: boolean): void {
@@ -491,6 +502,9 @@ export class CallService implements PeerCallServiceObserver {
 
 		const mode: CallStatus = this.mIsCameraMute ? CallStatus.OUTGOING_CALL : CallStatus.OUTGOING_VIDEO_CALL;
 		this.mActiveCall.updateCallRoom(callRoomId, memberId);
+		if (members.length > 0 && this.mActiveCall.isDoneOperation(ConnectionOperation.WAIT_MEETING)) {
+			this.mActiveCall.checkOperation(ConnectionOperation.WAIT_MEETING_DONE);
+		}
 		for (const member of members) {
 			if (member.status !== "member-need-session" && member.sessionId) {
 				const callConnection: CallConnection | undefined = this.mPeers.get(member.sessionId);
@@ -620,13 +634,6 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
-		if (this.mLocalStream) {
-			for (const track of this.mLocalStream.getTracks()) {
-				track.stop();
-				this.mLocalStream.removeTrack(track);
-			}
-		}
-
 		this.terminateCall(terminateReason);
 	}
 
@@ -664,7 +671,7 @@ export class CallService implements PeerCallServiceObserver {
 	 * @returns true if a call is active (connected or not) and we need the server connection.
 	 */
 	public needConnection(): boolean {
-		return this.mActiveCall ? this.mActiveCall.getStatus() !== CallStatus.TERMINATED : false;
+		return this.mActiveCall ? this.mActiveCall.needConnection() : false;
 	}
 
 	callTimeout(callConnection: CallConnection): void {
@@ -679,6 +686,14 @@ export class CallService implements PeerCallServiceObserver {
 	 */
 	private terminateCall(terminateReason: TerminateReason): void {
 		console.info("call terminated with", terminateReason);
+
+		if (this.mLocalStream) {
+			for (const track of this.mLocalStream.getTracks()) {
+				track.stop();
+				this.mLocalStream.removeTrack(track);
+			}
+		}
+
 		this.mObserver.onTerminateCall(terminateReason);
 		this.mActiveCall = null;
 
