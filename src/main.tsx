@@ -1,18 +1,19 @@
 /*
- *  Copyright (c) 2021-2022 twinlife SA.
+ *  Copyright (c) 2021-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 
-import React from "react";
+import React, { lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import "./i18n/i18n.ts";
 import "./index.css";
-import Call from "./pages/Call.tsx";
-import ErrorPage from "./pages/ErrorPage.tsx";
+
+const Call = lazy(() => import("./pages/Call.tsx"));
+const ErrorPage = lazy(() => import("./pages/ErrorPage.tsx"));
 
 const router = createBrowserRouter([
 	{

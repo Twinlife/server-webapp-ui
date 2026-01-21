@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -10,7 +10,7 @@ import { useTranslation } from "react-i18next";
 import GuestNameForms from "./GuestNameForms";
 
 export const LocalParticipant: React.FC<{
-	localVideoRef: RefObject<HTMLVideoElement>;
+	localVideoRef: RefObject<HTMLVideoElement | null>;
 	localMediaStream: MediaStream;
 	localAbsolute: boolean;
 	videoMute: boolean;

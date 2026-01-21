@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -1312,7 +1312,7 @@ export class CallConnection {
 		const buffer: ArrayBuffer | null = iq.thumbnailData;
 		if (buffer && buffer.byteLength > 0) {
 			const data: Uint8Array = new Uint8Array(buffer, 0, buffer.byteLength);
-			const blob = new Blob([data], { type: "image/jpeg" });
+			const blob = new Blob([data as BlobPart], { type: "image/jpeg" });
 			const urlCreator = window.URL || window.webkitURL;
 			imageUrl = urlCreator.createObjectURL(blob);
 		}

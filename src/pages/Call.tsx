@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021-2025 twinlife SA.
+ *  Copyright (c) 2021-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -7,10 +7,10 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
-import zonedTimeToUtc from "date-fns-tz/zonedTimeToUtc";
+import { toZonedTime } from "date-fns-tz";
 import i18n, { TFunction } from "i18next";
 import { Mic, MicOff, SwitchCamera, Video, VideoOff } from "lucide-react";
-import React, { Component, ReactNode, RefObject, useEffect, useState } from "react";
+import { createRef, Component, ReactNode, RefObject, useEffect, useState } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
 import { NavigateFunction, useNavigate, useParams } from "react-router-dom";
@@ -59,7 +59,7 @@ export type Item = {
 
 interface CallProps {
 	id: string;
-	t: TFunction<"translation", undefined, "translation">;
+	t: TFunction<"translation", "translation">;
 	navigate: NavigateFunction;
 }
 
@@ -103,7 +103,7 @@ const isMobile = IsMobile();
 const peerCallService: PeerCallService = new PeerCallService();
 
 class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
-	private localVideoRef: RefObject<HTMLVideoElement> = React.createRef();
+	private localVideoRef: RefObject<HTMLVideoElement | null> = createRef();
 	private callService: CallService = new CallService(peerCallService, this, this);
 
 	state: CallState = {
@@ -809,8 +809,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		const range = schedule.timeRanges[0];
 		const timeZone = schedule.timeZone;
 
-		const startDate = zonedTimeToUtc(dateTimeToString(range.start), timeZone);
-		const endDate = zonedTimeToUtc(dateTimeToString(range.end), timeZone);
+		const startDate = toZonedTime(dateTimeToString(range.start), timeZone);
+		const endDate = toZonedTime(dateTimeToString(range.end), timeZone);
 
 		return {
 			startDate: dateFormat.format(startDate),
@@ -1118,6 +1118,10 @@ const Timer = () => {
 	const [time, setTime] = useState("00:00");
 	const [seconds, setSeconds] = useState(0);
 
+	const incrementTime = () => {
+		setSeconds((seconds) => seconds + 1);
+	};
+
 	useEffect(() => {
 		const interval = setInterval(incrementTime, 1000);
 		return () => clearInterval(interval);
@@ -1142,10 +1146,6 @@ const Timer = () => {
 
 		setTime(h != "00" ? h + ":" : "" + m + ":" + s);
 	}, [seconds]);
-
-	const incrementTime = () => {
-		setSeconds((seconds) => seconds + 1);
-	};
 
 	return <span className="font-light">{time}</span>;
 };

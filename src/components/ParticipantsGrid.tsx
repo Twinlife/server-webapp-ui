@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -28,7 +28,7 @@ export type DisplayMode = {
 export const ParticipantsGrid: React.FC<{
 	chatPanelOpened: boolean;
 	closeChatPanel: () => void;
-	localVideoRef: RefObject<HTMLVideoElement>;
+	localVideoRef: RefObject<HTMLVideoElement | null>;
 	localMediaStream: MediaStream;
 	videoMute: boolean;
 	isSharingScreen: boolean;

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -10,9 +10,14 @@ import { RefObject, useRef } from "react";
 import DraggableCore from "react-draggable";
 import { LocalParticipant } from "./LocalParticipant";
 
+export type Position = {
+	x: number;
+	y: number;
+};
+
 export const DraggableParticipant: React.FC<{
 	className: string;
-	localVideoRef: RefObject<HTMLVideoElement>;
+	localVideoRef: RefObject<HTMLVideoElement | null>;
 	localMediaStream: MediaStream;
 	localAbsolute: boolean;
 	videoMute: boolean;
@@ -43,7 +48,7 @@ export const DraggableParticipant: React.FC<{
 	muteVideoClick,
 	videoClick,
 }) => {
-	const dragStartPositionXYRef = useRef<{ x: number; y: number }>();
+	const dragStartPositionXYRef = useRef<Position>({ x: 0, y: 0 });
 	const cl = [
 		localAbsolute ? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16" : isIdle ? "relative" : "relative",
 		"overflow-hidden rounded-md",
