@@ -511,18 +511,6 @@ export class CallState {
 	}
 
 	/**
-	 * Join the meeting represented by the given callroom.
-	 *
-	 * @param callRoomId
-	 * @param memberId
-	 * @param members
-	 */
-	joinMeeting(callRoomId: string, memberId: string, members: string[]): void {
-		this.mCallRoomId = UUID.fromString(callRoomId);
-		this.mCallRoomMemberId = memberId;
-	}
-
-	/**
 	 * Remove the peer connection and release the resources allocated for it (remote renderer).
 	 *
 	 * @param {CallConnection} callConnection the peer connection to remove.

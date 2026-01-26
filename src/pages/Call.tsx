@@ -9,14 +9,10 @@
  */
 import { toZonedTime } from "date-fns-tz";
 import i18n, { TFunction } from "i18next";
-import { Mic, MicOff, SwitchCamera, Video, VideoOff } from "lucide-react";
-import { createRef, Component, ReactNode, RefObject, useEffect, useState } from "react";
+import { createRef, Component, ReactNode, RefObject } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
 import { NavigateFunction, useNavigate, useParams } from "react-router-dom";
-import PhoneCallIcon from "../assets/phone-call.svg";
-import MonitorOff from "../assets/monitor-off.svg";
-import MonitorOn from "../assets/monitor.svg";
 import { CallObserver } from "../calls/CallObserver";
 import { CallParticipant } from "../calls/CallParticipant";
 import { CallParticipantEvent } from "../calls/CallParticipantEvent";
@@ -28,13 +24,12 @@ import Alert from "../components/Alert";
 import Header from "../components/Header";
 import InitializationPanel from "../components/InitializationPanel";
 import { ParticipantsGrid, DisplayMode } from "../components/ParticipantsGrid";
-import SelectDevicesButton from "../components/SelectDevicesButton";
 import StoresBadges from "../components/StoresBadges";
 import Thanks from "../components/Thanks";
-import WhiteButton from "../components/WhiteButton";
 import { Schedule, TwincodeInfo, dateTimeToString } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 import IsMobile from "../utils/IsMobile";
+import { CallButtons, CallButtonHandlers } from "../components/CallButtons";
 
 type FacingMode = "user" | "environment";
 
@@ -63,7 +58,7 @@ interface CallProps {
 	navigate: NavigateFunction;
 }
 
-interface CallState {
+export interface CallState {
 	initializing: boolean;
 	guestName: string;
 	guestNameError: boolean;
@@ -102,9 +97,12 @@ const isMobile = IsMobile();
 // Create only one instance of PeerCallService.
 const peerCallService: PeerCallService = new PeerCallService();
 
-class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
-	private localVideoRef: RefObject<HTMLVideoElement | null> = createRef();
-	private callService: CallService = new CallService(peerCallService, this, this);
+export class Call
+	extends Component<CallProps, CallState>
+	implements CallParticipantObserver, CallObserver, CallButtonHandlers
+{
+	protected localVideoRef: RefObject<HTMLVideoElement | null> = createRef();
+	protected callService: CallService = new CallService(peerCallService, this, this);
 
 	state: CallState = {
 		initializing: true,
@@ -368,7 +366,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	}
 
-	handleTerminateClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onTerminateClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 
 		if (CallStatusOps.isActive(this.state.status)) {
@@ -378,7 +376,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	muteAudioClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onMuteAudioClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 		this.toggleAudio();
 	};
@@ -391,12 +389,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		});
 	};
 
-	muteVideoClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onMuteVideoClick: React.MouseEventHandler<HTMLElement> = (ev: React.MouseEvent<HTMLElement>) => {
 		ev.preventDefault();
 		this.toggleVideo();
 	};
 
-	videoClick = (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => {
+	onVideoClick = (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => {
 		ev.preventDefault();
 		const displayMode: DisplayMode = this.state.displayMode;
 		displayMode.showParticipant = !displayMode.showParticipant;
@@ -429,6 +427,29 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				},
 			);
 		}
+	};
+
+	updateGuestName = (guestName: string) => {
+		this.setState({ guestName, guestNameError: guestName === "" });
+		window.localStorage.setItem("guestName", guestName);
+		if (guestName !== "") {
+			this.callService.updateIdentity(guestName, new ArrayBuffer(0));
+		}
+	};
+	pushMessage = (message: string, copyAllowed: boolean) => {
+		const descriptor = this.callService.pushMessage(message, copyAllowed);
+		if (descriptor) {
+			this.updateItems([
+				...this.state.items,
+				{
+					participant: null,
+					descriptor,
+					displayName: false,
+					corners: {},
+				},
+			]);
+		}
+		return descriptor;
 	};
 
 	/**
@@ -468,7 +489,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	switchCameraClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onSwitchCameraClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 		if (this.state.twincode.video && !this.state.videoMute) {
 			if (isMobile) {
@@ -526,7 +547,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	sharingScreenClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onSharingScreenClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 		if (!this.state.isSharingScreen) {
 			this.startScreenSharing();
@@ -588,7 +609,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.setUsedDevices();
 	};
 
-	handleCallClick: React.MouseEventHandler<HTMLButtonElement> = async (ev: React.MouseEvent<HTMLButtonElement>) => {
+	onCallClick: React.MouseEventHandler<HTMLButtonElement> = async (ev: React.MouseEvent<HTMLButtonElement>) => {
 		const { twincode, guestName } = this.state;
 		if (guestName === "") {
 			this.setState({ guestNameError: true });
@@ -710,7 +731,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	handleTransferClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
+	onTransferClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		const { twincode, guestName, status } = this.state;
 
 		if (!CallStatusOps.isActive(status) || !twincode.transfer) {
@@ -900,35 +921,12 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						isIdle={CallStatusOps.isIdle(status)}
 						guestName={guestName}
 						guestNameError={guestNameError}
-						setGuestName={(guestName: string) => {
-							this.setState({ guestName, guestNameError: guestName === "" });
-							window.localStorage.setItem("guestName", guestName);
-						}}
-						updateGuestName={(guestName: string) => {
-							this.setState({ guestName, guestNameError: guestName === "" });
-							window.localStorage.setItem("guestName", guestName);
-							if (guestName !== "") {
-								this.callService.updateIdentity(guestName, new ArrayBuffer(0));
-							}
-						}}
-						muteVideoClick={this.muteVideoClick}
-						videoClick={this.videoClick}
+						setGuestName={this.updateGuestName}
+						updateGuestName={this.updateGuestName}
+						muteVideoClick={this.onMuteVideoClick}
+						videoClick={this.onVideoClick}
 						mode={displayMode}
-						pushMessage={(message, copyAllowed) => {
-							const descriptor = this.callService.pushMessage(message, copyAllowed);
-							if (descriptor) {
-								this.updateItems([
-									...this.state.items,
-									{
-										participant: null,
-										descriptor,
-										displayName: false,
-										corners: {},
-									},
-								]);
-							}
-							return descriptor;
-						}}
+						pushMessage={this.pushMessage}
 						items={items}
 					/>
 				)}
@@ -951,16 +949,10 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				{!initializing && !CallStatusOps.isTerminated(status) && (
 					<CallButtons
 						status={status}
-						handleCallClick={this.handleCallClick}
-						handleHangUpClick={this.handleTerminateClick}
-						handleTransferClick={this.handleTransferClick}
+						callbacks={this}
 						audioMute={audioMute}
-						muteAudioClick={this.muteAudioClick}
 						hasVideo={twincode.video}
 						videoMute={videoMute}
-						muteVideoClick={this.muteVideoClick}
-						switchCameraClick={this.switchCameraClick}
-						sharingScreenClick={this.sharingScreenClick}
 						audioDevices={audioDevices}
 						videoDevices={videoDevices}
 						usedAudioDevice={usedAudioDevice}
@@ -969,6 +961,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						selectAudioDevice={this.selectAudioDevice}
 						selectVideoDevice={this.selectVideoDevice}
 						transfer={TRANSFER || twincode.transfer}
+						hasCallButton={true}
 					/>
 				)}
 
@@ -991,164 +984,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		);
 	}
 }
-
-const CallButtons = ({
-	status,
-	handleCallClick,
-	handleHangUpClick: hangUpClick,
-	handleTransferClick,
-	audioMute,
-	muteAudioClick,
-	hasVideo,
-	videoMute,
-	muteVideoClick,
-	switchCameraClick,
-	sharingScreenClick,
-	audioDevices,
-	videoDevices,
-	usedAudioDevice,
-	usedVideoDevice,
-	isSharingScreen,
-	selectAudioDevice,
-	selectVideoDevice,
-	transfer,
-}: {
-	status: CallStatus;
-	handleCallClick: React.MouseEventHandler;
-	handleHangUpClick: React.MouseEventHandler;
-	handleTransferClick: React.MouseEventHandler;
-	audioMute: boolean;
-	muteAudioClick: React.MouseEventHandler;
-	hasVideo: boolean;
-	videoMute: boolean;
-	muteVideoClick: React.MouseEventHandler;
-	switchCameraClick: React.MouseEventHandler;
-	sharingScreenClick: React.MouseEventHandler;
-	audioDevices: MediaDeviceInfo[];
-	videoDevices: MediaDeviceInfo[];
-	usedAudioDevice: string;
-	usedVideoDevice: string;
-	isSharingScreen: boolean;
-	selectAudioDevice: (deviceId: string) => void;
-	selectVideoDevice: (deviceId: string) => void;
-	transfer: boolean;
-}) => {
-	const { t } = useTranslation();
-	const inCall = CallStatusOps.isActive(status);
-	const isIdle = CallStatusOps.isIdle(status);
-	const inTransfer = transfer && inCall;
-	const callLabel = transfer ? t("transfer") : t("call");
-
-	return (
-		<div className="mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2">
-			<div>
-				<button
-					className={[
-						"flex items-center justify-center rounded-full px-6 py-3 text-white transition ",
-						isIdle
-							? "bg-blue hover:bg-blue/90 active:bg-blue/80"
-							: "bg-red hover:bg-red/90 active:bg-red/80",
-					].join(" ")}
-					onClick={isIdle ? handleCallClick : hangUpClick}
-				>
-					<span className="mr-3">
-						<PhoneCallIcon />
-					</span>
-					{inCall ? (
-						<Timer />
-					) : (
-						<span className="font-light">{isIdle ? callLabel : t("audio_call_activity_calling")}</span>
-					)}
-				</button>
-			</div>
-			{inTransfer && (
-				<div>
-					<button
-						className="ml-3 flex items-center justify-center rounded-full bg-blue px-6 py-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
-						onClick={handleTransferClick}
-					>
-						<span className="mr-3">
-							<PhoneCallIcon />
-						</span>
-						<span className="font-light">{t("transfer")}</span>
-					</button>
-				</div>
-			)}
-
-			<div className="flex items-center justify-end">
-				{isMobile && hasVideo && (
-					<WhiteButton
-						onClick={switchCameraClick}
-						className={["ml-3 !p-[10px]", videoMute ? "btn-white-disabled" : ""].join(" ")}
-					>
-						<SwitchCamera color="black" />
-					</WhiteButton>
-				)}
-				{
-					<WhiteButton onClick={muteAudioClick} className="ml-3 !p-[10px] ">
-						{audioMute ? <MicOff color="black" /> : <Mic color="black" />}
-					</WhiteButton>
-				}
-				{hasVideo && (
-					<WhiteButton onClick={muteVideoClick} className="ml-3 !p-[10px]">
-						{videoMute || isSharingScreen ? <VideoOff color="black" /> : <Video color="black" />}
-					</WhiteButton>
-				)}
-				{hasVideo && !isMobile && (
-					<WhiteButton onClick={sharingScreenClick} className="ml-3 !p-[10px]">
-						{isSharingScreen ? <MonitorOn /> : <MonitorOff />}
-					</WhiteButton>
-				)}
-				{!isMobile && (
-					<SelectDevicesButton
-						audioDevices={audioDevices}
-						videoDevices={videoDevices}
-						usedAudioDevice={usedAudioDevice}
-						usedVideoDevice={usedVideoDevice}
-						selectAudioDevice={selectAudioDevice}
-						selectVideoDevice={selectVideoDevice}
-					/>
-				)}
-			</div>
-		</div>
-	);
-};
-
-const Timer = () => {
-	const [time, setTime] = useState("00:00");
-	const [seconds, setSeconds] = useState(0);
-
-	const incrementTime = () => {
-		setSeconds((seconds) => seconds + 1);
-	};
-
-	useEffect(() => {
-		const interval = setInterval(incrementTime, 1000);
-		return () => clearInterval(interval);
-	}, []);
-
-	useEffect(() => {
-		let difference = seconds * 1000;
-
-		const daysDifference = Math.floor(difference / 1000 / 60 / 60 / 24);
-		difference -= daysDifference * 1000 * 60 * 60 * 24;
-
-		const hoursDifference = Math.floor(difference / 1000 / 60 / 60);
-		difference -= hoursDifference * 1000 * 60 * 60;
-		const h = hoursDifference >= 10 ? hoursDifference : "0" + hoursDifference;
-
-		const minutesDifference = Math.floor(difference / 1000 / 60);
-		difference -= minutesDifference * 1000 * 60;
-		const m = minutesDifference >= 10 ? minutesDifference : "0" + minutesDifference;
-
-		const secondsDifference = Math.floor(difference / 1000);
-		const s = secondsDifference >= 10 ? secondsDifference : "0" + secondsDifference;
-
-		setTime(h != "00" ? h + ":" : "" + m + ":" + s);
-	}, [seconds]);
-
-	return <span className="font-light">{time}</span>;
-};
 
 const CallWithParams = () => {
 	const { t } = useTranslation();

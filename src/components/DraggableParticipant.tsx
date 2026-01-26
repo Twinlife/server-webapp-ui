@@ -29,7 +29,7 @@ export const DraggableParticipant: React.FC<{
 	guestNameError: boolean;
 	setGuestName: (value: string) => void;
 	updateGuestName: (value: string) => void;
-	muteVideoClick: (ev: React.MouseEvent<HTMLDivElement>) => void;
+	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 }> = ({
 	className,

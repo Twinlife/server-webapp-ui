@@ -42,7 +42,7 @@ export const ParticipantsGrid: React.FC<{
 	setGuestName: (value: string) => void;
 	updateGuestName: (value: string) => void;
 	mode: DisplayMode;
-	muteVideoClick: (ev: React.MouseEvent<HTMLDivElement>) => void;
+	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 	pushMessage: typeof CallService.prototype.pushMessage;
 }> = ({

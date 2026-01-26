@@ -211,6 +211,8 @@ export const DEFAULT_OFFER_TO_RECEIVE: Offer = {
 	version: "1.0.0",
 };
 
+const MEETING = import.meta.env.VITE_APP_MEETING === "true";
+
 /**
  * WebRTC session management to send/receive SDPs.
  */
@@ -427,7 +429,13 @@ export class PeerCallService {
 
 	private requestCall() {
 		this.socket?.send(
-			'{"msg":"session-request","session-id":"' + this.sessionId + '","twincode-id":"' + this.twincodeId + '"}',
+			'{"msg":"session-request","session-id":"' +
+				this.sessionId +
+				'","twincode-id":"' +
+				this.twincodeId +
+				'","meeting":' +
+				MEETING +
+				"}",
 		);
 		if (this.connectTimer) {
 			clearTimeout(this.connectTimer);

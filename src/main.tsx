@@ -12,26 +12,54 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import "./i18n/i18n.ts";
 import "./index.css";
 
-const Call = lazy(() => import("./pages/Call.tsx"));
+const MEETING = import.meta.env.VITE_APP_MEETING === "true";
+
 const ErrorPage = lazy(() => import("./pages/ErrorPage.tsx"));
 
-const router = createBrowserRouter([
-	{
-		path: "/call",
-		element: <Call />,
-		errorElement: <ErrorPage />,
-	},
-	{
-		path: "/call/:id",
-		element: <Call />,
-		errorElement: <ErrorPage />,
-	},
-	{
-		path: "/",
-		element: <></>,
-		errorElement: <ErrorPage />,
-	},
-]);
+function createRouter() {
+	if (MEETING) {
+		const Meet = lazy(() => import("./pages/Meet.tsx"));
+
+		return createBrowserRouter([
+			{
+				path: "/call",
+				element: <Meet />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/call/:id",
+				element: <Meet />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/",
+				element: <></>,
+				errorElement: <ErrorPage />,
+			},
+		]);
+	} else {
+		const Call = lazy(() => import("./pages/Call.tsx"));
+		return createBrowserRouter([
+			{
+				path: "/call",
+				element: <Call />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/call/:id",
+				element: <Call />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/",
+				element: <></>,
+				errorElement: <ErrorPage />,
+			},
+		]);
+	}
+}
+
+const router = createRouter();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 	<React.StrictMode>

@@ -27,9 +27,9 @@ const InvitationDialog: React.FC<InvitationDialogProps> = ({ open, invitationUI,
 	useEffect(() => {
 		if (invitationUI) {
 			const inviteURL = VITE_INVITE_URL + invitationUI.twincode;
-			setUrlString(inviteURL);
 			QRCode.toDataURL(inviteURL)
 				.then((url) => {
+					setUrlString(inviteURL);
 					setQrcodeImgSrc(url);
 				})
 				.catch((err: Error) => {

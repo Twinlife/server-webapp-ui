@@ -118,3 +118,7 @@ and also commit the files located in `src/i18n`.
 ## Dev notes:
 
 * https://tailwindcss.com/docs/responsive-design
+
+Firefox advanced configuration:
+
+* security.fileuri.strict_origin_policy

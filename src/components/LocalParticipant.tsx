@@ -4,6 +4,7 @@
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { RefObject, useEffect } from "react";
 import { useTranslation } from "react-i18next";
@@ -22,7 +23,7 @@ export const LocalParticipant: React.FC<{
 	guestNameError: boolean;
 	setGuestName: (value: string) => void;
 	updateGuestName: (value: string) => void;
-	muteVideoClick: (ev: React.MouseEvent<HTMLDivElement>) => void;
+	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 }> = ({
 	localVideoRef,
 	localMediaStream,

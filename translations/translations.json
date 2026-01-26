@@ -565,5 +565,25 @@
 		"su": "Förlåt, något gick fel.",
 		"tu": "Üzgünüm, bir şeyler ters gitti.",
 		"uk": "Вибач, щось пішло не так."
+	},
+	{
+		"key": "join_meeting_title",
+		"en": "Join meeting",
+		"fr": "Joindre la conférence"
+	},
+	{
+		"key": "join_meeting_button",
+		"en": "Join meeting",
+		"fr": "Joindre la conférence"
+	},
+	{
+		"key": "leave_meeting_button",
+		"en": "Leave meeting",
+		"fr": "Quitter la conférence"
+	},
+	{
+		"key": "wait_meeting_message",
+		"en": "The conference has not yet started, waiting for participants.",
+		"fr": "La conférence n'a pas démarré, veuillez patienter."
 	}
 ]
