@@ -53,7 +53,7 @@ trigger:
 ---
 kind: pipeline
 type: docker
-name:  MEP twin/skred UI
+name:  MEP twin/skred webapp UI
 
 workspace:
   path: /opt/usine
