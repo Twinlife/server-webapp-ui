@@ -73,7 +73,7 @@ steps:
        commands:
        - cd /opt/usine
        - echo $GIT_USERNAME
-       - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gogs.skyrock.net/TwinMe/server-web-invite.git .
+       - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gogs.skyrock.net/TwinMe/server-webapp-ui.git .
        - git checkout $DRONE_COMMIT
 
      - name: Build web UI
