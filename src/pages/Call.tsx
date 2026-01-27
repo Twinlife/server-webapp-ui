@@ -422,11 +422,15 @@ export class Call
 					}
 
 					if (this.callService.hasVideoTrack()) {
-						this.callService.actionCameraMute(videoMute);
+						this.muteCamera(videoMute);
 					}
 				},
 			);
 		}
+	};
+
+	muteCamera = (videoMute: boolean) => {
+		this.callService.actionCameraMute(videoMute);
 	};
 
 	updateGuestName = (guestName: string) => {
@@ -509,7 +513,7 @@ export class Call
 						};
 						const mediaStream = await this.getUserMedia(constraints);
 						if (mediaStream) {
-							this.callService.addOrReplaceVideoTrack(mediaStream, false);
+							this.setVideoTrack(mediaStream, false);
 						}
 					},
 				);
@@ -519,6 +523,12 @@ export class Call
 			}
 		}
 	};
+
+	setVideoTrack = (mediaStream: MediaStream | MediaStreamTrack, isScreenSharing: boolean) => {
+		this.callService.addOrReplaceVideoTrack(mediaStream, isScreenSharing);
+	};
+
+	onReleaseStream = (mediaStream: MediaStream) => {};
 
 	selectAudioDevice = async (deviceId: string) => {
 		const constraints = {
@@ -541,7 +551,7 @@ export class Call
 				video: { deviceId },
 			});
 			if (mediaStream) {
-				this.callService.addOrReplaceVideoTrack(mediaStream, false);
+				this.setVideoTrack(mediaStream.getVideoTracks()[0], false);
 				this.setUsedDevices();
 			}
 		}
@@ -657,7 +667,7 @@ export class Call
 				this.setUsedDevices();
 			}
 			if (track.kind === "video" && kind === "video") {
-				this.callService.addOrReplaceVideoTrack(track, false);
+				this.setVideoTrack(track, false);
 				this.setUsedDevices();
 			}
 			mediaStream.removeTrack(track);

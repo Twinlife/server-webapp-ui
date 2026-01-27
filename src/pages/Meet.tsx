@@ -21,11 +21,46 @@ import { Call } from "./Call.tsx";
 import JoinMeeting from "../components/JoinMeeting.tsx";
 import { LocalParticipant } from "../components/LocalParticipant";
 import { ParticipantsGrid } from "../components/ParticipantsGrid";
+import { VirtualBackground } from "../effects/VirtualBackground";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
 
 class Meet extends Call {
+	private videoBackground: VirtualBackground | null = null;
+
+	setVideoTrack = (mediaStream: MediaStream | MediaStreamTrack, isScreenSharing: boolean) => {
+		if (isScreenSharing) {
+			this.callService.addOrReplaceVideoTrack(mediaStream, isScreenSharing);
+			return;
+		}
+		if (this.videoBackground == null) {
+			this.videoBackground = new VirtualBackground();
+			this.videoBackground.init().then(() => {
+				this.setVideoTrack(mediaStream, isScreenSharing);
+			});
+		} else {
+			const stream = this.videoBackground.startEffect(
+				mediaStream as MediaStreamTrack,
+				"http://localhost:5173/actarus.jpg",
+			);
+			this.callService.addOrReplaceVideoTrack(stream, isScreenSharing);
+		}
+	};
+
+	onReleaseStream = (mediaStream: MediaStream) => {
+		if (this.videoBackground) {
+			this.videoBackground.stopEffect();
+		}
+	};
+
+	muteCamera = (videoMute: boolean) => {
+		this.callService.actionCameraMute(videoMute);
+		if (this.videoBackground) {
+			this.videoBackground.stopEffect();
+		}
+	};
+
 	render() {
 		const { id, t } = this.props;
 		const {
