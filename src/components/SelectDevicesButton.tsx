@@ -1,11 +1,12 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import { Menu, Transition } from "@headlessui/react";
+import { Menu, MenuButton, MenuItem, MenuItems, Transition } from "@headlessui/react";
 import { CheckIcon, Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { Fragment } from "react";
 
@@ -20,9 +21,9 @@ const SelectDevicesButton: React.FC<{
 	return (
 		<Menu as="div" className="relative inline-block text-left">
 			<div>
-				<Menu.Button className="btn-white ml-3 h-[45px] w-[45px]">
+				<MenuButton className="btn-white ml-3 h-[45px] w-[45px]">
 					<Cog6ToothIcon className="m-auto w-[29px] text-black" aria-hidden="true" />
-				</Menu.Button>
+				</MenuButton>
 			</div>
 
 			<Transition
@@ -34,7 +35,7 @@ const SelectDevicesButton: React.FC<{
 				leaveFrom="transform opacity-100 scale-100"
 				leaveTo="transform opacity-0 scale-95"
 			>
-				<Menu.Items className="max-w-screen absolute -top-2 right-0 z-20 mb-2 origin-bottom-right -translate-y-full transform divide-y divide-gray-100 overflow-hidden rounded-md bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+				<MenuItems className="max-w-screen absolute -top-2 right-0 z-20 mb-2 origin-bottom-right -translate-y-full transform divide-y divide-gray-100 overflow-hidden rounded-md bg-zinc-800 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
 					{audioDevices.length > 0 && (
 						<>
 							<div className="flex items-center">
@@ -60,7 +61,7 @@ const SelectDevicesButton: React.FC<{
 							{audioDevices.map((audioDevice) => {
 								const used = audioDevice.deviceId === usedAudioDevice;
 								return (
-									<MenuItem
+									<DeviceMenuItem
 										key={audioDevice.deviceId}
 										device={audioDevice}
 										used={used}
@@ -93,7 +94,7 @@ const SelectDevicesButton: React.FC<{
 							{videoDevices.map((videoDevice) => {
 								const used = videoDevice.deviceId === usedVideoDevice;
 								return (
-									<MenuItem
+									<DeviceMenuItem
 										key={videoDevice.deviceId}
 										device={videoDevice}
 										used={used}
@@ -103,23 +104,23 @@ const SelectDevicesButton: React.FC<{
 							})}
 						</>
 					)}
-				</Menu.Items>
+				</MenuItems>
 			</Transition>
 		</Menu>
 	);
 };
 
-const MenuItem: React.FC<{ device: MediaDeviceInfo; used: boolean; onClick: () => void }> = ({
+const DeviceMenuItem: React.FC<{ device: MediaDeviceInfo; used: boolean; onClick: () => void }> = ({
 	device,
 	used,
 	onClick,
 }) => {
 	return (
-		<Menu.Item>
+		<MenuItem>
 			{({ active }) => (
 				<div
 					className={[
-						active && !used ? "bg-slate-700 text-white" : "text-gray-700",
+						active && !used ? "bg-slate-700 text-white" : "text-gray-400",
 						"flex items-center px-4 py-2 text-sm transition",
 						used ? "text-white" : "cursor-pointer",
 					].join(" ")}
@@ -133,7 +134,7 @@ const MenuItem: React.FC<{ device: MediaDeviceInfo; used: boolean; onClick: () =
 					<span className="truncate">{device.label}</span>
 				</div>
 			)}
-		</Menu.Item>
+		</MenuItem>
 	);
 };
 
