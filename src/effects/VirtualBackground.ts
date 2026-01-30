@@ -7,6 +7,22 @@
  */
 import { ImageSegmenter, FilesetResolver, ImageSegmenterResult } from "@mediapipe/tasks-vision";
 import { CLEAR_TIMEOUT, SET_TIMEOUT, TIMEOUT_TICK, timerWorkerScript } from "../utils/TimerWorker";
+import { VideoTrack } from "../utils/VideoTrack";
+
+class EffectVideoTrack extends VideoTrack {
+	effect: VirtualBackground;
+
+	constructor(effect: VirtualBackground, trackOrStream: MediaStream | MediaStreamTrack, deviceId: string | null) {
+		super(trackOrStream, deviceId);
+		this.effect = effect;
+	}
+
+	stop(): void {
+		console.log("EffectVideoTrack.stop");
+		super.stop();
+		this.effect.stopEffect();
+	}
+}
 
 export class VirtualBackground {
 	private imageSegmenter?: ImageSegmenter | null;
@@ -17,7 +33,7 @@ export class VirtualBackground {
 	private mask?: ImageData;
 	private maskCanvas: HTMLCanvasElement;
 	private maskCtx?: CanvasRenderingContext2D | null;
-	private stream: MediaStreamTrack | null;
+	private track: MediaStreamTrack | null;
 	private maskWidth: number = 0;
 	private maskHeight: number = 0;
 	private videoWidth: number = 0;
@@ -25,12 +41,13 @@ export class VirtualBackground {
 	private backgroundImage: HTMLImageElement | null = null;
 	private timerWorker: Worker | null;
 	private maskPixelCount: number = 0;
+	private count: number = 0;
 
 	constructor() {
 		this.canvas = document.createElement("canvas");
 		this.maskCanvas = document.createElement("canvas");
 		this.timerWorker = null;
-		this.stream = null;
+		this.track = null;
 	}
 
 	async init() {
@@ -45,14 +62,14 @@ export class VirtualBackground {
 		});
 	}
 
-	startEffect(stream: MediaStreamTrack, backgroundPath: string | null): MediaStream | MediaStreamTrack {
+	startEffect(track: MediaStreamTrack, backgroundPath: string | null): VideoTrack {
 		this.stopEffect();
-		this.stream = stream;
-		console.error("startEffect track=" + stream);
-		const { frameRate, height, width } = stream.getSettings();
+		this.track = track;
+		console.error("startEffect track=" + track);
+		const { frameRate, height, width, deviceId } = track.getSettings();
 		this.video = document.createElement("video");
 		if (!frameRate || !width || !height || !this.video) {
-			return stream;
+			return new VideoTrack(track, null);
 		}
 		if (backgroundPath) {
 			this.backgroundImage = document.createElement("img");
@@ -71,30 +88,35 @@ export class VirtualBackground {
 		this.ctx = this.canvas.getContext("2d")!;
 		this.canvas.width = width;
 		this.canvas.height = height;
-		this.timerWorker = new Worker(timerWorkerScript, { name: "Video processing" });
-		this.timerWorker.onmessage = (data) => this.onTimerMessage(data);
+		this.count = this.count + 1;
+		if (this.timerWorker == null) {
+			this.timerWorker = new Worker(timerWorkerScript, { name: "Video processing " + this.count });
+			this.timerWorker.onmessage = (data) => this.onTimerMessage(data);
+		}
 
 		this.video.width = width;
 		this.video.height = height;
 		this.video.autoplay = true;
-		this.video.srcObject = new MediaStream([stream]);
+		this.video.srcObject = new MediaStream([track]);
 		this.video.onloadeddata = () => {
 			console.log("on loaded start post message");
 		};
 		this.timerWorker?.postMessage({ id: SET_TIMEOUT, timeMs: 100 });
 		const result = this.canvas.captureStream(frameRate);
-		return result;
+		console.log("Created new stream " + result);
+		return new EffectVideoTrack(this, result, deviceId ? deviceId : track.label);
 	}
 
 	stopEffect() {
+		console.log("stop effect");
 		if (this.timerWorker) {
 			this.timerWorker.postMessage({ id: CLEAR_TIMEOUT });
-			this.timerWorker.terminate();
-			this.timerWorker = null;
+			//this.timerWorker.terminate();
+			//this.timerWorker = null;
 		}
-		if (this.stream) {
-			this.stream.stop();
-			this.stream = null;
+		if (this.track) {
+			this.track.stop();
+			this.track = null;
 		}
 		if (this.video) {
 			this.video.srcObject = null;
@@ -108,7 +130,7 @@ export class VirtualBackground {
 	}
 
 	async process() {
-		console.log("process image");
+		// console.log("process image");
 		this.resizeSource();
 		const res: ImageSegmenterResult | null = await this.segmentVideo();
 		if (res) {
@@ -117,7 +139,7 @@ export class VirtualBackground {
 	}
 
 	resizeSource(): void {
-		//console.log("resizeSource " + this.maskWidth + "x" + this.maskHeight);
+		// console.log("resizeSource " + this.maskWidth + "x" + this.maskHeight);
 		if (!this.video || !this.maskCtx) {
 			return;
 		}
@@ -144,7 +166,8 @@ export class VirtualBackground {
 				return;
 			}
 			this.imageSegmenter.segmentForVideo(this.imageData, startTimeMs, (result: ImageSegmenterResult) => {
-				//console.log("segmentation time " + (endTimeMs - startTimeMs) + " ms");
+				const endTimeMs = performance.now();
+				// console.log("segmentation time " + (endTimeMs - startTimeMs) + " ms");
 				resolve(result);
 			});
 		});

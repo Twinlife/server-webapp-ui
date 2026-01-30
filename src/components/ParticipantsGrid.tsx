@@ -15,6 +15,7 @@ import GuestNameForms from "./GuestNameForms";
 import ParticipantGridCell from "./ParticipantGridCell";
 import ChatBox from "./chatbox/ChatBox";
 import { DraggableParticipant } from "./DraggableParticipant";
+import { MediaStreams } from "../utils/MediaStreams";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
@@ -29,7 +30,7 @@ export const ParticipantsGrid: React.FC<{
 	chatPanelOpened: boolean;
 	closeChatPanel: () => void;
 	localVideoRef: RefObject<HTMLVideoElement | null>;
-	localMediaStream: MediaStream;
+	localMediaStream: MediaStreams;
 	videoMute: boolean;
 	isSharingScreen: boolean;
 	isLocalAudioMute: boolean;

@@ -30,6 +30,9 @@ import { Schedule, TwincodeInfo, dateTimeToString } from "../services/ContactSer
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 import IsMobile from "../utils/IsMobile";
 import { CallButtons, CallButtonHandlers } from "../components/CallButtons";
+import { MediaStreams } from "../utils/MediaStreams";
+import { AudioTrack } from "../utils/AudioTrack";
+import { VideoTrack } from "../utils/VideoTrack";
 
 type FacingMode = "user" | "environment";
 
@@ -355,14 +358,12 @@ export class Call
 	};
 
 	private setUsedDevices() {
-		const mediaStream = this.callService.getMediaStream();
-		for (const track of mediaStream.getTracks()) {
-			if (track.kind === "audio") {
-				this.setState({ usedAudioDevice: track.getSettings().deviceId ?? "" });
-			}
-			if (track.kind === "video") {
-				this.setState({ usedVideoDevice: track.getSettings().deviceId ?? "" });
-			}
+		const mediaStream: MediaStreams = this.callService.getMediaStream();
+		if (mediaStream.audio) {
+			this.setState({ usedAudioDevice: mediaStream.audio.deviceId });
+		}
+		if (mediaStream.video) {
+			this.setState({ usedVideoDevice: mediaStream.video.deviceId });
 		}
 	}
 
@@ -513,7 +514,7 @@ export class Call
 						};
 						const mediaStream = await this.getUserMedia(constraints);
 						if (mediaStream) {
-							this.setVideoTrack(mediaStream, false);
+							this.setVideoTrack(mediaStream.getVideoTracks()[0], false);
 						}
 					},
 				);
@@ -524,11 +525,9 @@ export class Call
 		}
 	};
 
-	setVideoTrack = (mediaStream: MediaStream | MediaStreamTrack, isScreenSharing: boolean) => {
-		this.callService.addOrReplaceVideoTrack(mediaStream, isScreenSharing);
+	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
+		this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
 	};
-
-	onReleaseStream = (mediaStream: MediaStream) => {};
 
 	selectAudioDevice = async (deviceId: string) => {
 		const constraints = {
@@ -538,7 +537,7 @@ export class Call
 
 		const audioStream: MediaStream | null = await this.getUserMedia(constraints);
 		if (audioStream) {
-			this.callService.addOrReplaceAudioTrack(audioStream.getAudioTracks()[0]);
+			this.callService.setAudioTrack(new AudioTrack(audioStream.getAudioTracks()[0]));
 			this.setUsedDevices();
 		}
 	};
@@ -580,12 +579,16 @@ export class Call
 				if (mediaStream) {
 					console.info("Selecting display stream", mediaStream.id);
 					this.callService.stopVideoTrack();
-					this.callService.addOrReplaceVideoTrack(mediaStream, true).onended = (_event: Event) => {
-						// onended is called if the user stops screen sharing from its browser
-						if (this.state.isSharingScreen) {
-							this.stopScreenSharing();
-						}
-					};
+					this.setVideoTrack(mediaStream.getVideoTracks()[0], true);
+					const callStream: MediaStreams = this.callService.getMediaStream();
+					if (callStream.video) {
+						callStream.video.track.onended = (_event: Event) => {
+							// onended is called if the user stops screen sharing from its browser
+							if (this.state.isSharingScreen) {
+								this.stopScreenSharing();
+							}
+						};
+					}
 					const displayMode: DisplayMode = this.state.displayMode;
 					displayMode.showParticipant = true;
 					displayMode.participantId = 0;
@@ -663,15 +666,14 @@ export class Call
 
 		for (const track of mediaStream.getTracks()) {
 			if (track.kind === "audio" && kind === "audio") {
-				this.callService.addOrReplaceAudioTrack(track);
-				this.setUsedDevices();
+				this.callService.setAudioTrack(new AudioTrack(track));
 			}
 			if (track.kind === "video" && kind === "video") {
 				this.setVideoTrack(track, false);
-				this.setUsedDevices();
 			}
 			mediaStream.removeTrack(track);
 		}
+		this.setUsedDevices();
 		return true;
 	};
 

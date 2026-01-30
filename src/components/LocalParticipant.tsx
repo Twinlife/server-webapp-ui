@@ -9,10 +9,11 @@
 import { RefObject, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import GuestNameForms from "./GuestNameForms";
+import { MediaStreams } from "../utils/MediaStreams";
 
 export const LocalParticipant: React.FC<{
 	localVideoRef: RefObject<HTMLVideoElement | null>;
-	localMediaStream: MediaStream;
+	localMediaStream: MediaStreams;
 	localAbsolute: boolean;
 	videoMute: boolean;
 	isLocalAudioMute: boolean;
@@ -44,12 +45,12 @@ export const LocalParticipant: React.FC<{
 	useEffect(() => {
 		console.log(
 			"Update local ref " + localVideoRef.current + " with stream",
-			localMediaStream.id,
+			localMediaStream.stream.id,
 			" mute ",
 			videoMute,
 		);
 		if (localVideoRef.current) {
-			localVideoRef.current.srcObject = localMediaStream;
+			localVideoRef.current.srcObject = localMediaStream.stream;
 		} else {
 			console.log("There is no local video element");
 		}

@@ -331,7 +331,7 @@ export class PeerCallService {
 							initResponse.status,
 						);
 					} else {
-						this.callObserver.onSessionTerminate(null, initResponse.status);
+						this.callObserver.onSessionTerminate(initResponse.sessionId, initResponse.status);
 					}
 				}
 			} else if (req.msg === "session-initiate") {

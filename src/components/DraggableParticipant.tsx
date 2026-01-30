@@ -9,6 +9,7 @@
 import { RefObject, useRef } from "react";
 import DraggableCore from "react-draggable";
 import { LocalParticipant } from "./LocalParticipant";
+import { MediaStreams } from "../utils/MediaStreams";
 
 export type Position = {
 	x: number;
@@ -18,7 +19,7 @@ export type Position = {
 export const DraggableParticipant: React.FC<{
 	className: string;
 	localVideoRef: RefObject<HTMLVideoElement | null>;
-	localMediaStream: MediaStream;
+	localMediaStream: MediaStreams;
 	localAbsolute: boolean;
 	videoMute: boolean;
 	isSharingScreen: boolean;

@@ -19,6 +19,8 @@ import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConversationService } from "./ConversationService";
 import { PushObjectIQ } from "./PushObjectIQ.ts";
 import { ConnectionOperation } from "./ConnectionOperation.ts";
+import { AudioTrack } from "../utils/AudioTrack";
+import { VideoTrack } from "../utils/VideoTrack";
 
 /**
  * The call state associated with an Audio or Video call:
@@ -362,23 +364,25 @@ export class CallState {
 		}
 	}
 
-	setAudioTrack(audioTrack: MediaStreamTrack) {
-		console.info("Replace audio track with ", audioTrack.label);
+	setAudioTrack(audioTrack: AudioTrack) {
+		console.info("Replace audio track with ", audioTrack.deviceId);
 
 		if (CallStatusOps.isActive(this.getStatus())) {
 			for (const callConnection of this.mPeers) {
-				callConnection.replaceAudioTrack(audioTrack);
+				callConnection.replaceAudioTrack(audioTrack.track);
 			}
 		}
 	}
 
-	setVideoTrack(videoTrack: MediaStreamTrack | null, isScreenSharing: boolean, replace: boolean): void {
+	setVideoTrack(videoTrack: VideoTrack | null, isScreenSharing: boolean, replace: boolean): void {
 		let scaleDown;
+		let track: MediaStreamTrack | null;
 		if (videoTrack) {
-			const settings = videoTrack.getSettings();
+			track = videoTrack.track;
+			const settings = track.getSettings();
 			console.info(
 				"Replace video",
-				videoTrack.label,
+				track.label,
 				"width",
 				settings.width,
 				"height",
@@ -391,17 +395,18 @@ export class CallState {
 			scaleDown = this.scaleDownFactor(settings.width, settings.height);
 		} else {
 			scaleDown = 0;
+			track = null;
 			console.info("Stop video track");
 		}
 
 		if (CallStatusOps.isActive(this.getStatus())) {
 			for (const connection of this.mPeers) {
-				if (!videoTrack) {
+				if (!track) {
 					connection.stopVideoTrack();
 				} else if (replace) {
-					connection.replaceVideoTrack(videoTrack, scaleDown);
+					connection.replaceVideoTrack(track, scaleDown);
 				} else {
-					connection.addVideoTrack(videoTrack, scaleDown);
+					connection.addVideoTrack(track, scaleDown);
 				}
 				if (this.mIsScreenSharing != isScreenSharing) {
 					connection.sendScreenSharingIQ(isScreenSharing);

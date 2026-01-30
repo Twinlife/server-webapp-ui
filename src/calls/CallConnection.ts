@@ -32,6 +32,7 @@ import { ParticipantInfoIQ } from "./ParticipantInfoIQ";
 import { ParticipantTransferIQ } from "./ParticipantTransferIQ.ts";
 import { PushObjectIQ } from "./PushObjectIQ.ts";
 import { PushTwincodeIQ } from "./PushTwincodeIQ.ts";
+import { MediaStreams } from "../utils/MediaStreams";
 
 type PacketHandler = {
 	serializer: Serializer;
@@ -251,7 +252,7 @@ export class CallConnection {
 		call: CallState,
 		peerConnectionId: string | null,
 		callStatus: CallStatus,
-		mediaStream: MediaStream | null,
+		mediaStream: MediaStreams | null,
 		memberId: string | null,
 		sdp: string | null,
 		audioDirection: RTCRtpTransceiverDirection,
@@ -570,22 +571,14 @@ export class CallConnection {
 		};
 
 		if (mediaStream) {
-			mediaStream.getTracks().forEach((track) => {
-				if (DEBUG) {
-					if (this.mPeerConnectionId) {
-						console.log(this.mPeerConnectionId, ": found", track.kind, "track", track.id);
-					} else {
-						console.log("Found", track.kind, "track", track.id);
-					}
-				}
-				if (track.kind === "audio") {
-					this.mAudioTrack = track;
-					pc.addTrack(track, mediaStream);
-				} else if (track.kind === "video") {
-					this.mVideoTrack = track;
-					pc.addTrack(track, mediaStream);
-				}
-			});
+			if (mediaStream.audio) {
+				this.mAudioTrack = mediaStream.audio.track;
+				pc.addTrack(mediaStream.audio.track);
+			}
+			if (mediaStream.video) {
+				this.mVideoTrack = mediaStream.video.track;
+				pc.addTrack(mediaStream.video.track);
+			}
 		}
 
 		this.mAudioDirection = audioDirection;

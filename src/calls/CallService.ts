@@ -30,6 +30,10 @@ import { CallState } from "./CallState";
 import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConnectionOperation } from "./ConnectionOperation";
 import { ConversationService } from "./ConversationService";
+import { AudioTrack } from "../utils/AudioTrack";
+import { VideoTrack } from "../utils/VideoTrack";
+import { MediaStreams } from "../utils/MediaStreams";
+
 import TransferDirection = CallState.TransferDirection;
 
 // type Timer = ReturnType<typeof setTimeout>;
@@ -69,7 +73,7 @@ export class CallService implements PeerCallServiceObserver {
 	private readonly mPeers: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private readonly mPeerTo: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private mActiveCall: CallState | null = null;
-	private readonly mLocalStream: MediaStream = new MediaStream();
+	private readonly mLocalStream: MediaStreams = new MediaStreams();
 	private mIdentityName: string = "Unknown";
 	private mIdentityImage: ArrayBuffer = new ArrayBuffer(0);
 	private wakeLock: WakelockHandler | null = null;
@@ -229,21 +233,20 @@ export class CallService implements PeerCallServiceObserver {
 		console.info("User camera mute", cameraMute);
 
 		const call: CallState | null = this.mActiveCall;
-		const videoTracks: MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
+		const video: VideoTrack | null = this.mLocalStream.video;
 		this.mIsCameraMute = cameraMute;
-		if (videoTracks.length === 0) {
+		if (!video) {
 			return;
 		}
-		const track = videoTracks[0];
+		const track = video.track;
 		if (track) {
 			// Release the camera and stop the track before removing it.
 			if (cameraMute) {
-				track.stop();
-				this.mLocalStream.removeTrack(track);
+				this.mLocalStream.setVideoTrack(null, false);
 			}
 
 			if (call) {
-				call.setVideoTrack(cameraMute ? null : track, false, true);
+				call.setVideoTrack(cameraMute ? null : video, false, true);
 			}
 		}
 	}
@@ -263,69 +266,45 @@ export class CallService implements PeerCallServiceObserver {
 		return call.pushMessage(message, copyAllowed);
 	}
 
-	getMediaStream(): MediaStream {
+	getMediaStream(): MediaStreams {
 		return this.mLocalStream;
 	}
 
-	addOrReplaceAudioTrack(audioTrack: MediaStreamTrack) {
-		console.info("Replace audio track with ", audioTrack.label);
+	setAudioTrack(audioTrack: AudioTrack) {
+		console.info("Set audio track with ", audioTrack.deviceId);
 
-		if (this.hasAudioTrack()) {
-			// Replace track
-			const currentTrack = this.mLocalStream.getAudioTracks()[0];
-			currentTrack.stop();
-			this.mLocalStream.removeTrack(currentTrack);
+		if (this.mLocalStream.setAudioTrack(audioTrack)) {
 			const call = this.mActiveCall;
 			if (call) {
 				call.setAudioTrack(audioTrack);
 			}
 		}
-		this.mLocalStream.addTrack(audioTrack);
 	}
 
 	/**
 	 * Stop the video track to release the camera.
 	 */
 	stopVideoTrack() {
-		if (this.mLocalStream) {
-			this.mLocalStream.getVideoTracks().forEach((track) => {
-				track.stop();
-			});
-		}
+		this.mLocalStream.stop();
 	}
 
-	addOrReplaceVideoTrack(mediaStream: MediaStream | MediaStreamTrack, isScreenSharing: boolean): MediaStreamTrack {
-		const tracks: MediaStreamTrack[] = this.mLocalStream.getVideoTracks();
-		let videoTrack;
-		if (mediaStream instanceof MediaStreamTrack) {
-			videoTrack = mediaStream;
-		} else {
-			videoTrack = mediaStream.getVideoTracks()[0];
-		}
+	setVideoTrack(videoTrack: VideoTrack, isScreenSharing: boolean): void {
+		console.info("Set video track with ", videoTrack.deviceId);
 
 		const call = this.mActiveCall;
-		if (tracks.length > 0) {
-			// Replace track
-			const currentTrack = tracks[0];
-			currentTrack.stop();
-			this.mLocalStream.removeTrack(currentTrack);
-			if (call) {
-				call.setVideoTrack(videoTrack, isScreenSharing, true);
-			}
-		} else if (call && CallStatusOps.isActive(call.getStatus())) {
-			call.setVideoTrack(videoTrack, isScreenSharing, false);
+		const replace = this.mLocalStream.setVideoTrack(videoTrack, isScreenSharing);
+		if (call && CallStatusOps.isActive(call.getStatus())) {
+			call.setVideoTrack(videoTrack, isScreenSharing, replace);
 		}
-		this.mLocalStream.addTrack(videoTrack);
 		this.mIsScreenSharing = isScreenSharing;
-		return videoTrack;
 	}
 
 	hasAudioTrack(): boolean {
-		return this.mLocalStream.getAudioTracks().length > 0;
+		return this.mLocalStream.audio != null;
 	}
 
 	hasVideoTrack(): boolean {
-		return this.mLocalStream.getVideoTracks().length > 0;
+		return this.mLocalStream.video != null;
 	}
 
 	isAudioSourceOn(): boolean {
@@ -687,13 +666,7 @@ export class CallService implements PeerCallServiceObserver {
 	private terminateCall(terminateReason: TerminateReason): void {
 		console.info("call terminated with", terminateReason);
 
-		if (this.mLocalStream) {
-			for (const track of this.mLocalStream.getTracks()) {
-				track.stop();
-				this.mLocalStream.removeTrack(track);
-			}
-		}
-
+		this.mLocalStream.stop();
 		this.mObserver.onTerminateCall(terminateReason);
 		this.mActiveCall = null;
 
