@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -17,15 +17,15 @@ import { Item } from "../../pages/Call";
 import ChatBoxInput from "./ChatBoxInput";
 import InvitationDialog from "./InvitationDialog";
 import InvitationItem, { InvitationUI } from "./InvitationItem";
+import { chatStore } from "../../stores/chat";
+import { useSnapshot } from "valtio";
 
 interface ChatBoxInterface {
-	chatPanelOpened: boolean;
 	items: Item[];
-	closeChatPanel: () => void;
 	pushMessage: typeof CallService.prototype.pushMessage;
 }
 
-export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMessage }: ChatBoxInterface) {
+export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 	const [chatPanelFull, setChatPanelFull] = useState(false);
 	const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
 	const [invitationUI, setInvitationUI] = useState<InvitationUI | null>(null);
@@ -41,8 +41,15 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 		setInvitationDialogOpen(false);
 	};
 
-	const scrollBoxRef = useRef<HTMLDivElement>(null);
+	const chat = useSnapshot(chatStore);
+	useEffect(() => {
+		if (chat.chatPanelOpened && chat.unreadMessages > 0) {
+			chatStore.unreadMessages = 0;
+		}
+	}, [chat.chatPanelOpened, chat.unreadMessages]);
 
+	const scrollBoxRef = useRef<HTMLDivElement>(null);
+	const chatPanelOpened = chat.chatPanelOpened;
 	useEffect(() => {
 		if (scrollBoxRef.current) {
 			scrollBoxRef.current.scroll({
@@ -77,7 +84,11 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 					<button onClick={() => setChatPanelFull(!chatPanelFull)}>
 						{chatPanelFull ? <CollapseIcon /> : <ExpandIcon />}
 					</button>
-					<button onClick={closeChatPanel}>
+					<button
+						onClick={() => {
+							chatStore.chatPanelOpened = false;
+						}}
+					>
 						<img className="w-6" src={closeImage} alt="" />
 					</button>
 				</div>

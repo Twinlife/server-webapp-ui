@@ -30,9 +30,12 @@ import { Schedule, TwincodeInfo, dateTimeToString } from "../services/ContactSer
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 import IsMobile from "../utils/IsMobile";
 import { CallButtons, CallButtonHandlers } from "../components/CallButtons";
+import { NotificationCenter, notificationCenter } from "../notifications/NotificationCenter";
 import { MediaStreams } from "../utils/MediaStreams";
 import { AudioTrack } from "../utils/AudioTrack";
 import { VideoTrack } from "../utils/VideoTrack";
+import { Notifications } from "../notifications/Notifications";
+import { chatStore } from "../stores/chat";
 
 type FacingMode = "user" | "environment";
 
@@ -78,10 +81,8 @@ export interface CallState {
 	usedAudioDevice: string;
 	usedVideoDevice: string;
 	isSharingScreen: boolean;
-	chatPanelOpened: boolean;
 	items: Item[];
 	atLeastOneParticipantSupportsMessages: boolean;
-	messageNotificationDisplayed: boolean;
 	alertOpen: boolean;
 	alertTitle: string;
 	alertContent: ReactNode;
@@ -106,6 +107,7 @@ export class Call
 {
 	protected localVideoRef: RefObject<HTMLVideoElement | null> = createRef();
 	protected callService: CallService = new CallService(peerCallService, this, this);
+	protected notificationCenter: NotificationCenter = notificationCenter;
 
 	state: CallState = {
 		initializing: true,
@@ -132,10 +134,8 @@ export class Call
 		usedAudioDevice: "",
 		usedVideoDevice: "",
 		isSharingScreen: false,
-		chatPanelOpened: false,
 		items: [],
 		atLeastOneParticipantSupportsMessages: false,
-		messageNotificationDisplayed: false,
 		alertOpen: false,
 		alertTitle: "",
 		alertContent: <></>,
@@ -175,11 +175,14 @@ export class Call
 	 * @param {CallStatus} status the new call status.
 	 */
 	onUpdateCallStatus(status: CallStatus): void {
+		const previousStatus: CallStatus = this.state.status;
+
 		if (DEBUG) {
-			console.log("New call status ", CallStatus[status]);
+			console.log("Call status ", CallStatus[previousStatus], " => ", CallStatus[status]);
 		}
 
 		this.setState({ status: status });
+		this.notificationCenter.onUpdateCallStatus(status, previousStatus);
 	}
 
 	onOverrideAudioVideo(audio: boolean, video: boolean): void {
@@ -200,8 +203,13 @@ export class Call
 	 * @param reason the call termination reason.
 	 */
 	onTerminateCall(reason: TerminateReason): void {
-		console.info("Call terminated", reason);
+		const { status } = this.state;
 
+		console.info("Call terminated", reason, "in state", CallStatus[status]);
+
+		this.notificationCenter.onUpdateCallStatus(CallStatus.TERMINATED, status);
+		chatStore.chatPanelOpened = false;
+		chatStore.unreadMessages = 0;
 		this.leaveFullscreen();
 		this.setState({
 			terminateReason: reason,
@@ -209,7 +217,6 @@ export class Call
 			alertOpen: false,
 			alertTitle: "",
 			alertContent: <></>,
-			chatPanelOpened: false,
 			isSharingScreen: false,
 			items: [],
 		});
@@ -255,6 +262,9 @@ export class Call
 		displayMode.showLocalThumbnail = list.length === 1 && isMobile;
 		this.setState({ participants: list, displayMode: displayMode });
 		this.checkIsMessageSupported();
+		if (list.length >= 1) {
+			this.notificationCenter.postMemberLeave();
+		}
 	}
 
 	/**
@@ -282,6 +292,8 @@ export class Call
 			displayMode.showParticipant = false;
 			displayMode.participantId = null;
 			this.setState({ displayMode: displayMode });
+		} else if (event == CallParticipantEvent.EVENT_IDENTITY) {
+			this.notificationCenter.postMemberJoined(participant);
 		}
 	}
 
@@ -331,6 +343,7 @@ export class Call
 		items.push(newItem);
 
 		this.updateItems(items);
+		this.notificationCenter.postNewMessage();
 	}
 
 	private updateItems = (items: Item[]) => {
@@ -344,6 +357,7 @@ export class Call
 				item.corners.tl = "rounded-tl";
 				previousItem.corners.bl = "rounded-bl";
 			}
+			chatStore.unreadMessages++;
 		} else {
 			// Local item
 			if (previousItem && !previousItem.participant) {
@@ -353,8 +367,7 @@ export class Call
 			}
 		}
 
-		const { chatPanelOpened } = this.state;
-		this.setState({ items, messageNotificationDisplayed: !chatPanelOpened });
+		this.setState({ items });
 	};
 
 	private setUsedDevices() {
@@ -453,6 +466,7 @@ export class Call
 					corners: {},
 				},
 			]);
+			this.notificationCenter.postMessageSent();
 		}
 		return descriptor;
 	};
@@ -876,10 +890,8 @@ export class Call
 			usedAudioDevice,
 			usedVideoDevice,
 			isSharingScreen,
-			chatPanelOpened,
 			items,
 			atLeastOneParticipantSupportsMessages,
-			messageNotificationDisplayed,
 			alertOpen,
 			alertTitle,
 			alertContent,
@@ -900,14 +912,14 @@ export class Call
 		return (
 			<div className=" flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
 				<Header
-					messageNotificationDisplayed={messageNotificationDisplayed}
 					openChatButtonDisplayed={
 						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
 					}
-					openChatPanel={() =>
-						this.setState({ chatPanelOpened: !chatPanelOpened, messageNotificationDisplayed: false })
-					}
+					openChatPanel={() => {
+						chatStore.chatPanelOpened = !chatStore.chatPanelOpened;
+					}}
 				/>
+				<Notifications />
 
 				{initializing && (
 					<InitializationPanel
@@ -921,8 +933,6 @@ export class Call
 
 				{!initializing && !CallStatusOps.isTerminated(status) && (
 					<ParticipantsGrid
-						chatPanelOpened={chatPanelOpened}
-						closeChatPanel={() => this.setState({ chatPanelOpened: false })}
 						localVideoRef={this.localVideoRef}
 						localMediaStream={this.callService.getMediaStream()}
 						videoMute={videoMute}

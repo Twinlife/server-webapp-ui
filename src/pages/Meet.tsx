@@ -23,11 +23,13 @@ import { LocalParticipant } from "../components/LocalParticipant";
 import { ParticipantsGrid } from "../components/ParticipantsGrid";
 import { VirtualBackground } from "../effects/VirtualBackground";
 import { VideoTrack } from "../utils/VideoTrack";
+import { chatStore } from "../stores/chat";
+import { Notifications } from "../notifications/Notifications";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
 
-class Meet extends Call {
+export class Meet extends Call {
 	private videoBackground: VirtualBackground | null = null;
 
 	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
@@ -41,10 +43,7 @@ class Meet extends Call {
 				this.setVideoTrack(mediaStream, isScreenSharing);
 			});
 		} else {
-			const stream = this.videoBackground.startEffect(
-				mediaStream as MediaStreamTrack,
-				""
-			);
+			const stream = this.videoBackground.startEffect(mediaStream as MediaStreamTrack, "");
 			this.callService.setVideoTrack(stream, isScreenSharing);
 		}
 	};
@@ -68,10 +67,8 @@ class Meet extends Call {
 			usedAudioDevice,
 			usedVideoDevice,
 			isSharingScreen,
-			chatPanelOpened,
 			items,
 			atLeastOneParticipantSupportsMessages,
-			messageNotificationDisplayed,
 			alertOpen,
 			alertTitle,
 			alertContent,
@@ -92,14 +89,14 @@ class Meet extends Call {
 		return (
 			<div className="flex flex-col h-full w-screen bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
 				<Header
-					messageNotificationDisplayed={messageNotificationDisplayed}
 					openChatButtonDisplayed={
 						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
 					}
-					openChatPanel={() =>
-						this.setState({ chatPanelOpened: !chatPanelOpened, messageNotificationDisplayed: false })
-					}
+					openChatPanel={() => {
+						chatStore.chatPanelOpened = !chatStore.chatPanelOpened;
+					}}
 				/>
+				<Notifications />
 
 				{!CallStatusOps.isActive(status) && (
 					<JoinMeeting
@@ -162,8 +159,6 @@ class Meet extends Call {
 				{CallStatusOps.isActive(status) && (
 					<>
 						<ParticipantsGrid
-							chatPanelOpened={chatPanelOpened}
-							closeChatPanel={() => this.setState({ chatPanelOpened: false })}
 							localVideoRef={this.localVideoRef}
 							localMediaStream={this.callService.getMediaStream()}
 							videoMute={videoMute}

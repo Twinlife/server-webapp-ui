@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -22,7 +22,7 @@ export default function Thanks({ onCallBackClick }: ThanksProps) {
 
 	return (
 		<div className=" flex h-full w-screen flex-col items-center bg-black p-4 ">
-			<Header messageNotificationDisplayed={false} openChatButtonDisplayed={false} />
+			<Header openChatButtonDisplayed={false} />
 
 			<div className="grid w-full flex-1 grid-cols-1 landscape:grid-cols-2 md:grid-cols-2">
 				<div className="flex justify-center landscape:items-center landscape:justify-end">

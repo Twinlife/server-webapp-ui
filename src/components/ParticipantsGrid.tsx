@@ -16,6 +16,8 @@ import ParticipantGridCell from "./ParticipantGridCell";
 import ChatBox from "./chatbox/ChatBox";
 import { DraggableParticipant } from "./DraggableParticipant";
 import { MediaStreams } from "../utils/MediaStreams";
+import { chatStore } from "../stores/chat";
+import { useSnapshot } from "valtio";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
@@ -27,8 +29,6 @@ export type DisplayMode = {
 };
 
 export const ParticipantsGrid: React.FC<{
-	chatPanelOpened: boolean;
-	closeChatPanel: () => void;
 	localVideoRef: RefObject<HTMLVideoElement | null>;
 	localMediaStream: MediaStreams;
 	videoMute: boolean;
@@ -47,8 +47,6 @@ export const ParticipantsGrid: React.FC<{
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 	pushMessage: typeof CallService.prototype.pushMessage;
 }> = ({
-	chatPanelOpened,
-	closeChatPanel,
 	localVideoRef,
 	localMediaStream,
 	videoMute,
@@ -67,6 +65,7 @@ export const ParticipantsGrid: React.FC<{
 	videoClick,
 	pushMessage,
 }) => {
+	const chat = useSnapshot(chatStore);
 	const localAbsolute = mode.showLocalThumbnail && !mode.showParticipant;
 	const nbParticipants = participants.length === 0 ? 2 : participants.length + (localAbsolute ? 0 : 1);
 	const divClass = mode.showParticipant
@@ -79,7 +78,7 @@ export const ParticipantsGrid: React.FC<{
 		<div
 			className={[
 				divClass,
-				chatPanelOpened ? "pb-[300px] md:pb-4 md:pr-[316px]" : "pb-4 pr-0",
+				chat.chatPanelOpened ? "pb-[300px] md:pb-4 md:pr-[316px]" : "pb-4 pr-0",
 				getGridClass(mode, nbParticipants),
 			].join(" ")}
 		>
@@ -147,12 +146,7 @@ export const ParticipantsGrid: React.FC<{
 					</div>
 				</div>
 			)}
-			<ChatBox
-				chatPanelOpened={chatPanelOpened}
-				closeChatPanel={closeChatPanel}
-				pushMessage={pushMessage}
-				items={items}
-			/>
+			<ChatBox pushMessage={pushMessage} items={items} />
 		</div>
 	);
 };
