@@ -11,6 +11,8 @@ import { notificationStore, NotificationState } from "../stores/notifications";
 import { CallParticipant } from "../calls/CallParticipant";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 
+const MEETING = import.meta.env.VITE_APP_MEETING === "true";
+
 export enum NotificationType {
 	NONE,
 	AUDIO_CALLING,
@@ -25,10 +27,10 @@ export enum NotificationType {
 function getSound(type: NotificationType): string | null {
 	switch (type) {
 		case NotificationType.AUDIO_CALLING:
-			return "/sounds/skred/audio_call_ringtone.mp3";
+			return "/sounds/skred/connecting_ringtone.ogg";
 
 		case NotificationType.VIDEO_CALLING:
-			return "/sounds/skred/video_call_ringtone.mp3";
+			return "/sounds/skred/connecting_ringtone.ogg";
 
 		case NotificationType.CALL_TERMINATED:
 			return "/sounds/skred/call_end_ringtone.ogg";
@@ -76,9 +78,13 @@ export class NotificationCenter {
 	 */
 	public onUpdateCallStatus(newStatus: CallStatus, oldStatus: CallStatus): void {
 		if (newStatus == CallStatus.OUTGOING_CALL) {
-			this.postSound(NotificationType.AUDIO_CALLING);
+			if (!MEETING) {
+				this.postSound(NotificationType.AUDIO_CALLING);
+			}
 		} else if (newStatus == CallStatus.OUTGOING_VIDEO_CALL) {
-			this.postSound(NotificationType.VIDEO_CALLING);
+			if (!MEETING) {
+				this.postSound(NotificationType.VIDEO_CALLING);
+			}
 		} else if (newStatus == CallStatus.TERMINATED) {
 			if (CallStatusOps.isActive(oldStatus)) {
 				this.postSound(NotificationType.CALL_TERMINATED);
