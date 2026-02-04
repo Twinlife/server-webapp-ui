@@ -18,7 +18,6 @@ import { CallService } from "./CallService";
 import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConversationService } from "./ConversationService";
 import { PushObjectIQ } from "./PushObjectIQ.ts";
-import { ConnectionOperation } from "./ConnectionOperation.ts";
 import { AudioTrack } from "../utils/AudioTrack";
 import { VideoTrack } from "../utils/VideoTrack";
 
@@ -43,6 +42,12 @@ import { VideoTrack } from "../utils/VideoTrack";
  *
  */
 export class CallState {
+	static readonly WAIT_MEETING: number = 1;
+	static readonly WAIT_MEETING_DONE: number = 1 << 1;
+	static readonly START_CALL: number = 1 << 2;
+	static readonly RINGING: number = 1 << 3;
+	static readonly CONNECTED: number = 1 << 4;
+
 	private readonly mCallService: CallService;
 	private readonly mPeerCallService: PeerCallService;
 	private mIdentityAvatar: ArrayBuffer;
@@ -96,15 +101,6 @@ export class CallState {
 	}
 
 	/**
-	 * Returns true if the call handles video.
-	 *
-	 * @return {boolean} true if the call handles video.
-	 */
-	public isVideo(): boolean {
-		return CallStatusOps.isVideo(this.getStatus());
-	}
-
-	/**
 	 * Returns true if this call is a group call.  The call is changed to a group call when a first participant is added.
 	 *
 	 * @return {boolean} true if this is a group call.
@@ -123,13 +119,17 @@ export class CallState {
 	 * @return {CallStatus} the current call status.
 	 */
 	public getStatus(): CallStatus {
-		if (this.mPeers.length === 0) {
-			if (
-				this.isDoneOperation(ConnectionOperation.WAIT_MEETING) &&
-				!this.isDoneOperation(ConnectionOperation.WAIT_MEETING_DONE)
-			) {
+		if ((this.mState & CallState.CONNECTED) == 0) {
+			if ((this.mState & CallState.START_CALL) !== 0) {
+				if ((this.mState & CallState.RINGING) !== 0) {
+					return CallStatus.OUTGOING_RINGING;
+				}
+			} else if (this.mState & CallState.WAIT_MEETING && (this.mState & CallState.WAIT_MEETING_DONE) == 0) {
 				return CallStatus.WAIT_MEETING;
 			}
+		}
+
+		if (this.mPeers.length === 0) {
 			return CallStatus.TERMINATED;
 		}
 		return this.mPeers[0].getStatus();
@@ -143,8 +143,7 @@ export class CallState {
 	public needConnection(): boolean {
 		return (
 			this.mPeers.length > 0 ||
-			(this.isDoneOperation(ConnectionOperation.WAIT_MEETING) &&
-				!this.isDoneOperation(ConnectionOperation.WAIT_MEETING_DONE))
+			((this.mState & CallState.WAIT_MEETING) !== 0 && (this.mState & CallState.WAIT_MEETING_DONE) == 0)
 		);
 	}
 
@@ -267,6 +266,12 @@ export class CallState {
 		for (const connection of this.mPeers) {
 			connection.sendParticipantInfoIQ();
 		}
+	}
+
+	setDeviceRinging(): boolean {
+		const state = this.mState;
+		this.mState |= CallState.RINGING;
+		return state != this.mState;
 	}
 
 	/**
@@ -466,6 +471,7 @@ export class CallState {
 		if (!callConnection.updateConnectionState(state)) {
 			return CallState.UpdateState.IGNORE;
 		}
+		this.mState |= CallState.CONNECTED;
 		if (this.mConnectionStartTime !== 0) {
 			if (this.mPeers.length === 1) {
 				return CallState.UpdateState.IGNORE;

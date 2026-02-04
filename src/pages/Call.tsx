@@ -113,7 +113,7 @@ export class Call
 		initializing: true,
 		guestName: this.getGuestName(),
 		guestNameError: false,
-		status: CallStatus.IDDLE,
+		status: CallStatus.IDLE,
 		twincode: {
 			name: null,
 			description: null,
@@ -156,7 +156,7 @@ export class Call
 			initializing: true,
 			videoMute: true,
 			displayThanks: false,
-			status: CallStatus.IDDLE,
+			status: CallStatus.IDLE,
 			audioMute: false,
 			terminateReason: null,
 			participants: [],

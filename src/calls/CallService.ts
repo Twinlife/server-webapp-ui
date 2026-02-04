@@ -28,7 +28,6 @@ import { CallParticipant } from "./CallParticipant";
 import { CallParticipantObserver } from "./CallParticipantObserver";
 import { CallState } from "./CallState";
 import { CallStatus, CallStatusOps } from "./CallStatus";
-import { ConnectionOperation } from "./ConnectionOperation";
 import { ConversationService } from "./ConversationService";
 import { AudioTrack } from "../utils/AudioTrack";
 import { VideoTrack } from "../utils/VideoTrack";
@@ -136,6 +135,7 @@ export class CallService implements PeerCallServiceObserver {
 		// Start the CallConnection once the peer call service is ready.
 		this.mPeerCallService.onStartCall(twincodeId, (config: CallConfigMessage) => {
 			if (!config.wait) {
+				call.checkOperation(CallState.START_CALL);
 				const callConnection: CallConnection = new CallConnection(
 					this,
 					this.mPeerCallService,
@@ -156,7 +156,7 @@ export class CallService implements PeerCallServiceObserver {
 				}
 				this.mPeerTo.set(twincodeId, callConnection);
 			} else {
-				call.checkOperation(ConnectionOperation.WAIT_MEETING);
+				call.checkOperation(CallState.WAIT_MEETING);
 			}
 
 			this.wakeLock = new WakelockHandler();
@@ -209,10 +209,7 @@ export class CallService implements PeerCallServiceObserver {
 		}
 
 		call.terminateCall(terminateReason);
-		if (
-			call.isDoneOperation(ConnectionOperation.WAIT_MEETING) &&
-			call.checkOperation(ConnectionOperation.WAIT_MEETING_DONE)
-		) {
+		if (call.isDoneOperation(CallState.WAIT_MEETING) && call.checkOperation(CallState.WAIT_MEETING_DONE)) {
 			this.terminateCall(terminateReason);
 		}
 	}
@@ -481,15 +478,14 @@ export class CallService implements PeerCallServiceObserver {
 
 		const mode: CallStatus = this.mIsCameraMute ? CallStatus.OUTGOING_CALL : CallStatus.OUTGOING_VIDEO_CALL;
 		this.mActiveCall.updateCallRoom(callRoomId, memberId);
-		if (members.length > 0 && this.mActiveCall.isDoneOperation(ConnectionOperation.WAIT_MEETING)) {
-			this.mActiveCall.checkOperation(ConnectionOperation.WAIT_MEETING_DONE);
+		if (members.length > 0 && this.mActiveCall.isDoneOperation(CallState.WAIT_MEETING)) {
+			this.mActiveCall.checkOperation(CallState.WAIT_MEETING_DONE);
 		}
 		for (const member of members) {
 			if (member.status !== "member-need-session" && member.sessionId) {
 				const callConnection: CallConnection | undefined = this.mPeers.get(member.sessionId);
 				if (callConnection) {
 					callConnection.setCallMemberId(member.memberId);
-					callConnection.checkOperation(ConnectionOperation.INVITE_CALL_ROOM);
 				}
 				continue;
 			}
@@ -564,7 +560,13 @@ export class CallService implements PeerCallServiceObserver {
 		console.info(sessionId, ": device-ringing");
 
 		const callConnection = this.mPeers.get(sessionId);
-		callConnection?.setDeviceRinging();
+		if (callConnection) {
+			const call: CallState = callConnection.getCall();
+			if (call.setDeviceRinging()) {
+				this.mObserver.onUpdateCallStatus(call.getStatus());
+			}
+			callConnection.setDeviceRinging();
+		}
 	}
 
 	onChangeConnectionState(callConnection: CallConnection, state: RTCIceConnectionState): void {

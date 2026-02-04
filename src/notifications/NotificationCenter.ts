@@ -17,6 +17,7 @@ export enum NotificationType {
 	NONE,
 	AUDIO_CALLING,
 	VIDEO_CALLING,
+	PEER_RINGING,
 	CALL_TERMINATED,
 	MEMBER_JOINED,
 	MEMBER_LEAVE,
@@ -31,6 +32,9 @@ function getSound(type: NotificationType): string | null {
 
 		case NotificationType.VIDEO_CALLING:
 			return "/sounds/skred/connecting_ringtone.ogg";
+
+		case NotificationType.PEER_RINGING:
+			return "/sounds/skred/ringing_ringtone.ogg";
 
 		case NotificationType.CALL_TERMINATED:
 			return "/sounds/skred/call_end_ringtone.ogg";
@@ -85,13 +89,19 @@ export class NotificationCenter {
 			if (!MEETING) {
 				this.postSound(NotificationType.VIDEO_CALLING);
 			}
+		} else if (newStatus == CallStatus.OUTGOING_RINGING) {
+			this.postSound(NotificationType.PEER_RINGING);
 		} else if (newStatus == CallStatus.TERMINATED) {
 			if (CallStatusOps.isActive(oldStatus)) {
 				this.postSound(NotificationType.CALL_TERMINATED);
 			} else {
 				this.stopSound();
 			}
-		} else if (oldStatus == CallStatus.OUTGOING_CALL || oldStatus == CallStatus.OUTGOING_VIDEO_CALL) {
+		} else if (
+			oldStatus == CallStatus.OUTGOING_CALL ||
+			oldStatus == CallStatus.OUTGOING_VIDEO_CALL ||
+			oldStatus == CallStatus.OUTGOING_RINGING
+		) {
 			this.stopSound();
 		}
 	}
@@ -132,7 +142,11 @@ export class NotificationCenter {
 
 	public postSound(type: NotificationType) {
 		console.error("Posting sound notification " + type);
-		if (type == NotificationType.AUDIO_CALLING || type == NotificationType.VIDEO_CALLING) {
+		if (
+			type == NotificationType.AUDIO_CALLING ||
+			type == NotificationType.VIDEO_CALLING ||
+			type == NotificationType.PEER_RINGING
+		) {
 			this.playSound(type, true);
 			return;
 		}
