@@ -800,7 +800,7 @@ export class CallConnection {
 
 		// WebRTC accepts ICE candidates only when it has both the local description
 		// and the remote description.  If we call addIceCandidates too early, they are dropped.
-		if (!this.mInitialized) {
+		if (!this.mInitialized || this.mIceRemoteCandidates) {
 			if (!this.mIceRemoteCandidates) {
 				this.mIceRemoteCandidates = candidates;
 			} else {
