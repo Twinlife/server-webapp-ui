@@ -36,6 +36,10 @@ import { AudioTrack } from "../utils/AudioTrack";
 import { VideoTrack } from "../utils/VideoTrack";
 import { Notifications } from "../notifications/Notifications";
 import { chatStore } from "../stores/chat";
+import { profile } from "../stores/profile";
+import { subscribe } from "valtio/index";
+import { audioStore } from "../stores/audio";
+import { videoStore } from "../stores/video";
 
 type FacingMode = "user" | "environment";
 
@@ -66,7 +70,6 @@ interface CallProps {
 
 export interface CallState {
 	initializing: boolean;
-	guestName: string;
 	guestNameError: boolean;
 	twincode: TwincodeInfo;
 	status: CallStatus;
@@ -75,8 +78,6 @@ export interface CallState {
 	terminateReason: TerminateReason | null;
 	participants: Array<CallParticipant>;
 	displayThanks: boolean;
-	audioDevices: MediaDeviceInfo[];
-	videoDevices: MediaDeviceInfo[];
 	facingMode: FacingMode;
 	usedAudioDevice: string;
 	usedVideoDevice: string;
@@ -111,7 +112,6 @@ export class Call
 
 	state: CallState = {
 		initializing: true,
-		guestName: this.getGuestName(),
 		guestNameError: false,
 		status: CallStatus.IDLE,
 		twincode: {
@@ -128,8 +128,6 @@ export class Call
 		terminateReason: null,
 		participants: [],
 		displayThanks: false,
-		audioDevices: [],
-		videoDevices: [],
 		facingMode: "user",
 		usedAudioDevice: "",
 		usedVideoDevice: "",
@@ -167,6 +165,27 @@ export class Call
 		if (!this.callService) {
 			this.callService = new CallService(peerCallService, this, this);
 		}
+
+		subscribe(profile, () => {
+			this.setState({ guestNameError: profile.name === "" });
+			if (profile.name !== "") {
+				this.callService.updateIdentity(profile.name, new ArrayBuffer(0));
+			}
+		});
+		subscribe(audioStore, () => {
+			const deviceId = audioStore.inputDeviceId;
+			if (deviceId) {
+				console.error("Device", deviceId);
+				this.selectAudioDevice(deviceId);
+			}
+		});
+		subscribe(videoStore, () => {
+			const deviceId = videoStore.videoDeviceId;
+			if (deviceId) {
+				console.error("Device", deviceId);
+				this.selectVideoDevice(deviceId);
+			}
+		});
 	};
 
 	/**
@@ -447,13 +466,6 @@ export class Call
 		this.callService.actionCameraMute(videoMute);
 	};
 
-	updateGuestName = (guestName: string) => {
-		this.setState({ guestName, guestNameError: guestName === "" });
-		window.localStorage.setItem("guestName", guestName);
-		if (guestName !== "") {
-			this.callService.updateIdentity(guestName, new ArrayBuffer(0));
-		}
-	};
 	pushMessage = (message: string, copyAllowed: boolean) => {
 		const descriptor = this.callService.pushMessage(message, copyAllowed);
 		if (descriptor) {
@@ -532,9 +544,6 @@ export class Call
 						}
 					},
 				);
-			} else {
-				console.log(this.state.audioDevices);
-				console.log(this.state.videoDevices);
 			}
 		}
 	};
@@ -637,7 +646,8 @@ export class Call
 	};
 
 	onCallClick: React.MouseEventHandler<HTMLButtonElement> = async (ev: React.MouseEvent<HTMLButtonElement>) => {
-		const { twincode, guestName } = this.state;
+		const { twincode } = this.state;
+		const guestName = profile.name;
 		if (guestName === "") {
 			this.setState({ guestNameError: true });
 			console.error("Identity name needed");
@@ -698,13 +708,6 @@ export class Call
 			// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
 			const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
 
-			const devices = await navigator.mediaDevices.enumerateDevices();
-			const enumeratedDevices = {
-				audioDevices: devices.filter((device) => device.kind === "audioinput").slice(),
-				videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
-			};
-			this.setState(enumeratedDevices);
-
 			return mediaStream;
 		} catch (error: unknown) {
 			if (error instanceof DOMException) {
@@ -758,7 +761,7 @@ export class Call
 	};
 
 	onTransferClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
-		const { twincode, guestName, status } = this.state;
+		const { twincode, status } = this.state;
 
 		if (!CallStatusOps.isActive(status) || !twincode.transfer) {
 			console.error(
@@ -770,7 +773,7 @@ export class Call
 			return;
 		}
 
-		this.callService.setIdentity(guestName, new ArrayBuffer(0));
+		this.callService.setIdentity(profile.name, new ArrayBuffer(0));
 
 		const name: string = twincode.name ? twincode.name : "Unknown";
 		const transfer: boolean = twincode.transfer;
@@ -868,14 +871,14 @@ export class Call
 	}
 
 	getGuestName(): string {
-		return window.localStorage.getItem("guestName") ?? this.props.t("guest");
+		// return window.localStorage.getItem("guestName") ?? this.props.t("guest");
+		return profile.name;
 	}
 
 	render() {
 		const { id, t } = this.props;
 		const {
 			initializing,
-			guestName,
 			guestNameError,
 			twincode,
 			videoMute,
@@ -885,10 +888,6 @@ export class Call
 			displayMode,
 			terminateReason,
 			displayThanks,
-			audioDevices,
-			videoDevices,
-			usedAudioDevice,
-			usedVideoDevice,
 			isSharingScreen,
 			items,
 			atLeastOneParticipantSupportsMessages,
@@ -941,10 +940,7 @@ export class Call
 						twincode={twincode}
 						participants={participants}
 						isIdle={CallStatusOps.isIdle(status)}
-						guestName={guestName}
 						guestNameError={guestNameError}
-						setGuestName={this.updateGuestName}
-						updateGuestName={this.updateGuestName}
 						muteVideoClick={this.onMuteVideoClick}
 						videoClick={this.onVideoClick}
 						mode={displayMode}
@@ -975,15 +971,8 @@ export class Call
 						audioMute={audioMute}
 						hasVideo={twincode.video}
 						videoMute={videoMute}
-						audioDevices={audioDevices}
-						videoDevices={videoDevices}
-						usedAudioDevice={usedAudioDevice}
-						usedVideoDevice={usedVideoDevice}
 						isSharingScreen={isSharingScreen}
-						selectAudioDevice={this.selectAudioDevice}
-						selectVideoDevice={this.selectVideoDevice}
 						transfer={TRANSFER || twincode.transfer}
-						hasCallButton={true}
 					/>
 				)}
 

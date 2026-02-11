@@ -6,6 +6,7 @@
  *   Olivier Dupont <olivier.dupont@twin.life>
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import React from "react";
 import { RefObject, useRef } from "react";
 import DraggableCore from "react-draggable";
 import { LocalParticipant } from "./LocalParticipant";
@@ -26,10 +27,7 @@ export const DraggableParticipant: React.FC<{
 	isLocalAudioMute: boolean;
 	enableVideo: boolean;
 	isIdle: boolean;
-	guestName: string;
 	guestNameError: boolean;
-	setGuestName: (value: string) => void;
-	updateGuestName: (value: string) => void;
 	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 }> = ({
@@ -42,13 +40,11 @@ export const DraggableParticipant: React.FC<{
 	isLocalAudioMute,
 	enableVideo,
 	isIdle,
-	guestName,
 	guestNameError,
-	setGuestName,
-	updateGuestName,
 	muteVideoClick,
 	videoClick,
 }) => {
+	const nodeRef = useRef<HTMLDivElement>(null);
 	const dragStartPositionXYRef = useRef<Position>({ x: 0, y: 0 });
 	const cl = [
 		localAbsolute ? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16" : isIdle ? "relative" : "relative",
@@ -80,10 +76,7 @@ export const DraggableParticipant: React.FC<{
 					isIdle={isIdle}
 					isScreenSharing={isSharingScreen}
 					enableVideo={enableVideo}
-					guestName={guestName}
 					guestNameError={guestNameError}
-					setGuestName={setGuestName}
-					updateGuestName={updateGuestName}
 					muteVideoClick={muteVideoClick}
 				></LocalParticipant>
 			</div>
@@ -91,6 +84,7 @@ export const DraggableParticipant: React.FC<{
 	}
 	return (
 		<DraggableCore
+			nodeRef={nodeRef}
 			grid={[1, 1]}
 			bounds="parent"
 			axis="both"
@@ -111,7 +105,7 @@ export const DraggableParticipant: React.FC<{
 				}
 			}}
 		>
-			<div
+			<div ref={nodeRef}
 				className={cl}
 				onClick={(e) => {
 					videoClick(e, 0);
@@ -126,10 +120,7 @@ export const DraggableParticipant: React.FC<{
 					isIdle={isIdle}
 					isScreenSharing={isSharingScreen}
 					enableVideo={enableVideo}
-					guestName={guestName}
 					guestNameError={guestNameError}
-					setGuestName={setGuestName}
-					updateGuestName={updateGuestName}
 					muteVideoClick={muteVideoClick}
 				></LocalParticipant>
 			</div>

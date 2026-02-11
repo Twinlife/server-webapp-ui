@@ -37,11 +37,8 @@ export const ParticipantsGrid: React.FC<{
 	twincode: TwincodeInfo;
 	participants: CallParticipant[];
 	isIdle: boolean;
-	guestName: string;
 	guestNameError: boolean;
 	items: Item[];
-	setGuestName: (value: string) => void;
-	updateGuestName: (value: string) => void;
 	mode: DisplayMode;
 	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
@@ -55,11 +52,8 @@ export const ParticipantsGrid: React.FC<{
 	twincode,
 	participants,
 	isIdle,
-	guestName,
 	guestNameError,
 	items,
-	setGuestName,
-	updateGuestName,
 	mode,
 	muteVideoClick,
 	videoClick,
@@ -75,78 +69,71 @@ export const ParticipantsGrid: React.FC<{
 		console.log("Local absolute=" + localAbsolute + " nbParticipants=" + nbParticipants);
 	}
 	return (
-		<div
-			className={[
-				divClass,
-				chat.chatPanelOpened ? "pb-[300px] md:pb-4 md:pr-[316px]" : "pb-4 pr-0",
-				getGridClass(mode, nbParticipants),
-			].join(" ")}
-		>
-			{participants.map((participant) => (
-				<ParticipantGridCell
-					key={participant.getParticipantId()}
-					cellClassName={getCellClass(participant.getParticipantId(), mode, participants.length + 1)}
-					setRemoteRenderer={(videoRef, audioRef) => participant.setRemoteRenderer(videoRef, audioRef)}
-					isAudioMute={participant.isAudioMute()}
-					isCameraMute={participant.isCameraMute()}
-					isScreenSharing={participant.isScreenSharing()}
-					name={participant.getName() ?? ""}
-					participantId={participant.getParticipantId()}
-					videoClick={videoClick}
-					avatarUrl={participant.getAvatarUrl() ?? ""}
-				/>
-			))}
+		<div className="grid flex-1 w-full h-full">
+			<div
+				className={[
+					divClass,
+					chat.chatPanelOpened ? "pb-[300px] md:pb-4 md:pr-[316px]" : "pb-4 pr-0",
+					getGridClass(mode, nbParticipants),
+				].join(" ")}
+			>
+				{participants.map((participant) => (
+					<ParticipantGridCell
+						key={participant.getParticipantId()}
+						cellClassName={getCellClass(participant.getParticipantId(), mode, participants.length + 1)}
+						setRemoteRenderer={(videoRef, audioRef) => participant.setRemoteRenderer(videoRef, audioRef)}
+						isAudioMute={participant.isAudioMute()}
+						isCameraMute={participant.isCameraMute()}
+						isScreenSharing={participant.isScreenSharing()}
+						name={participant.getName() ?? ""}
+						participantId={participant.getParticipantId()}
+						videoClick={videoClick}
+						avatarUrl={participant.getAvatarUrl() ?? ""}
+					/>
+				))}
 
-			{/* Display Contact before call (participants.length === 0) */}
-			{participants.length === 0 && (
-				<ParticipantGridCell
-					cellClassName={getCellClass(0, mode, nbParticipants)}
-					isAudioMute={false}
-					isCameraMute={true}
-					isScreenSharing={false}
-					name={twincode.name ?? ""}
+				{/* Display Contact before call (participants.length === 0) */}
+				{participants.length === 0 && (
+					<ParticipantGridCell
+						cellClassName={getCellClass(0, mode, nbParticipants)}
+						isAudioMute={false}
+						isCameraMute={true}
+						isScreenSharing={false}
+						name={twincode.name ?? ""}
+						videoClick={videoClick}
+						avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
+					/>
+				)}
+				<DraggableParticipant
+					className={getCellClass(0, mode, nbParticipants)}
+					localVideoRef={localVideoRef}
+					localMediaStream={localMediaStream}
+					localAbsolute={localAbsolute}
+					videoMute={videoMute}
+					isSharingScreen={isSharingScreen}
+					isLocalAudioMute={isLocalAudioMute}
+					isIdle={isIdle}
+					enableVideo={twincode.video}
+					guestNameError={guestNameError}
+					muteVideoClick={muteVideoClick}
 					videoClick={videoClick}
-					avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
-				/>
-			)}
-			<DraggableParticipant
-				className={getCellClass(0, mode, nbParticipants)}
-				localVideoRef={localVideoRef}
-				localMediaStream={localMediaStream}
-				localAbsolute={localAbsolute}
-				videoMute={videoMute}
-				isSharingScreen={isSharingScreen}
-				isLocalAudioMute={isLocalAudioMute}
-				isIdle={isIdle}
-				enableVideo={twincode.video}
-				guestName={guestName}
-				guestNameError={guestNameError}
-				setGuestName={setGuestName}
-				updateGuestName={updateGuestName}
-				muteVideoClick={muteVideoClick}
-				videoClick={videoClick}
-			></DraggableParticipant>
+				></DraggableParticipant>
 
-			{localAbsolute && (
-				<div
-					className={[
-						isIdle ? "relative" : "relative ring-2 ring-black",
-						"overflow-hidden rounded-md",
-						getCellClass(0, mode, participants.length + 1),
-					].join(" ")}
-				>
-					<div className={["relative bottom-2 right-2 text-sm"].join(" ")}>
-						<GuestNameForms
-							update={!isIdle}
-							guestName={guestName}
-							guestNameError={guestNameError}
-							setGuestName={setGuestName}
-							updateGuestName={updateGuestName}
-						/>
+				{localAbsolute && (
+					<div
+						className={[
+							isIdle ? "relative" : "relative ring-2 ring-black",
+							"overflow-hidden rounded-md",
+							getCellClass(0, mode, participants.length + 1),
+						].join(" ")}
+					>
+						<div className={["relative bottom-2 right-2 text-sm"].join(" ")}>
+							<GuestNameForms update={!isIdle} guestNameError={guestNameError} />
+						</div>
 					</div>
-				</div>
-			)}
-			<ChatBox pushMessage={pushMessage} items={items} />
+				)}
+				<ChatBox pushMessage={pushMessage} items={items} />
+			</div>
 		</div>
 	);
 };

@@ -15,9 +15,10 @@ import PhoneCallIcon from "../assets/phone-call.svg";
 import MonitorOff from "../assets/monitor-off.svg";
 import MonitorOn from "../assets/monitor.svg";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
-import SelectDevicesButton from "../components/SelectDevicesButton";
 import WhiteButton from "../components/WhiteButton";
 import IsMobile from "../utils/IsMobile";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+import { SettingsDialog } from "../settings/SettingsDialog";
 
 const isMobile = IsMobile();
 
@@ -73,36 +74,31 @@ export const CallButtons = ({
 	audioMute,
 	hasVideo,
 	videoMute,
-	audioDevices,
-	videoDevices,
-	usedAudioDevice,
-	usedVideoDevice,
 	isSharingScreen,
-	selectAudioDevice,
-	selectVideoDevice,
 	transfer,
-	hasCallButton,
 }: {
 	status: CallStatus;
 	callbacks: CallButtonHandlers;
 	audioMute: boolean;
 	hasVideo: boolean;
 	videoMute: boolean;
-	audioDevices: MediaDeviceInfo[];
-	videoDevices: MediaDeviceInfo[];
-	usedAudioDevice: string;
-	usedVideoDevice: string;
 	isSharingScreen: boolean;
-	selectAudioDevice: (deviceId: string) => void;
-	selectVideoDevice: (deviceId: string) => void;
 	transfer: boolean;
-	hasCallButton: boolean;
 }) => {
 	const { t } = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
 	const isIdle = CallStatusOps.isIdle(status);
 	const inTransfer = transfer && inCall;
 	const callLabel = transfer ? t("transfer") : t("call");
+	const [isSettingsOpen, setSettingsOpen] = useState<boolean>(false);
+	const hasCallButton = !CallStatusOps.isTerminated(status);
+
+	const openSettings = () => {
+		setSettingsOpen(true);
+	};
+	const closeSettings = () => {
+		setSettingsOpen(false);
+	};
 
 	return (
 		<div className="mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2">
@@ -167,28 +163,12 @@ export const CallButtons = ({
 					</WhiteButton>
 				)}
 				{!isMobile && (
-					<SelectDevicesButton
-						audioDevices={audioDevices}
-						videoDevices={videoDevices}
-						usedAudioDevice={usedAudioDevice}
-						usedVideoDevice={usedVideoDevice}
-						selectAudioDevice={selectAudioDevice}
-						selectVideoDevice={selectVideoDevice}
-					/>
-				)}
-				{hasCallButton && (
-					<div>
-						<button
-							className={
-								"flex items-center justify-center rounded-full ml-3 !p-[10px] px-3 py-2 text-white transition bg-red hover:bg-red/90 active:bg-red/80"
-							}
-							onClick={callbacks.onTerminateClick}
-						>
-							<span className="mr-1">
-								<PhoneCallIcon />
-							</span>
-						</button>
-					</div>
+					<>
+						<WhiteButton onClick={openSettings} className="ml-3 !p-[10px]">
+							<Cog6ToothIcon className="m-auto w-[29px] text-black" aria-hidden="true" />
+						</WhiteButton>
+						<SettingsDialog isOpen={isSettingsOpen} onClose={closeSettings} title="test" />
+					</>
 				)}
 			</div>
 		</div>

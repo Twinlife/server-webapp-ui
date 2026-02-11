@@ -20,10 +20,7 @@ export const LocalParticipant: React.FC<{
 	enableVideo: boolean;
 	isIdle: boolean;
 	isScreenSharing: boolean;
-	guestName: string;
 	guestNameError: boolean;
-	setGuestName: (value: string) => void;
-	updateGuestName: (value: string) => void;
 	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 }> = ({
 	localVideoRef,
@@ -34,10 +31,7 @@ export const LocalParticipant: React.FC<{
 	enableVideo,
 	isIdle,
 	isScreenSharing,
-	guestName,
 	guestNameError,
-	setGuestName,
-	updateGuestName,
 	muteVideoClick,
 }) => {
 	const { t } = useTranslation();
@@ -143,13 +137,7 @@ export const LocalParticipant: React.FC<{
 			</div>
 			{!localAbsolute && (
 				<div className={["absolute bottom-2 right-2 text-sm"].join(" ")}>
-					<GuestNameForms
-						update={!isIdle}
-						guestName={guestName}
-						guestNameError={guestNameError}
-						setGuestName={setGuestName}
-						updateGuestName={updateGuestName}
-					/>
+					<GuestNameForms update={!isIdle} guestNameError={guestNameError} />
 				</div>
 			)}
 		</>

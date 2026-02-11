@@ -25,15 +25,37 @@ import { VirtualBackground } from "../effects/VirtualBackground";
 import { VideoTrack } from "../utils/VideoTrack";
 import { chatStore } from "../stores/chat";
 import { Notifications } from "../notifications/Notifications";
+import { backgroundStore } from "../stores/backgrounds";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
+function getRandomImageFilename(): string {
+	const imageFilenames = [
+		"",
+		"/backgrounds/egouts-de-paris-inside.jpg",
+		"/backgrounds/ESA_control_room_pillars.jpg",
+		"/backgrounds/eurocontrol.jpg",
+		"/backgrounds/global-internet.jpg",
+		"/backgrounds/ibm-computer.jpg",
+		"/backgrounds/old-room.jpg",
+		"/backgrounds/salle-cyber-defense.jpg",
+		"/backgrounds/skyrock2.jpg",
+		"/backgrounds/spacecraft.jpg",
+	];
+
+	// Generate a random index
+	const randomIndex = Math.floor(Math.random() * imageFilenames.length);
+
+	// Return the randomly selected filename
+	return imageFilenames[randomIndex];
+}
 
 export class Meet extends Call {
 	private videoBackground: VirtualBackground | null = null;
 
 	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
-		if (isScreenSharing) {
+		const background = backgroundStore.background;
+		if (isScreenSharing || background == null || background < 0) {
 			this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
 			return;
 		}
@@ -43,7 +65,8 @@ export class Meet extends Call {
 				this.setVideoTrack(mediaStream, isScreenSharing);
 			});
 		} else {
-			const stream = this.videoBackground.startEffect(mediaStream as MediaStreamTrack, "");
+			const backgroundPath = background > 0 ? "/backgrounds/" + background + ".jpg" : "";
+			const stream = this.videoBackground.startEffect(mediaStream as MediaStreamTrack, backgroundPath);
 			this.callService.setVideoTrack(stream, isScreenSharing);
 		}
 	};
@@ -52,7 +75,6 @@ export class Meet extends Call {
 		const { id, t } = this.props;
 		const {
 			initializing,
-			guestName,
 			guestNameError,
 			twincode,
 			videoMute,
@@ -62,10 +84,6 @@ export class Meet extends Call {
 			displayMode,
 			terminateReason,
 			displayThanks,
-			audioDevices,
-			videoDevices,
-			usedAudioDevice,
-			usedVideoDevice,
 			isSharingScreen,
 			items,
 			atLeastOneParticipantSupportsMessages,
@@ -104,8 +122,6 @@ export class Meet extends Call {
 						twincode={twincode}
 						status={status}
 						title={twincode.name ? twincode.name : "?"}
-						guestName={guestName}
-						setGuestName={this.updateGuestName}
 						buttons={
 							<CallButtons
 								status={status}
@@ -113,15 +129,8 @@ export class Meet extends Call {
 								audioMute={audioMute}
 								hasVideo={twincode.video}
 								videoMute={videoMute}
-								audioDevices={audioDevices}
-								videoDevices={videoDevices}
-								usedAudioDevice={usedAudioDevice}
-								usedVideoDevice={usedVideoDevice}
 								isSharingScreen={isSharingScreen}
-								selectAudioDevice={this.selectAudioDevice}
-								selectVideoDevice={this.selectVideoDevice}
 								transfer={TRANSFER || twincode.transfer}
-								hasCallButton={false}
 							/>
 						}
 						onStartClick={this.onCallClick}
@@ -147,10 +156,7 @@ export class Meet extends Call {
 								isIdle={true}
 								isScreenSharing={isSharingScreen}
 								enableVideo={true}
-								guestName={guestName}
 								guestNameError={guestNameError}
-								setGuestName={this.updateGuestName}
-								updateGuestName={this.updateGuestName}
 								muteVideoClick={this.onMuteVideoClick}
 							></LocalParticipant>
 						</div>
@@ -167,10 +173,7 @@ export class Meet extends Call {
 							twincode={twincode}
 							participants={participants}
 							isIdle={CallStatusOps.isIdle(status)}
-							guestName={guestName}
 							guestNameError={guestNameError}
-							setGuestName={this.updateGuestName}
-							updateGuestName={this.updateGuestName}
 							muteVideoClick={this.onMuteVideoClick}
 							videoClick={this.onVideoClick}
 							mode={displayMode}
@@ -183,15 +186,8 @@ export class Meet extends Call {
 							audioMute={audioMute}
 							hasVideo={twincode.video}
 							videoMute={videoMute}
-							audioDevices={audioDevices}
-							videoDevices={videoDevices}
-							usedAudioDevice={usedAudioDevice}
-							usedVideoDevice={usedVideoDevice}
 							isSharingScreen={isSharingScreen}
-							selectAudioDevice={this.selectAudioDevice}
-							selectVideoDevice={this.selectVideoDevice}
 							transfer={TRANSFER || twincode.transfer}
-							hasCallButton={true}
 						/>
 					</>
 				)}

@@ -9,34 +9,33 @@ import { MouseEventHandler, PropsWithChildren, ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { TwincodeInfo } from "../services/ContactService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
+import { useSnapshot } from "valtio";
+import { profile } from "../stores/profile";
 
 interface JoinMeetingProps extends PropsWithChildren {
 	className?: string;
 	title: string;
 	twincode: TwincodeInfo;
 	status: CallStatus;
-	guestName: string;
 	buttons?: ReactNode;
 	children?: ReactNode;
 	onStartClick: MouseEventHandler<HTMLButtonElement>;
 	onCancelClick: MouseEventHandler<HTMLButtonElement>;
-	setGuestName: (newGuestName: string) => void;
 }
 
 const JoinMeeting: React.FC<JoinMeetingProps> = ({
 	className,
 	twincode,
 	status,
-	guestName,
 	onStartClick,
 	onCancelClick,
 	buttons,
 	children,
-	setGuestName,
 }) => {
 	const { t } = useTranslation();
 	const avatarUrl = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 	const isWaiting = CallStatusOps.isOutgoing(status);
+	const user = useSnapshot(profile);
 	return (
 		<div className={className}>
 			<div className="flex items-center justify-between h-screen">
@@ -64,10 +63,10 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 							<input
 								type="text"
 								id="name"
-								value={guestName}
+								value={user.name}
 								className=" bg-transparent border rounded px-3 py-2 focus:outline-none focus:ring-2"
 								placeholder="Entrez un pseudo"
-								onChange={(e) => setGuestName(e.target.value)}
+								onChange={(e) => (profile.name = e.target.value)}
 							/>
 						</div>
 						{!isWaiting && (
