@@ -141,6 +141,7 @@ export class Call
 			defaultMode: true,
 			showParticipant: false,
 			showLocalThumbnail: false,
+			showScreenSharing: false,
 			participantId: null,
 		},
 	};
@@ -303,7 +304,7 @@ export class Call
 			this.checkIsMessageSupported();
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_ON) {
 			const displayMode: DisplayMode = this.state.displayMode;
-			// displayMode.showParticipant = true;
+			displayMode.showScreenSharing = true;
 			displayMode.participantId = participant.getParticipantId();
 			this.setState({ displayMode: displayMode });
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_OFF) {

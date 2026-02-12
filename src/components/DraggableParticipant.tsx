@@ -6,6 +6,7 @@
  *   Olivier Dupont <olivier.dupont@twin.life>
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import clsx from "clsx";
 import React from "react";
 import { RefObject, useRef } from "react";
 import DraggableCore from "react-draggable";
@@ -46,18 +47,18 @@ export const DraggableParticipant: React.FC<{
 }) => {
 	const nodeRef = useRef<HTMLDivElement>(null);
 	const dragStartPositionXYRef = useRef<Position>({ x: 0, y: 0 });
-	const cl = [
+	const cl = clsx(
 		localAbsolute ? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16" : isIdle ? "relative" : "relative",
 		"overflow-hidden rounded-md",
 		videoMute && !isSharingScreen && localAbsolute ? "hidden" : "",
 		className,
-	].join(" ");
+	);
 	if (!localAbsolute || isSharingScreen) {
 		// 				"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
-		const cl = [
+		const cl = clsx(
 			"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
 			className,
-		].join(" ");
+		);
 		return (
 			<div
 				className={cl}

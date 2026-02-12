@@ -6,6 +6,7 @@
  *   Olivier Dupont <olivier.dupont@twin.life>
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import clsx from "clsx";
 import { RefObject, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import GuestNameForms from "./GuestNameForms";
@@ -75,33 +76,29 @@ export const LocalParticipant: React.FC<{
 			{isScreenSharing && <DefaultAvatar name={profile.name} className="md:h-48 md:w-48" />}
 			<video
 				ref={localVideoRef}
-				className={["h-full w-full", videoMute || isScreenSharing ? "hidden" : ""].join(" ")}
+				className={clsx("h-full w-full", (videoMute || isScreenSharing) && "hidden")}
 				autoPlay={true}
 				playsInline={true}
 				muted={true}
 			></video>
 
 			<div
-				className={[
+				className={clsx(
 					"flex h-full w-full flex-col items-center justify-center bg-[#202020] p-1",
-					videoMute ? "" : "hidden",
-				].join(" ")}
+					!videoMute && "hidden",
+				)}
 			>
 				{enableVideo && (
-					<span
-						className={[isIdle ? "" : "hidden md:block", "absolute top-2 mt-2 text-sm md:text-base"].join(
-							" ",
-						)}
-					>
+					<span className={clsx(!isIdle && "hidden md:block", "absolute top-2 mt-2 text-sm md:text-base")}>
 						{t("activate_camera")}
 					</span>
 				)}
 				<div
-					className={[
+					className={clsx(
 						"flex items-center justify-center rounded-full bg-[#2f2f2f] text-5xl ring-slate-600 transition duration-200 ease-in-out w-24 h-24 landscape:lg:w-48 landscape:lg:h-48",
-						videoMute ? "" : "hidden",
-						enableVideo ? "cursor-pointer hover:ring" : "",
-					].join(" ")}
+						!videoMute && "hidden",
+						enableVideo && "cursor-pointer hover:ring",
+					)}
 					onClick={(e) => {
 						if (enableVideo) {
 							muteVideoClick(e);
@@ -135,7 +132,7 @@ export const LocalParticipant: React.FC<{
 				</div>
 			</div>
 			{!localAbsolute && (
-				<div className={["absolute bottom-2 right-2 text-sm"].join(" ")}>
+				<div className="absolute bottom-2 right-2 text-sm">
 					<GuestNameForms update={!isIdle} guestNameError={guestNameError} />
 				</div>
 			)}

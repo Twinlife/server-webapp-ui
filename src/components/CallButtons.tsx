@@ -7,7 +7,7 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
-
+import clsx from "clsx";
 import { Mic, MicOff, SwitchCamera, Video, VideoOff } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
@@ -105,12 +105,12 @@ export const CallButtons = ({
 			{hasCallButton && (
 				<div>
 					<button
-						className={[
+						className={clsx(
 							"flex items-center justify-center rounded-full px-6 py-3 text-white transition ",
 							isIdle
 								? "bg-blue hover:bg-blue/90 active:bg-blue/80"
 								: "bg-red hover:bg-red/90 active:bg-red/80",
-						].join(" ")}
+						)}
 						onClick={isIdle ? callbacks.onCallClick : callbacks.onTerminateClick}
 					>
 						<span className="mr-3">
@@ -142,7 +142,7 @@ export const CallButtons = ({
 				{isMobile && hasVideo && (
 					<WhiteButton
 						onClick={callbacks.onSwitchCameraClick}
-						className={["ml-3 !p-[10px]", videoMute ? "btn-white-disabled" : ""].join(" ")}
+						className={clsx("ml-3 !p-[10px]", videoMute ? "btn-white-disabled" : "")}
 					>
 						<SwitchCamera color="black" />
 					</WhiteButton>
