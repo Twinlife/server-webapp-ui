@@ -13,6 +13,7 @@ import { Item } from "../pages/Call";
 import { TwincodeInfo } from "../services/ContactService";
 import GuestNameForms from "./GuestNameForms";
 import ParticipantGridCell from "./ParticipantGridCell";
+import ParticipantScreen from "./ParticipantScreen";
 import ChatBox from "./chatbox/ChatBox";
 import { DraggableParticipant } from "./DraggableParticipant";
 import { MediaStreams } from "../utils/MediaStreams";
@@ -25,6 +26,7 @@ export type DisplayMode = {
 	defaultMode: boolean;
 	showParticipant: boolean;
 	showLocalThumbnail: boolean;
+	showScreenSharing: boolean;
 	participantId: number | null;
 };
 
@@ -62,25 +64,53 @@ export const ParticipantsGrid: React.FC<{
 	const chat = useSnapshot(chatStore);
 	const localAbsolute = mode.showLocalThumbnail && !mode.showParticipant;
 	const nbParticipants = participants.length === 0 ? 2 : participants.length + (localAbsolute ? 0 : 1);
-	const divClass = mode.showParticipant
-		? "relative grid flex-1 gap-4 overflow-hidden py-4 transition-all"
-		: "relative grid flex-1 gap-4 overflow-hidden py-4 landscape:py-2 lg:py-4 transition-all";
+	const screens: Array<CallParticipant> = participants.filter((participant) => participant.isScreenSharing());
+	const screenParticipantId: number | null = isSharingScreen
+		? 0
+		: screens.length > 0
+			? screens[0].getParticipantId()
+			: null;
+	const displayMode: DisplayMode = { ...mode, showScreenSharing: screenParticipantId != null };
+	const divClass =
+		displayMode.showParticipant && !displayMode.showScreenSharing
+			? "relative grid flex-1 gap-4 overflow-hidden py-4 transition-all"
+			: "relative grid flex-1 gap-4 overflow-hidden py-4 landscape:py-2 lg:py-4 transition-all";
 	if (DEBUG) {
 		console.log("Local absolute=" + localAbsolute + " nbParticipants=" + nbParticipants);
 	}
+
+	const setScreenRenderer = (video: HTMLVideoElement) => {
+		if (screens.length > 0) {
+			screens[0].setRemoteRenderer(video, null);
+		} else {
+			video.srcObject = localMediaStream.stream;
+		}
+	};
 	return (
-		<div className="grid flex-1 w-full h-full">
+		<div className="flex flex-row w-full h-full p-1">
+			{screenParticipantId != null && (
+				<ParticipantScreen
+					key={screenParticipantId}
+					setRemoteRenderer={setScreenRenderer}
+					participantId={screenParticipantId}
+					videoClick={videoClick}
+				/>
+			)}
 			<div
 				className={[
 					divClass,
 					chat.chatPanelOpened ? "pb-[300px] md:pb-4 md:pr-[316px]" : "pb-4 pr-0",
-					getGridClass(mode, nbParticipants),
+					getGridClass(displayMode, nbParticipants),
 				].join(" ")}
 			>
 				{participants.map((participant) => (
 					<ParticipantGridCell
 						key={participant.getParticipantId()}
-						cellClassName={getCellClass(participant.getParticipantId(), mode, participants.length + 1)}
+						cellClassName={getCellClass(
+							participant.getParticipantId(),
+							displayMode,
+							participants.length + 1,
+						)}
 						setRemoteRenderer={(videoRef, audioRef) => participant.setRemoteRenderer(videoRef, audioRef)}
 						isAudioMute={participant.isAudioMute()}
 						isCameraMute={participant.isCameraMute()}
@@ -95,7 +125,7 @@ export const ParticipantsGrid: React.FC<{
 				{/* Display Contact before call (participants.length === 0) */}
 				{participants.length === 0 && (
 					<ParticipantGridCell
-						cellClassName={getCellClass(0, mode, nbParticipants)}
+						cellClassName={getCellClass(0, displayMode, nbParticipants)}
 						isAudioMute={false}
 						isCameraMute={true}
 						isScreenSharing={false}
@@ -105,10 +135,10 @@ export const ParticipantsGrid: React.FC<{
 					/>
 				)}
 				<DraggableParticipant
-					className={getCellClass(0, mode, nbParticipants)}
+					className={getCellClass(0, displayMode, nbParticipants)}
 					localVideoRef={localVideoRef}
 					localMediaStream={localMediaStream}
-					localAbsolute={localAbsolute}
+					localAbsolute={localAbsolute && !screenParticipantId}
 					videoMute={videoMute}
 					isSharingScreen={isSharingScreen}
 					isLocalAudioMute={isLocalAudioMute}
@@ -124,7 +154,7 @@ export const ParticipantsGrid: React.FC<{
 						className={[
 							isIdle ? "relative" : "relative ring-2 ring-black",
 							"overflow-hidden rounded-md",
-							getCellClass(0, mode, participants.length + 1),
+							getCellClass(0, displayMode, participants.length + 1),
 						].join(" ")}
 					>
 						<div className={["relative bottom-2 right-2 text-sm"].join(" ")}>
@@ -140,26 +170,29 @@ export const ParticipantsGrid: React.FC<{
 
 function getGridClass(mode: DisplayMode, participantsAmount: number) {
 	if (mode.showParticipant) {
-		return "grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
+		return "h-full grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
+	}
+	if (mode.showScreenSharing) {
+		return "pl-2 border-l-2 border-black grid grid-cols-1 h-full gap-1 w-48";
 	}
 	switch (participantsAmount) {
 		case 0:
 		case 1:
-			return "grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
+			return "h-full grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
 		case 2:
-			return "grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1 landscape:grid-cols-2 landscape:grid-rows-1";
+			return "h-full grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1 landscape:grid-cols-2 landscape:grid-rows-1";
 		case 3:
-			return "grid-cols-2 grid-rows-2 md:grid-cols-3 md:grid-rows-1 landscape:grid-cols-3 landscape:grid-rows-1";
+			return "h-full grid-cols-2 grid-rows-2 md:grid-cols-3 md:grid-rows-1 landscape:grid-cols-3 landscape:grid-rows-1";
 		case 4:
-			return "grid-cols-2 grid-rows-2 md:grid-cols-4 md:grid-rows-1 landscape:grid-cols-4 landscape:grid-rows-1";
+			return "h-full grid-cols-2 grid-rows-2 md:grid-cols-4 md:grid-rows-1 landscape:grid-cols-4 landscape:grid-rows-1";
 		case 5:
-			return "grid-cols-2 grid-rows-3 md:grid-cols-3 md:grid-rows-2 landscape:grid-cols-3 landscape:grid-rows-2";
+			return "h-full grid-cols-2 grid-rows-3 md:grid-cols-3 md:grid-rows-2 landscape:grid-cols-3 landscape:grid-rows-2";
 		case 6:
-			return "grid-cols-2 md:grid-cols-3 landscape:grid-cols-3";
+			return "h-full grid-cols-2 md:grid-cols-3 landscape:grid-cols-3";
 		case 7:
-			return "grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
+			return "h-full grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
 		case 8:
-			return "grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
+			return "h-full grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
 
 		default:
 			return "";
@@ -168,26 +201,29 @@ function getGridClass(mode: DisplayMode, participantsAmount: number) {
 
 function getCellClass(participantId: number, mode: DisplayMode, participantsAmount: number) {
 	if (mode.showParticipant) {
-		return mode.participantId === participantId ? "" : "hidden";
+		return mode.participantId === participantId ? "h-full" : "hidden";
+	}
+	if (mode.showScreenSharing) {
+		return "border-solid border-4 border-blue";
 	}
 	switch (participantsAmount) {
 		case 1:
 		case 2:
-			return "";
+			return "h-full";
 		case 3:
-			return "first:col-span-2 md:first:col-span-1 landscape:first:col-span-1";
+			return "h-full first:col-span-2 md:first:col-span-1 landscape:first:col-span-1";
 		case 4:
-			return "";
+			return "h-full";
 		case 5:
-			return "portrait:first:col-span-2 landscape:first:row-span-2";
+			return "h-full portrait:first:col-span-2 landscape:first:row-span-2";
 		case 6:
-			return "";
+			return "h-full";
 		case 7:
-			return "first:row-span-2 md:first:col-span-1 md:first:row-span-2 landscape:first:col-span-1 landscape:first-row-span-2";
+			return "h-full first:row-span-2 md:first:col-span-1 md:first:row-span-2 landscape:first:col-span-1 landscape:first-row-span-2";
 		case 8:
-			return "";
+			return "h-full";
 
 		default:
-			return "";
+			return "h-full";
 	}
 }

@@ -52,7 +52,7 @@ export const DraggableParticipant: React.FC<{
 		videoMute && !isSharingScreen && localAbsolute ? "hidden" : "",
 		className,
 	].join(" ");
-	if (!localAbsolute) {
+	if (!localAbsolute || isSharingScreen) {
 		// 				"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
 		const cl = [
 			"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
@@ -105,7 +105,8 @@ export const DraggableParticipant: React.FC<{
 				}
 			}}
 		>
-			<div ref={nodeRef}
+			<div
+				ref={nodeRef}
 				className={cl}
 				onClick={(e) => {
 					videoClick(e, 0);

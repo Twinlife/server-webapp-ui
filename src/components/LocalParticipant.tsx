@@ -9,7 +9,9 @@
 import { RefObject, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import GuestNameForms from "./GuestNameForms";
+import { DefaultAvatar } from "./DefaultAvatar";
 import { MediaStreams } from "../utils/MediaStreams";
+import { profile } from "../stores/profile";
 
 export const LocalParticipant: React.FC<{
 	localVideoRef: RefObject<HTMLVideoElement | null>;
@@ -70,13 +72,10 @@ export const LocalParticipant: React.FC<{
 				</div>
 			)}
 
+			{isScreenSharing && <DefaultAvatar name={profile.name} className="md:h-48 md:w-48" />}
 			<video
 				ref={localVideoRef}
-				className={[
-					"h-full w-full",
-					isScreenSharing ? "object-contains" : "object-cover",
-					videoMute ? "hidden" : "",
-				].join(" ")}
+				className={["h-full w-full", videoMute || isScreenSharing ? "hidden" : ""].join(" ")}
 				autoPlay={true}
 				playsInline={true}
 				muted={true}

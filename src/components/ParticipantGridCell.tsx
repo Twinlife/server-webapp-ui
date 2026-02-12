@@ -37,12 +37,12 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 
 	useEffect(() => {
 		if (refVideo.current && setRemoteRenderer) setRemoteRenderer(refVideo.current, refAudio.current);
-	}, [setRemoteRenderer, refVideo, refAudio]);
+	}, [setRemoteRenderer, isScreenSharing, refVideo, refAudio]);
 
 	return (
 		<div
 			className={[
-				"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
+				"relative flex w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
 				cellClassName,
 			].join(" ")}
 			onClick={(e) => {
@@ -84,11 +84,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 				autoPlay={true}
 				playsInline={true}
 				id={"videoElement-" + participantId}
-				className={[
-					"h-full w-full",
-					isScreenSharing ? "object-contain" : "object-cover",
-					isCameraMute ? "hidden" : "",
-				].join(" ")}
+				className={["h-full w-full", isCameraMute ? "hidden" : ""].join(" ")}
 			></video>
 			<audio ref={refAudio} autoPlay={true} playsInline={true} id={"audioElement-" + participantId}></audio>
 			<div

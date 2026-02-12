@@ -303,7 +303,7 @@ export class Call
 			this.checkIsMessageSupported();
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_ON) {
 			const displayMode: DisplayMode = this.state.displayMode;
-			displayMode.showParticipant = true;
+			// displayMode.showParticipant = true;
 			displayMode.participantId = participant.getParticipantId();
 			this.setState({ displayMode: displayMode });
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_OFF) {
@@ -613,7 +613,7 @@ export class Call
 						};
 					}
 					const displayMode: DisplayMode = this.state.displayMode;
-					displayMode.showParticipant = true;
+					// displayMode.showParticipant = true;
 					displayMode.participantId = 0;
 					this.setUsedDevices();
 					this.setState({ isSharingScreen: true, displayMode: displayMode });
@@ -868,11 +868,6 @@ export class Call
 			startTime: timeFormat.format(startDate),
 			endTime: timeFormat.format(endDate),
 		};
-	}
-
-	getGuestName(): string {
-		// return window.localStorage.getItem("guestName") ?? this.props.t("guest");
-		return profile.name;
 	}
 
 	render() {
