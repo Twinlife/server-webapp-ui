@@ -24,7 +24,7 @@ const ParticipantScreen: React.FC<ParticipantGridCellProps> = ({ setRemoteRender
 	console.error("Showing participant screen ", participantId);
 	return (
 		<div
-			className="relative flex w-3/4 pr-2 h-full w-full items-center justify-center overflow-hidden rounded-lg bg-gray-900"
+			className="relative flex w-3/4 pr-2 h-full items-center justify-center overflow-hidden rounded-lg bg-gray-900"
 			onClick={(e) => {
 				videoClick(e, participantId);
 			}}

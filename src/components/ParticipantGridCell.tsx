@@ -34,6 +34,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 }) => {
 	const refVideo = useRef<HTMLVideoElement>(null);
 	const refAudio = useRef<HTMLAudioElement>(null);
+	const noVideo = isCameraMute || isScreenSharing;
 
 	useEffect(() => {
 		if (refVideo.current && setRemoteRenderer) setRemoteRenderer(refVideo.current, refAudio.current);
@@ -62,9 +63,9 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 					</svg>
 				</div>
 			)}
-			{!avatarUrl && isCameraMute && <DefaultAvatar name={name} className="md:h-48 md:w-48" />}
+			{!avatarUrl && noVideo && <DefaultAvatar name={name} className="md:h-48 md:w-48" />}
 
-			{avatarUrl && isCameraMute && (
+			{avatarUrl && noVideo && (
 				<>
 					<img
 						src={avatarUrl}
@@ -84,7 +85,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 				autoPlay={true}
 				playsInline={true}
 				id={"videoElement-" + participantId}
-				className={["h-full w-full", isCameraMute ? "hidden" : ""].join(" ")}
+				className={["h-full w-full", noVideo ? "hidden" : ""].join(" ")}
 			></video>
 			<audio ref={refAudio} autoPlay={true} playsInline={true} id={"audioElement-" + participantId}></audio>
 			<div
