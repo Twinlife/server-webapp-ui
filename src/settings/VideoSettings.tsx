@@ -5,10 +5,12 @@
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import { FC, useState, useEffect } from "react";
+import { FC, useState, useEffect, useRef, RefObject } from "react";
 import { TabPanel } from "@headlessui/react";
 import { Item, SelectList } from "../components/SelectList";
+import { VideoTrack } from "../utils/VideoTrack";
 import { mediaDevices } from "../utils/MediaDevices";
+import { mediaStreams } from "../utils/MediaStreams";
 
 interface VideoState {
 	videoDevices: MediaDeviceInfo[] | null;
@@ -28,6 +30,7 @@ interface SettingsProps {
 export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) => {
 	const [videoState, setVideoState] = useState<VideoState | null>(null);
 	console.info("VideoSettings render", isOpen, config);
+	const localVideoRef = useRef<HTMLVideoElement>(null);
 
 	// Fetch audio devices only when the "Audio" tab is active
 	useEffect(() => {
@@ -46,12 +49,18 @@ export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 					if (videoDevice && config.videoDeviceId != videoDevice.deviceId) {
 						onChange({ ...config, videoDeviceId: videoDevice.deviceId });
 					}
+					if (localVideoRef.current) {
+						localVideoRef.current.srcObject = stream;
+					}
+					if (videoTracks.length > 0) {
+						mediaStreams.setVideoTrack(new VideoTrack(videoTracks[0], null), false);
+					}
 				})
 				.catch((error) => {
 					console.error("Failed to get audio devices", error);
 				});
 		}
-	}, [isOpen]); // Re-run when selectedIndex changes
+	}, [isOpen, localVideoRef]); // Re-run when selectedIndex changes
 
 	const selectInput = (item: Item) => {
 		console.error("Item ", item, "selected");
@@ -69,10 +78,19 @@ export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 	const videoItem = videos.find((item) => item.id === videoDeviceId);
 	const videoSelected: string = videoItem ? videoItem.label : "Choose a camera";
 	return (
-		<TabPanel className="w-full">
-			<div className="p-4">
+		<TabPanel className="w-full h-full">
+			<div className="p-4 flex flex-col w-full h-96">
 				<h3 className="font-semibold mb-2">Video</h3>
 				<SelectList items={videos} onSelect={selectInput} selected={videoSelected} />
+				<div className="w-full h-full overflow-hidden">
+					<video
+						ref={localVideoRef}
+						className="h-full w-full object-contain"
+						autoPlay={true}
+						playsInline={true}
+						muted={true}
+					></video>
+				</div>
 			</div>
 		</TabPanel>
 	);
