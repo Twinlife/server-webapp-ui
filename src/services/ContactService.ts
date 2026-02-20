@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021-2023 twinlife SA.
+ *  Copyright (c) 2021-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -7,6 +7,7 @@
  */
 
 import axios from "axios";
+import { AxiosError } from "axios";
 
 const url = import.meta.env.VITE_REST_URL;
 
@@ -17,6 +18,7 @@ export type TwincodeInfo = {
 	audio: boolean;
 	video: boolean;
 	transfer: boolean;
+	conference: boolean;
 	schedule: Schedule | null;
 };
 
@@ -70,6 +72,16 @@ function pad(n: number, maxLen: number = 2): string {
  * Simple service to get the contact information (aka twincode attributes).
  */
 export class ContactService {
+	public static isTransientError(error: AxiosError): boolean {
+		if (error.response) {
+			return error.response.status == 503;
+		} else if (error.code) {
+			return error.code == "ERR_NETWORK";
+		} else {
+			return false;
+		}
+	}
+
 	public static getTwincode(id: string) {
 		return axios.get<TwincodeInfo>(url + "/twincodes/" + id);
 	}

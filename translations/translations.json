@@ -486,7 +486,7 @@
 		"uk": "Спільний доступ до екрана"
 	},
 	{
-		"key": "twincode_error",
+		"key": "twincode_not_found",
 		"en": "The Click-to-Call link you entered seems invalid.",
 		"fr": "Le lien Click-to-Call que vous avez entré semble invalide.",
 		"ar": "يبدو أن رابط \"Click-to-Call\" الذي أدخلته غير صالح.",
@@ -580,6 +580,21 @@
 		"key": "leave_meeting_button",
 		"en": "Leave meeting",
 		"fr": "Quitter la conférence"
+	},
+	{
+		"key": "service_unavailable",
+		"en": "Service is not available",
+		"fr": "Le service n'est pas disponible"
+	},
+	{
+		"key": "network_or_other_error",
+		"en": "Network or other error",
+		"fr": "Erreur réseau ou autre erreur"
+	},
+	{
+		"key": "twincode_invalid",
+		"en": "The link you entered cannot be used to make the conference call",
+		"fr": "Le lien que vous avez entré ne peut pas etre utilisé pour la conférence"
 	},
 	{
 		"key": "wait_meeting_message",

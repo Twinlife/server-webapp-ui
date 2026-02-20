@@ -21,6 +21,7 @@ import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { SettingsDialog } from "../settings/SettingsDialog";
 
 const isMobile = IsMobile();
+const MEETING = import.meta.env.VITE_APP_MEETING === "true";
 
 export interface CallButtonHandlers {
 	onCallClick: React.MouseEventHandler<HTMLButtonElement>;
@@ -91,7 +92,7 @@ export const CallButtons = ({
 	const inTransfer = transfer && inCall;
 	const callLabel = transfer ? t("transfer") : t("call");
 	const [isSettingsOpen, setSettingsOpen] = useState<boolean>(false);
-	const hasCallButton = !CallStatusOps.isTerminated(status);
+	const hasCallButton = !MEETING && !CallStatusOps.isTerminated(status);
 
 	const openSettings = () => {
 		setSettingsOpen(true);

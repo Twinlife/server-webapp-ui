@@ -14,7 +14,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { CallStatusOps } from "../calls/CallStatus";
 import Alert from "../components/Alert";
 import Header from "../components/Header";
-import InitializationPanel from "../components/InitializationPanel";
 import Thanks from "../components/Thanks";
 import { CallButtons } from "../components/CallButtons";
 import { Call } from "./Call.tsx";
@@ -26,29 +25,6 @@ import { VideoTrack } from "../utils/VideoTrack";
 import { chatStore } from "../stores/chat";
 import { Notifications } from "../notifications/Notifications";
 import { backgroundStore } from "../stores/backgrounds";
-
-const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
-const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
-function getRandomImageFilename(): string {
-	const imageFilenames = [
-		"",
-		"/backgrounds/egouts-de-paris-inside.jpg",
-		"/backgrounds/ESA_control_room_pillars.jpg",
-		"/backgrounds/eurocontrol.jpg",
-		"/backgrounds/global-internet.jpg",
-		"/backgrounds/ibm-computer.jpg",
-		"/backgrounds/old-room.jpg",
-		"/backgrounds/salle-cyber-defense.jpg",
-		"/backgrounds/skyrock2.jpg",
-		"/backgrounds/spacecraft.jpg",
-	];
-
-	// Generate a random index
-	const randomIndex = Math.floor(Math.random() * imageFilenames.length);
-
-	// Return the randomly selected filename
-	return imageFilenames[randomIndex];
-}
 
 export class Meet extends Call {
 	private videoBackground: VirtualBackground | null = null;
@@ -96,16 +72,14 @@ export class Meet extends Call {
 			return <Thanks onCallBackClick={this.init} />;
 		}
 
-		const callType = twincode.transfer ? i18n.t("transfer") : i18n.t("call");
-
 		document.title = i18n.t("title", {
 			appName: import.meta.env.VITE_APP_NAME,
-			callType: callType,
+			callType: i18n.t("call"),
 			linkName: twincode.name,
 		});
 
 		return (
-			<div className="flex flex-col h-full w-screen bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
+			<div className="flex flex-col h-full w-screen overflow-hidden bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
 				<Header
 					openChatButtonDisplayed={
 						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
@@ -119,6 +93,8 @@ export class Meet extends Call {
 				{!CallStatusOps.isActive(status) && (
 					<JoinMeeting
 						className="flex flex-row"
+						initializing={initializing}
+						twincodeId={id}
 						twincode={twincode}
 						status={status}
 						title={twincode.name ? twincode.name : "?"}
@@ -130,23 +106,16 @@ export class Meet extends Call {
 								hasVideo={twincode.video}
 								videoMute={videoMute}
 								isSharingScreen={isSharingScreen}
-								transfer={TRANSFER || twincode.transfer}
+								transfer={false}
 							/>
 						}
 						onStartClick={this.onCallClick}
 						onCancelClick={this.onTerminateClick}
+						onGetTwincode={(twincode) => {
+							this.setState({ twincode, initializing: false });
+						}}
 					>
 						<div className="flex-1 h-full w-full overflow-hidden">
-							{initializing && (
-								<InitializationPanel
-									twincodeId={id}
-									twincode={twincode}
-									onComplete={(twincode) => {
-										this.setState({ twincode, initializing: false });
-									}}
-								/>
-							)}
-
 							<LocalParticipant
 								localVideoRef={this.localVideoRef}
 								localMediaStream={this.callService.getMediaStream()}
@@ -187,7 +156,7 @@ export class Meet extends Call {
 							hasVideo={twincode.video}
 							videoMute={videoMute}
 							isSharingScreen={isSharingScreen}
-							transfer={TRANSFER || twincode.transfer}
+							transfer={false}
 						/>
 					</>
 				)}

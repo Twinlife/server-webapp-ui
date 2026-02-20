@@ -11,36 +11,61 @@ import { TwincodeInfo } from "../services/ContactService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import { useSnapshot } from "valtio";
 import { profile } from "../stores/profile";
+import InitializationPanel from "./InitializationPanel";
 
 interface JoinMeetingProps extends PropsWithChildren {
+	initializing: boolean;
 	className?: string;
 	title: string;
+	twincodeId: string;
 	twincode: TwincodeInfo;
 	status: CallStatus;
 	buttons?: ReactNode;
 	children?: ReactNode;
 	onStartClick: MouseEventHandler<HTMLButtonElement>;
 	onCancelClick: MouseEventHandler<HTMLButtonElement>;
+	onGetTwincode: (twincode: TwincodeInfo) => void;
 }
 
 const JoinMeeting: React.FC<JoinMeetingProps> = ({
+	initializing,
 	className,
+	twincodeId,
 	twincode,
 	status,
 	onStartClick,
 	onCancelClick,
+	onGetTwincode,
 	buttons,
 	children,
 }) => {
 	const { t } = useTranslation();
-	const avatarUrl = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
+	const avatarUrl = twincode.avatarId != null ? import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId : null;
 	const isWaiting = CallStatusOps.isOutgoing(status);
 	const user = useSnapshot(profile);
+
+	const checkTwincode = (twincode: TwincodeInfo): string | null => {
+		if (!twincode.name) {
+			return t("twincode_error");
+		}
+		if (!twincode.conference) {
+			return t("twincode_invalid");
+		}
+		onGetTwincode(twincode);
+		return null;
+	};
 	return (
 		<div className={className}>
 			<div className="flex items-center justify-between h-screen w-1/3">
 				<div className="w-full">
 					<div className="border border-red-500 text-center">
+						{initializing && (
+							<InitializationPanel
+								twincodeId={twincodeId}
+								twincode={twincode}
+								onComplete={checkTwincode}
+							/>
+						)}
 						{isWaiting && (
 							<>
 								<span className="">{t("wait_meeting_message")}</span>
@@ -69,8 +94,8 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 								onChange={(e) => (profile.name = e.target.value)}
 							/>
 						</div>
-						{!isWaiting && (
-							<div className="rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
+						<div className="rounded-lg border-2 border-solid h-24 border-transparent bg-black/70 px-2 py-1 transition">
+							{!isWaiting && !initializing && (
 								<button
 									className={
 										"flex w-full items-center justify-center px-6 py-3 text-white transition rounded-lg bg-blue hover:bg-blue/90 active:bg-blue/80"
@@ -79,8 +104,8 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 								>
 									<span className="mr-3">{t("join_meeting_button")}</span>
 								</button>
-							</div>
-						)}
+							)}
+						</div>
 						{isWaiting && (
 							<div className="rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
 								<button

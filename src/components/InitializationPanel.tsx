@@ -8,43 +8,57 @@
  */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { AxiosError } from "axios";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import SpinnerIcon from "./icons/SpinnerIcon";
 
 interface InitializationPanelProps {
 	twincodeId: string;
 	twincode: TwincodeInfo;
-	onComplete: (twincode: TwincodeInfo) => void;
+	onComplete: (twincode: TwincodeInfo) => string | null;
 }
 
 export default function InitializationPanel({ twincodeId, onComplete }: InitializationPanelProps) {
 	const { t } = useTranslation();
-	const [twincodeError, setTwincodeError] = useState<boolean>(false);
+	const [twincodeError, setTwincodeError] = useState<string | null>(null);
 
 	useEffect(() => {
 		let isMounted = true; // Flag to avoid state updates if the component unmounts
+		let retryTimeout: NodeJS.Timeout | null = null;
 
 		const fetchTwincode = async () => {
 			if (!twincodeId) return;
 
-			setTwincodeError(false);
-			try {
-				const response = await ContactService.getTwincode(twincodeId);
-				const twincode = response.data;
+			setTwincodeError(null);
+			ContactService.getTwincode(twincodeId)
+				.then((response) => {
+					const twincode = response.data;
 
-				if (isMounted) {
-					if (twincode.audio) {
-						onComplete(twincode);
-					} else {
-						setTwincodeError(true);
+					if (isMounted) {
+						const msg: string | null = onComplete(twincode);
+						if (msg) {
+							setTwincodeError(msg);
+						}
 					}
-				}
-			} catch (e) {
-				console.error("retrieveInformation", e);
-				if (isMounted) {
-					setTwincodeError(true);
-				}
-			}
+				})
+				.catch((error: unknown) => {
+					let msg: string = "general_error_message";
+					if (isMounted && error instanceof AxiosError) {
+						const axiosError: AxiosError = error as AxiosError;
+						if (axiosError.response && axiosError.response.status == 404) {
+							msg = "twincode_not_found";
+						} else if (ContactService.isTransientError(axiosError)) {
+							retryTimeout = setTimeout(() => fetchTwincode(), 5000);
+							msg = "service_unavailable";
+						} else {
+							console.error("Twincode not found");
+							msg = "network_error";
+						}
+					}
+					if (isMounted) {
+						setTwincodeError(msg);
+					}
+				});
 		};
 
 		// Reset error state when twincodeId changes
@@ -52,12 +66,15 @@ export default function InitializationPanel({ twincodeId, onComplete }: Initiali
 
 		return () => {
 			isMounted = false; // Cleanup: prevent state updates if unmounted
+			if (retryTimeout) {
+				clearTimeout(retryTimeout);
+			}
 		};
 	}, [twincodeId, onComplete]);
 
 	return (
 		<div className="flex flex-1 items-center justify-center">
-			{twincodeError ? <div className="p-4 text-center">{t("twincode_error")}</div> : <SpinnerIcon />}
+			{twincodeError ? <div className="p-4 text-center">{t(twincodeError)}</div> : <SpinnerIcon />}
 		</div>
 	);
 }

@@ -121,6 +121,7 @@ export class Call
 			audio: false,
 			video: false,
 			transfer: false,
+			conference: false,
 			schedule: null,
 		},
 		audioMute: false,
@@ -871,6 +872,14 @@ export class Call
 		};
 	}
 
+	onGetTwincode(twincode: TwincodeInfo): string | null {
+		if (!twincode.name || !twincode.audio) {
+			return "twincode_error";
+		}
+		this.setState({ twincode, initializing: false });
+		return null;
+	}
+
 	render() {
 		const { id, t } = this.props;
 		const {
@@ -920,8 +929,8 @@ export class Call
 					<InitializationPanel
 						twincodeId={id}
 						twincode={twincode}
-						onComplete={(twincode) => {
-							this.setState({ twincode, initializing: false });
+						onComplete={(twincode) : string | null => {
+							return this.onGetTwincode(twincode);
 						}}
 					/>
 				)}
