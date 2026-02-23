@@ -62,6 +62,20 @@ export class VirtualBackground {
 		});
 	}
 
+	/**
+	 * Change the virtual background while the effect is active.
+	 * @param backgroundPath the new virtual background to use.
+	 */
+	setBackground(backgroundPath: string): void {
+		if (backgroundPath != "") {
+			this.backgroundImage = document.createElement("img");
+			this.backgroundImage.crossOrigin = "anonymous";
+			this.backgroundImage.src = backgroundPath;
+		} else {
+			this.backgroundImage = null;
+		}
+	}
+
 	startEffect(track: MediaStreamTrack, backgroundPath: string | null): VideoTrack {
 		this.stopEffect();
 		this.track = track;
@@ -180,6 +194,7 @@ export class VirtualBackground {
 
 		const categoryMask = result.categoryMask;
 		const mask: Uint8Array = categoryMask.getAsUint8Array();
+		const image: HTMLImageElement | null = this.backgroundImage;
 
 		// Generate image mask (256x144)
 		for (let i = 0; i < this.maskPixelCount; i++) {
@@ -189,7 +204,7 @@ export class VirtualBackground {
 
 		// Draw the segmentation mask and smooth out the edges (as Jitsi does)
 		this.ctx.globalCompositeOperation = "copy";
-		this.ctx.filter = this.backgroundImage ? "blur(4px)" : "blur(8px)";
+		this.ctx.filter = image ? "blur(4px)" : "blur(8px)";
 		this.ctx.drawImage(
 			this.maskCanvas,
 			0,
@@ -209,8 +224,8 @@ export class VirtualBackground {
 
 		// Draw virtual background.
 		this.ctx.globalCompositeOperation = "destination-over";
-		if (this.backgroundImage) {
-			this.ctx.drawImage(this.backgroundImage, 0, 0, this.videoWidth, this.videoHeight);
+		if (image) {
+			this.ctx.drawImage(image, 0, 0, this.videoWidth, this.videoHeight);
 		} else {
 			this.ctx.filter = "blur(8px)";
 			this.ctx.drawImage(this.video, 0, 0);

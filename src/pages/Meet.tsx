@@ -9,6 +9,7 @@
  */
 import i18n from "i18next";
 import "react-confirm-alert/src/react-confirm-alert.css";
+import { subscribe } from "valtio/index";
 import { Trans, useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { CallStatusOps } from "../calls/CallStatus";
@@ -28,6 +29,19 @@ import { backgroundStore } from "../stores/backgrounds";
 
 export class Meet extends Call {
 	private videoBackground: VirtualBackground | null = null;
+
+	public init = () => {
+		super.init();
+
+		// If the virtual background setting was changed, update the effect.
+		subscribe(backgroundStore, () => {
+			if (this.videoBackground) {
+				const background = backgroundStore.background;
+				const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+				this.videoBackground.setBackground(backgroundPath);
+			}
+		});
+	}
 
 	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
 		const background = backgroundStore.background;

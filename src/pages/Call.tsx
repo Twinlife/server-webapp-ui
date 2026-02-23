@@ -151,7 +151,7 @@ export class Call
 		this.init();
 	};
 
-	init = () => {
+	init(): void {
 		this.setState({
 			initializing: true,
 			videoMute: true,
@@ -929,7 +929,7 @@ export class Call
 					<InitializationPanel
 						twincodeId={id}
 						twincode={twincode}
-						onComplete={(twincode) : string | null => {
+						onComplete={(twincode): string | null => {
 							return this.onGetTwincode(twincode);
 						}}
 					/>
