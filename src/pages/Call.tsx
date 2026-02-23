@@ -7,7 +7,6 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
-import { toZonedTime } from "date-fns-tz";
 import i18n, { TFunction } from "i18next";
 import { createRef, Component, ReactNode, RefObject } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
@@ -26,7 +25,7 @@ import InitializationPanel from "../components/InitializationPanel";
 import { ParticipantsGrid, DisplayMode } from "../components/ParticipantsGrid";
 import StoresBadges from "../components/StoresBadges";
 import Thanks from "../components/Thanks";
-import { Schedule, TwincodeInfo, dateTimeToString } from "../services/ContactService";
+import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 import IsMobile from "../utils/IsMobile";
 import { CallButtons, CallButtonHandlers } from "../components/CallButtons";
@@ -42,13 +41,6 @@ import { audioStore } from "../stores/audio";
 import { videoStore } from "../stores/video";
 
 type FacingMode = "user" | "environment";
-
-type ScheduleLabels = {
-	startDate: string;
-	endDate: string;
-	startTime: string;
-	endTime: string;
-};
 
 export type Item = {
 	participant: CallParticipant | null;
@@ -89,11 +81,6 @@ export interface CallState {
 	alertContent: ReactNode;
 	displayMode: DisplayMode;
 }
-
-//e.g. "13:30"
-const timeFormat = new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" });
-//e.g. "1 Décembre 2023"
-const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" });
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
@@ -188,7 +175,7 @@ export class Call
 				this.selectVideoDevice(deviceId);
 			}
 		});
-	};
+	}
 
 	/**
 	 * The call status was changed.
@@ -241,6 +228,9 @@ export class Call
 			isSharingScreen: false,
 			items: [],
 		});
+		if (reason == "cancel") {
+			return;
+		}
 
 		this.callService = new CallService(peerCallService, this, this);
 
@@ -437,7 +427,7 @@ export class Call
 		this.setState({ displayMode: displayMode });
 	};
 
-	private toggleVideo = () => {
+	public toggleVideo = () => {
 		if (this.state.twincode.video) {
 			const { videoMute, isSharingScreen } = this.state;
 
@@ -675,7 +665,7 @@ export class Call
 		}
 	};
 
-	private askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
+	public askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
 		const fMode = this.state.facingMode;
 
 		// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
@@ -834,51 +824,23 @@ export class Call
 
 		//special case for schedule, as it has different messages according to the schedule's settings.
 		if (terminateReason === "schedule" && this.state.twincode.schedule) {
-			//for now, we only handle schedules with a single time range of type DateTimeRange
-			const timeRange = this.state.twincode.schedule.timeRanges[0];
-
-			const start = timeRange.start.date;
-			const end = timeRange.end.date;
-
-			if (start.day === end.day && start.month === end.month && start.year === end.year) {
-				return "audio_call_activity_terminate_schedule_single_day";
-			} else {
-				return "audio_call_activity_terminate_schedule_multiple_days";
-			}
+			return ContactService.getSchedule(this.state.twincode.schedule);
 		}
 
 		return this.terminateMessages[terminateReason];
 	};
 
-	/**
-	 * Returns values for the schedule error messages, localized in i18next's current langage
-	 */
-	getScheduleLabels(schedule: Schedule | null): ScheduleLabels | null {
-		if (!schedule?.timeRanges[0]) {
-			return null;
-		}
-
-		const range = schedule.timeRanges[0];
-		const timeZone = schedule.timeZone;
-
-		const startDate = toZonedTime(dateTimeToString(range.start), timeZone);
-		const endDate = toZonedTime(dateTimeToString(range.end), timeZone);
-
-		return {
-			startDate: dateFormat.format(startDate),
-			endDate: dateFormat.format(endDate),
-			startTime: timeFormat.format(startDate),
-			endTime: timeFormat.format(endDate),
-		};
-	}
-
 	onGetTwincode(twincode: TwincodeInfo): string | null {
 		if (!twincode.name || !twincode.audio) {
 			return "twincode_error";
 		}
-		this.setState({ twincode, initializing: false });
+		this.setState({ twincode, initializing: false }, () => {
+			this.onReadyCall();
+		});
 		return null;
 	}
+
+	onReadyCall(): void {}
 
 	render() {
 		const { id, t } = this.props;
@@ -961,7 +923,7 @@ export class Call
 								i18nKey={this.getTerminateReasonMessage(terminateReason)}
 								values={{
 									contactName: twincode?.name,
-									...this.getScheduleLabels(twincode?.schedule),
+									...ContactService.getScheduleLabels(twincode?.schedule),
 								}}
 								t={t}
 							/>

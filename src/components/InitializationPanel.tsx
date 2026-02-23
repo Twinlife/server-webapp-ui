@@ -47,6 +47,8 @@ export default function InitializationPanel({ twincodeId, onComplete }: Initiali
 						const axiosError: AxiosError = error as AxiosError;
 						if (axiosError.response && axiosError.response.status == 404) {
 							msg = "twincode_not_found";
+						} else if (axiosError.response && axiosError.response.status == 410) {
+							msg = "twincode_expired";
 						} else if (ContactService.isTransientError(axiosError)) {
 							retryTimeout = setTimeout(() => fetchTwincode(), 5000);
 							msg = "service_unavailable";

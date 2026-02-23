@@ -5,7 +5,7 @@
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import { FC, useState, useEffect, useRef, RefObject } from "react";
+import { FC, useState, useEffect, useRef } from "react";
 import { TabPanel } from "@headlessui/react";
 import { Item, SelectList } from "../components/SelectList";
 import { VideoTrack } from "../utils/VideoTrack";

@@ -27,6 +27,7 @@
 		"service_unavailable": "Le service n'est pas disponible",
 		"network_or_other_error": "Erreur réseau ou autre erreur",
 		"twincode_invalid": "Le lien que vous avez entré ne peut pas etre utilisé pour la conférence",
+		"twincode_expired": "Le lien que vous avez entré a expiré et ne peut plus etre utilisé",
 		"wait_meeting_message": "La conférence n'a pas démarré, veuillez patienter.",
 		"transfer": "Transfert",
 		"audio": "Audio",

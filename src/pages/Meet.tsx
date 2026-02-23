@@ -41,7 +41,7 @@ export class Meet extends Call {
 				this.videoBackground.setBackground(backgroundPath);
 			}
 		});
-	}
+	};
 
 	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
 		const background = backgroundStore.background;
@@ -60,6 +60,12 @@ export class Meet extends Call {
 			this.callService.setVideoTrack(stream, isScreenSharing);
 		}
 	};
+
+	onReadyCall(): void {
+		if (this.state.videoMute) {
+			this.toggleVideo();
+		}
+	}
 
 	render() {
 		const { id, t } = this.props;
@@ -126,7 +132,7 @@ export class Meet extends Call {
 						onStartClick={this.onCallClick}
 						onCancelClick={this.onTerminateClick}
 						onGetTwincode={(twincode) => {
-							this.setState({ twincode, initializing: false });
+							this.onGetTwincode(twincode);
 						}}
 					>
 						<div className="flex-1 h-full w-full overflow-hidden">
