@@ -56,8 +56,8 @@ export const BackgroundSettings: FC<SettingsProps> = ({ config, onChange }) => {
 							</div>
 						</div>
 					</div>
-					{Array.from({ length: 8 }, (_, index) => {
-						const thumbnailPath = "/backgrounds/thumbnails/" + (index + 1) + ".jpg";
+					{Array.from({ length: 14 }, (_, index) => {
+						const thumbnailPath = "/backgrounds/thumbnails/" + (index + 1) + ".webp";
 						return (
 							<div
 								key={index}

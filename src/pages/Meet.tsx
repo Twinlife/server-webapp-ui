@@ -41,7 +41,7 @@ export class Meet extends Call {
 				this.setVideoTrack(mediaStream, isScreenSharing);
 			});
 		} else {
-			const backgroundPath = background > 0 ? "/backgrounds/" + background + ".jpg" : "";
+			const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
 			const stream = this.videoBackground.startEffect(mediaStream as MediaStreamTrack, backgroundPath);
 			this.callService.setVideoTrack(stream, isScreenSharing);
 		}
