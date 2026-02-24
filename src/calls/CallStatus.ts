@@ -61,7 +61,8 @@ export class CallStatusOps {
 		return (
 			mode === CallStatus.OUTGOING_CALL ||
 			mode === CallStatus.OUTGOING_VIDEO_CALL ||
-			mode === CallStatus.OUTGOING_RINGING
+			mode === CallStatus.OUTGOING_RINGING ||
+			mode === CallStatus.WAIT_MEETING
 		);
 	}
 
