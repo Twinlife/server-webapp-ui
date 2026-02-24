@@ -38,6 +38,8 @@ import TransferDirection = CallState.TransferDirection;
 // type Timer = ReturnType<typeof setTimeout>;
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
+type Timer = ReturnType<typeof setTimeout>;
+
 /**
  * Audio or video call service.
  *
@@ -76,6 +78,8 @@ export class CallService implements PeerCallServiceObserver {
 	private mIdentityName: string = "Unknown";
 	private mIdentityImage: ArrayBuffer = new ArrayBuffer(0);
 	private wakeLock: WakelockHandler | null = null;
+	private mStatCollectorId: Timer | null = null;
+
 	/**
 	 * Constructor to build the main CallService and maintain the state of current call with one or
 	 * several WebRTC connection and one or several call participant.
@@ -157,10 +161,18 @@ export class CallService implements PeerCallServiceObserver {
 				this.mPeerTo.set(twincodeId, callConnection);
 			} else {
 				call.checkOperation(CallState.WAIT_MEETING);
+				this.mObserver.onUpdateCallStatus(call.getStatus());
 			}
 
 			this.wakeLock = new WakelockHandler();
 			this.wakeLock.acquire();
+
+			if (this.mStatCollectorId) {
+				clearInterval(this.mStatCollectorId);
+			}
+			this.mStatCollectorId = setInterval(() => {
+				this.getStats();
+			}, 1000);
 		});
 
 		this.mObserver.onUpdateCallStatus(callStatus);
@@ -327,6 +339,13 @@ export class CallService implements PeerCallServiceObserver {
 
 	getParticipantObserver(): CallParticipantObserver | null {
 		return this.mParticipantObserver;
+	}
+
+	getStats(): void {
+		if (this.mStatCollectorId && (!this.mActiveCall || !this.mActiveCall.getStats())) {
+			clearInterval(this.mStatCollectorId);
+			this.mStatCollectorId = null;
+		}
 	}
 
 	/**

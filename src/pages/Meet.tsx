@@ -63,8 +63,8 @@ export class Meet extends Call {
 	};
 
 	onReadyCall(): void {
-		if (this.state.videoMute) {
-			this.toggleVideo();
+		if (!this.state.videoMute && !this.callService.hasVideoTrack()) {
+			this.askForMediaPermission("video");
 		}
 	}
 
@@ -98,6 +98,7 @@ export class Meet extends Call {
 			callType: i18n.t("call"),
 			linkName: twincode.name,
 		});
+		console.log("status", status, "participants", participants.length);
 
 		return (
 			<div className="flex flex-col h-full w-screen overflow-hidden bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
@@ -113,7 +114,7 @@ export class Meet extends Call {
 
 				{!CallStatusOps.isActive(status) && (
 					<JoinMeeting
-						className="flex flex-row"
+						className="flex flex-col md:flex-row"
 						initializing={initializing}
 						twincodeId={id}
 						twincode={twincode}

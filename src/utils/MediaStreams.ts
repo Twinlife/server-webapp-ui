@@ -7,6 +7,7 @@
  */
 import { AudioTrack } from "./AudioTrack";
 import { VideoTrack } from "./VideoTrack";
+import { AudioMonitor } from "./AudioMonitor";
 
 /**
  * Manages a stream with an optional audio track and video track.
@@ -15,10 +16,12 @@ export class MediaStreams {
 	readonly stream: MediaStream;
 	video: VideoTrack | null;
 	audio: AudioTrack | null;
+	audioMonitor: AudioMonitor | null;
 
 	constructor() {
 		this.video = null;
 		this.audio = null;
+		this.audioMonitor = null;
 		this.stream = new MediaStream();
 	}
 
@@ -54,7 +57,12 @@ export class MediaStreams {
 			this.stream.removeTrack(currentTrack);
 			result = true;
 		}
+		if (this.audioMonitor) {
+			this.audioMonitor.close();
+		}
 		this.stream.addTrack(audioTrack.track);
+		this.audioMonitor = new AudioMonitor("Microphone");
+		this.audioMonitor.connect(new MediaStream([audioTrack.track]));
 		this.audio = audioTrack;
 		return result;
 	}
@@ -68,5 +76,11 @@ export class MediaStreams {
 			track.stop();
 			this.stream.removeTrack(track);
 		}
+		if (this.audioMonitor) {
+			this.audioMonitor.close();
+			this.audioMonitor = null;
+		}
 	}
 }
+
+export const mediaStreams = new MediaStreams();

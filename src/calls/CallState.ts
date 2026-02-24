@@ -211,6 +211,16 @@ export class CallState {
 		return this.mMaxMemberCount;
 	}
 
+	getStats(): boolean {
+		if (this.mPeers.length == 0) {
+			return false;
+		}
+		for (const connection of this.mPeers.values()) {
+			connection.getStats();
+		}
+		return true;
+	}
+
 	/**
 	 * Send a message to each peer connected with us.
 	 *

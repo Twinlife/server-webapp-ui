@@ -10,4 +10,5 @@ export const STORAGE_KEYS = {
 	NOTIFICATIONS: "app_notification_settings",
 	BACKGROUND: "app_virtual_background",
 	ACCESSIBILITY: "app_accessibility_settings",
+	VIDEO: "app_video_settings",
 } as const;

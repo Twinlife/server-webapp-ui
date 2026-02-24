@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -49,6 +49,7 @@ export class CallParticipant {
 	private mVideoHeight: number = 0;
 	private mSenderId: UUID | null = null;
 	private mIsScreenSharing: boolean = false;
+	private mIsSpeaking: boolean = false;
 
 	/**
 	 * Get the call connection associated with this participant.
@@ -93,6 +94,15 @@ export class CallParticipant {
 	 */
 	public isScreenSharing(): boolean {
 		return this.mIsScreenSharing;
+	}
+
+	/**
+	 * Returns true if the peer is speaking (the AudioMonitor detects some activity).
+	 *
+	 * @returns {boolean} true if the peer is speaking.
+	 */
+	public isSpeaking(): boolean {
+		return this.mIsSpeaking;
 	}
 
 	/**
@@ -185,6 +195,12 @@ export class CallParticipant {
 
 	public addAudioTrack(track: MediaStreamTrack) {
 		this.mAudioStream.addTrack(track);
+		this.mAudioMute = false;
+	}
+
+	public removeAudioTrack(): void {
+		this.mAudioMute = true;
+		this.mIsSpeaking = false;
 	}
 
 	public addVideoTrack(track: MediaStreamTrack) {
@@ -204,10 +220,6 @@ export class CallParticipant {
 		this.transfer = transfer;
 	}
 
-	setMicrophoneMute(mute: boolean): void {
-		this.mAudioMute = mute;
-	}
-
 	setCameraMute(mute: boolean): void {
 		this.mCameraMute = mute;
 	}
@@ -220,6 +232,10 @@ export class CallParticipant {
 
 	setScreenSharing(state: boolean) {
 		this.mIsScreenSharing = state;
+	}
+
+	setSpeaking(state: boolean) {
+		this.mIsSpeaking = state;
 	}
 
 	/**

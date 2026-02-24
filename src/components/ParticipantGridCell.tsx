@@ -6,6 +6,7 @@
  *   Olivier Dupont <olivier.dupont@twin.life>
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import clsx from "clsx";
 import { useEffect, useRef } from "react";
 import { DefaultAvatar } from "./DefaultAvatar";
 
@@ -15,6 +16,7 @@ interface ParticipantGridCellProps {
 	isAudioMute: boolean;
 	isCameraMute: boolean;
 	isScreenSharing: boolean;
+	isSpeaking: boolean;
 	name: string;
 	participantId?: number;
 	avatarUrl: string;
@@ -27,6 +29,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	isAudioMute,
 	isCameraMute,
 	isScreenSharing,
+	isSpeaking,
 	name,
 	participantId,
 	avatarUrl,
@@ -42,10 +45,11 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 
 	return (
 		<div
-			className={[
-				"relative flex w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
+			className={clsx(
+				"relative flex w-full items-center justify-center border-2 border-solid border-transparent overflow-hidden rounded-lg bg-[#202020]",
 				cellClassName,
-			].join(" ")}
+				isSpeaking && "border-blue",
+			)}
 			onClick={(e) => {
 				videoClick(e, participantId);
 			}}
@@ -63,7 +67,12 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 					</svg>
 				</div>
 			)}
-			{!avatarUrl && noVideo && <DefaultAvatar name={name} className="md:h-48 md:w-48" />}
+			{!avatarUrl && noVideo && (
+				<DefaultAvatar
+					name={name}
+					className={clsx("md:h-48 md:w-48 border-4", isSpeaking && "border-blue border-solid")}
+				/>
+			)}
 
 			{avatarUrl && noVideo && (
 				<>
@@ -89,10 +98,12 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 			></video>
 			<audio ref={refAudio} autoPlay={true} playsInline={true} id={"audioElement-" + participantId}></audio>
 			<div
-				className={[
-					"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm",
-					name ? "" : "hidden",
-				].join(" ")}
+				className={clsx(
+					"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4 border-solid",
+					name == null && "hidden",
+					!isSpeaking && "border-transparent",
+					isSpeaking && "fast-blink border-blue",
+				)}
 			>
 				{name}
 			</div>

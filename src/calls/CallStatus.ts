@@ -47,6 +47,7 @@ export class CallStatusOps {
 	public static toActive(mode: CallStatus): CallStatus {
 		switch (mode) {
 			case CallStatus.ACCEPTED_INCOMING_CALL:
+			case CallStatus.ACCEPTED_INCOMING_VIDEO_CALL:
 			case CallStatus.OUTGOING_CALL:
 				return CallStatus.IN_CALL;
 			case CallStatus.OUTGOING_VIDEO_CALL:

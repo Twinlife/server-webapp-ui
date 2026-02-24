@@ -897,8 +897,12 @@ export class CallConnection {
 			this.setAudioDirection(this.mAudioDirection);
 			this.setVideoDirection(this.mVideoDirection);
 		}
+		const status = this.mStatus;
 		this.mPeerConnected = true;
 		this.mStatus = CallStatusOps.toActive(this.mStatus);
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, "update status", status, "->", this.mStatus);
+		}
 		return true;
 	}
 
@@ -1153,7 +1157,6 @@ export class CallConnection {
 				} else if (track.kind === "audio") {
 					participant.addAudioTrack(track);
 					this.mAudioTrackId = trackId;
-					participant.setMicrophoneMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_ON);
 					track.onmute = () => {
 						this.removeRemoteTrack(trackId);
@@ -1181,7 +1184,7 @@ export class CallConnection {
 		} else if (trackId === this.mAudioTrackId) {
 			this.mAudioTrackId = null;
 			if (participant) {
-				participant.setMicrophoneMute(true);
+				participant.removeAudioTrack();
 				this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_OFF);
 			}
 		}
@@ -1261,6 +1264,42 @@ export class CallConnection {
 			this.mPeerConnection = null;
 			this.mPeerConnectionId = null;
 		}
+	}
+
+	getStats(): void {
+		if (!this.mPeerConnection) {
+			return;
+		}
+		this.mPeerConnection
+			.getStats()
+			.then((report) => {
+				let speaking: boolean = false;
+				report.forEach((stat) => {
+					if (stat.type == "local-candidate" || stat.type == "candidate-pair") {
+						// Ignore
+					} else if (stat.type == "inbound-rtp") {
+						if (stat.kind == "audio") {
+							if (stat.audioLevel > 0.01) {
+								speaking = true;
+							}
+							console.error("Audio level=", stat.audioLevel, speaking);
+						}
+						console.info(stat);
+					} else if (stat.type == "outbound-rtp") {
+						console.info(stat);
+					} else {
+						console.info(stat);
+					}
+				});
+				const participant: CallParticipant | null = this.getMainParticipant();
+				if (participant && speaking != participant.isSpeaking()) {
+					participant.setSpeaking(speaking);
+					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_SPEAKING);
+				}
+			})
+			.catch((error) => {
+				console.warn(this.mPeerConnectionId, ": getStats failed", error);
+			});
 	}
 
 	public sendParticipantInfoIQ(): void {

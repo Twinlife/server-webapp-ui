@@ -82,7 +82,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 	};
 	return (
 		<div className={className}>
-			<div className="flex items-center justify-between h-screen w-1/3">
+			<div className="flex items-center justify-between h-screen">
 				<div className="w-full">
 					<div className="border border-red-500 text-center">
 						{initializing && (
@@ -173,7 +173,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 					</div>
 				</div>
 			</div>
-			<div className="flex h-full w-full"> {children} </div>
+			<div className="flex h-full w-full relative"> {children} </div>
 		</div>
 	);
 };

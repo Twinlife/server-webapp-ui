@@ -115,6 +115,7 @@ export const ParticipantsGrid: React.FC<{
 						isAudioMute={participant.isAudioMute()}
 						isCameraMute={participant.isCameraMute()}
 						isScreenSharing={participant.isScreenSharing()}
+						isSpeaking={participant.isSpeaking()}
 						name={participant.getName() ?? ""}
 						participantId={participant.getParticipantId()}
 						videoClick={videoClick}
@@ -131,6 +132,7 @@ export const ParticipantsGrid: React.FC<{
 						isScreenSharing={false}
 						name={twincode.name ?? ""}
 						videoClick={videoClick}
+						isSpeaking={false}
 						avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
 					/>
 				)}

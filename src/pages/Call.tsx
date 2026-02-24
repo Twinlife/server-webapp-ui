@@ -139,9 +139,10 @@ export class Call
 	};
 
 	init(): void {
+		console.error("First state video", videoStore.enable);
 		this.setState({
 			initializing: true,
-			videoMute: true,
+			videoMute: !videoStore.enable,
 			displayThanks: false,
 			status: CallStatus.IDLE,
 			audioMute: false,
@@ -442,6 +443,7 @@ export class Call
 				{ videoMute: !videoMute && !isSharingScreen, isSharingScreen: false, displayMode: displayMode },
 				async () => {
 					const { videoMute } = this.state;
+					videoStore.enable = !videoMute;
 					if (!videoMute && !this.callService.hasVideoTrack()) {
 						await this.askForMediaPermission("video");
 					}
