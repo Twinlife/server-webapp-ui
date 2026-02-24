@@ -26,6 +26,7 @@
 		"leave_meeting_button": "Leave meeting",
 		"service_unavailable": "Service is not available",
 		"network_or_other_error": "Network or other error",
+		"call_start_in_minutes": "The call starts in <strong>{{delay}}</strong> minutes",
 		"twincode_invalid": "The link you entered cannot be used to make the conference call",
 		"twincode_expired": "The link you entered has expired and cannot be used",
 		"wait_meeting_message": "The conference has not yet started, waiting for participants.",

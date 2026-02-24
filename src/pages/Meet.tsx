@@ -26,6 +26,7 @@ import { VideoTrack } from "../utils/VideoTrack";
 import { chatStore } from "../stores/chat";
 import { Notifications } from "../notifications/Notifications";
 import { backgroundStore } from "../stores/backgrounds";
+import { ContactService } from "../services/ContactService";
 
 export class Meet extends Call {
 	private videoBackground: VirtualBackground | null = null;
@@ -187,7 +188,7 @@ export class Meet extends Call {
 								i18nKey={this.getTerminateReasonMessage(terminateReason)}
 								values={{
 									contactName: twincode?.name,
-									...this.getScheduleLabels(twincode?.schedule),
+									...ContactService.getScheduleLabels(twincode?.schedule),
 								}}
 								t={t}
 							/>

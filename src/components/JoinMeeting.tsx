@@ -5,9 +5,10 @@
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import { useEffect, useState } from "react";
 import { MouseEventHandler, PropsWithChildren, ReactNode } from "react";
 import { Trans, useTranslation } from "react-i18next";
-import { ContactService, TwincodeInfo } from "../services/ContactService";
+import { ContactService, TwincodeInfo, ScheduleState, ScheduleStatus } from "../services/ContactService";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import { useSnapshot } from "valtio";
 import { profile } from "../stores/profile";
@@ -43,8 +44,31 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 	const avatarUrl = twincode.avatarId != null ? import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId : null;
 	const isWaiting = CallStatusOps.isOutgoing(status);
 	const user = useSnapshot(profile);
-	const hasSchedule = twincode.schedule != null;
-	const canCall = !hasSchedule || (twincode.schedule && ContactService.isCurrentDateInRange(twincode.schedule));
+	const [state, setState] = useState<ScheduleState | null>(null);
+	const canCall = state != null && state.status != ScheduleStatus.OUTSIDE_SCHEDULE;
+
+	useEffect(() => {
+		let retryTimeout: NodeJS.Timeout | null = null;
+		const refreshState = () => {
+			const scheduleState: ScheduleState = ContactService.isCurrentDateInRange(twincode.schedule);
+
+			setState(scheduleState);
+			if (retryTimeout) {
+				clearTimeout(retryTimeout);
+				retryTimeout = null;
+			}
+			if (scheduleState.delay > 0) {
+				retryTimeout = setTimeout(() => refreshState(), 10000);
+			}
+		};
+		refreshState();
+
+		return () => {
+			if (retryTimeout) {
+				clearInterval(retryTimeout);
+			}
+		};
+	}, [twincode]);
 
 	const checkTwincode = (twincode: TwincodeInfo): string | null => {
 		if (!twincode.name) {
@@ -68,13 +92,22 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 								onComplete={checkTwincode}
 							/>
 						)}
-						<div className="h-10 rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
+						<div className="h-20 rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
 							{isWaiting && (
 								<>
 									<span className="">{t("wait_meeting_message")}</span>
 								</>
 							)}
-
+							{!isWaiting && twincode.schedule && (
+								<Trans
+									i18nKey={ContactService.getSchedule(twincode?.schedule)}
+									values={{
+										contactName: twincode?.name,
+										...ContactService.getScheduleLabels(twincode.schedule),
+									}}
+									t={t}
+								/>
+							)}
 						</div>
 						{avatarUrl && (
 							<>
@@ -120,16 +153,17 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 									<span className="mr-3">{t("leave_meeting_button")}</span>
 								</button>
 							)}
-							{!isWaiting && hasSchedule && !canCall && twincode.schedule && (
+							{!isWaiting && state && state.delay > 0 && (
 								<>
-									<Trans
-										i18nKey={ContactService.getSchedule(twincode?.schedule)}
-										values={{
-											contactName: twincode?.name,
-											...ContactService.getScheduleLabels(twincode?.schedule),
-										}}
-										t={t}
-									/>
+									<span className={state.delay <= 60000 ? "blink" : ""}>
+										<Trans
+											i18nKey="call_start_in_minutes"
+											values={{
+												delay: Math.round(state.delay / 60000),
+											}}
+											t={t}
+										/>
+									</span>
 								</>
 							)}
 						</div>

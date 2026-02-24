@@ -8,7 +8,7 @@
 
 import axios from "axios";
 import { AxiosError } from "axios";
-import { toZonedTime } from "date-fns-tz";
+import { fromZonedTime } from "date-fns-tz";
 import i18n from "i18next";
 
 const url = import.meta.env.VITE_REST_URL;
@@ -59,7 +59,18 @@ export type ScheduleLabels = {
 	endTime: string;
 };
 
-export function dateTimeToString(dt: DateTime): string {
+export enum ScheduleStatus {
+	OUTSIDE_SCHEDULE,
+	WITHIN_SCHEDULE,
+	SOON_IN_SCHEDULE,
+}
+
+export type ScheduleState = {
+	status: ScheduleStatus;
+	delay: number;
+};
+
+function dateTimeToString(dt: DateTime): string {
 	return (
 		pad(dt.date.year, 4) +
 		"-" +
@@ -96,33 +107,34 @@ export class ContactService {
 		}
 	}
 
-	public static isCurrentDateInRange(schedule: Schedule): boolean {
-		if (schedule.timeRanges.length == 0) {
-			return true;
+	/**
+	 * Check if the current time is within the schedule so that we are allows to make the call.
+	 *
+	 * @param schedule the schedule with its timezone.
+	 * @returns the status of the schedule.
+	 */
+	public static isCurrentDateInRange(schedule: Schedule | null): ScheduleState {
+		if (!schedule || schedule.timeRanges.length == 0) {
+			return { status: ScheduleStatus.WITHIN_SCHEDULE, delay: 0 };
 		}
-
+		const timeZone = schedule.timeZone;
 		const now = new Date();
 		for (const timeRange of schedule.timeRanges) {
-			const startDate = new Date(
-				timeRange.start.date.year,
-				timeRange.start.date.month - 1,
-				timeRange.start.date.day,
-				timeRange.start.time.hour,
-				timeRange.start.time.minute,
-			);
+			const startDate = fromZonedTime(dateTimeToString(timeRange.start), timeZone);
+			const endDate = fromZonedTime(dateTimeToString(timeRange.end), timeZone);
 
-			const endDate = new Date(
-				timeRange.end.date.year,
-				timeRange.end.date.month - 1,
-				timeRange.end.date.day,
-				timeRange.end.time.hour,
-				timeRange.end.time.minute,
-			);
-			if (now >= startDate && now <= endDate) {
-				return true;
+			if (now <= endDate) {
+				const delay = startDate.getTime() - now.getTime();
+				if (now >= startDate) {
+					return { status: ScheduleStatus.WITHIN_SCHEDULE, delay: 0 };
+				}
+				const startLimit = new Date(startDate.getTime() - 5 * 60 * 1000);
+				if (now >= startLimit) {
+					return { status: ScheduleStatus.SOON_IN_SCHEDULE, delay: delay };
+				}
 			}
 		}
-		return false;
+		return { status: ScheduleStatus.OUTSIDE_SCHEDULE, delay: 0 };
 	}
 
 	/**
@@ -136,8 +148,8 @@ export class ContactService {
 		const range = schedule.timeRanges[0];
 		const timeZone = schedule.timeZone;
 
-		const startDate = toZonedTime(dateTimeToString(range.start), timeZone);
-		const endDate = toZonedTime(dateTimeToString(range.end), timeZone);
+		const startDate = fromZonedTime(dateTimeToString(range.start), timeZone);
+		const endDate = fromZonedTime(dateTimeToString(range.end), timeZone);
 
 		return {
 			startDate: dateFormat.format(startDate),

@@ -188,6 +188,15 @@ svg {
 .thanks-image {
 	width: 70%;
 }
+.blink {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
 /* Adjust image size for several mobile phones to avoid scrolling */
 @media (max-width: 400px) {
 	.thanks-image {
