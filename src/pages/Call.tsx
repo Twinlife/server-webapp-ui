@@ -27,7 +27,7 @@ import StoresBadges from "../components/StoresBadges";
 import Thanks from "../components/Thanks";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
-import IsMobile from "../utils/IsMobile";
+import { browser } from "../utils/BrowserCapabilities";
 import { CallButtons, CallButtonHandlers } from "../components/CallButtons";
 import { NotificationCenter, notificationCenter } from "../notifications/NotificationCenter";
 import { MediaStreams } from "../utils/MediaStreams";
@@ -84,7 +84,7 @@ export interface CallState {
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
-const isMobile = IsMobile();
+const isMobile = browser.isMobile();
 
 // Create only one instance of PeerCallService.
 const peerCallService: PeerCallService = new PeerCallService();

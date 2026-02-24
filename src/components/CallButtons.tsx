@@ -16,11 +16,11 @@ import MonitorOff from "../assets/monitor-off.svg";
 import MonitorOn from "../assets/monitor.svg";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import WhiteButton from "../components/WhiteButton";
-import IsMobile from "../utils/IsMobile";
+import { browser } from "../utils/BrowserCapabilities";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { SettingsDialog } from "../settings/SettingsDialog";
 
-const isMobile = IsMobile();
+const isMobile = browser.isMobile();
 const MEETING = import.meta.env.VITE_APP_MEETING === "true";
 
 export interface CallButtonHandlers {
@@ -92,7 +92,7 @@ export const CallButtons = ({
 	const inTransfer = transfer && inCall;
 	const callLabel = transfer ? t("transfer") : t("call");
 	const [isSettingsOpen, setSettingsOpen] = useState<boolean>(false);
-	const hasCallButton = !MEETING && !CallStatusOps.isTerminated(status);
+	const hasCallButton = (!MEETING && !CallStatusOps.isTerminated(status)) || inCall;
 
 	const openSettings = () => {
 		setSettingsOpen(true);
