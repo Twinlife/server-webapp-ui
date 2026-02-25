@@ -31,8 +31,6 @@ export const AudioSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 	const inputDeviceId = config.inputDeviceId;
 	const outputDeviceId = config.outputDeviceId;
 
-	console.info("AudioSettings render", isOpen, config);
-
 	// Fetch audio devices only when the "Audio" tab is active
 	useEffect(() => {
 		console.info("AudioSettings useEffect", isOpen);
@@ -76,7 +74,6 @@ export const AudioSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 			});
 	};
 	const selectOutput = (item: Item) => {
-		console.error("Item ", item, "selected");
 		const selectedDevice = mediaDevices.getMediaDevice(item.id);
 		if (selectedDevice) {
 			onChange({ ...config, outputDeviceId: selectedDevice.deviceId });

@@ -76,7 +76,7 @@ export const ParticipantsGrid: React.FC<{
 			? "relative grid flex-1 gap-4 overflow-hidden py-4 transition-all"
 			: "relative grid flex-1 gap-4 overflow-hidden py-4 landscape:py-2 lg:py-4 transition-all";
 	if (DEBUG) {
-		console.log("Local absolute=" + localAbsolute + " nbParticipants=" + nbParticipants);
+		console.log("Display grid", nbParticipants, "participants absolute: ", localAbsolute, "mode", mode, "screenParticipant", screenParticipantId);
 	}
 
 	const setScreenRenderer = (video: HTMLVideoElement) => {
@@ -111,13 +111,7 @@ export const ParticipantsGrid: React.FC<{
 							displayMode,
 							participants.length + 1,
 						)}
-						setRemoteRenderer={(videoRef, audioRef) => participant.setRemoteRenderer(videoRef, audioRef)}
-						isAudioMute={participant.isAudioMute()}
-						isCameraMute={participant.isCameraMute()}
-						isScreenSharing={participant.isScreenSharing()}
-						isSpeaking={participant.isSpeaking()}
-						name={participant.getName() ?? ""}
-						participantId={participant.getParticipantId()}
+						participant={participant}
 						videoClick={videoClick}
 						avatarUrl={participant.getAvatarUrl() ?? ""}
 					/>
@@ -127,12 +121,8 @@ export const ParticipantsGrid: React.FC<{
 				{participants.length === 0 && (
 					<ParticipantGridCell
 						cellClassName={getCellClass(0, displayMode, nbParticipants)}
-						isAudioMute={false}
-						isCameraMute={true}
-						isScreenSharing={false}
-						name={twincode.name ?? ""}
+						participant={participants[0]}
 						videoClick={videoClick}
-						isSpeaking={false}
 						avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
 					/>
 				)}

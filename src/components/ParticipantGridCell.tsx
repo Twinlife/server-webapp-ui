@@ -9,39 +9,41 @@
 import clsx from "clsx";
 import { useEffect, useRef } from "react";
 import { DefaultAvatar } from "./DefaultAvatar";
+import { CallParticipant } from "../calls/CallParticipant";
+
+const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 interface ParticipantGridCellProps {
 	cellClassName: string;
-	setRemoteRenderer?: (remoteRenderer: HTMLVideoElement, audioRenderer: HTMLAudioElement | null) => void;
-	isAudioMute: boolean;
-	isCameraMute: boolean;
-	isScreenSharing: boolean;
-	isSpeaking: boolean;
-	name: string;
-	participantId?: number;
+	participant: CallParticipant;
 	avatarUrl: string;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 }
 
 const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	cellClassName,
-	setRemoteRenderer,
-	isAudioMute,
-	isCameraMute,
-	isScreenSharing,
-	isSpeaking,
-	name,
-	participantId,
+	participant,
 	avatarUrl,
 	videoClick,
 }) => {
+	const participantId = participant.getParticipantId();
 	const refVideo = useRef<HTMLVideoElement>(null);
 	const refAudio = useRef<HTMLAudioElement>(null);
+	const isCameraMute = participant.isCameraMute();
+	const isScreenSharing = participant.isScreenSharing();
 	const noVideo = isCameraMute || isScreenSharing;
+	const name = participant.getName();
+	const isSpeaking = participant.isSpeaking();
 
+	if (DEBUG) {
+		console.log("Refresh", participant.getParticipantId(), "name", participant.getName());
+	}
 	useEffect(() => {
-		if (refVideo.current && setRemoteRenderer) setRemoteRenderer(refVideo.current, refAudio.current);
-	}, [setRemoteRenderer, isScreenSharing, refVideo, refAudio]);
+		if (refVideo.current) participant.setRemoteRenderer(refVideo.current, refAudio.current);
+		if (DEBUG) {
+			console.log("set video participant", participant);
+		}
+	}, [isScreenSharing, refVideo, refAudio, isCameraMute]);
 
 	return (
 		<div
@@ -54,7 +56,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 				videoClick(e, participantId);
 			}}
 		>
-			{isAudioMute && (
+			{participant.isAudioMute() && (
 				<div className="absolute left-2 top-2 z-20 text-2xl md:left-auto md:right-2">
 					<svg width="1em" height="1em" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
 						<g fill="none" fillRule="evenodd">
@@ -69,7 +71,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 			)}
 			{!avatarUrl && noVideo && (
 				<DefaultAvatar
-					name={name}
+					name={name ? name : "?"}
 					className={clsx("md:h-48 md:w-48 border-4", isSpeaking && "border-blue border-solid")}
 				/>
 			)}
@@ -94,7 +96,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 				autoPlay={true}
 				playsInline={true}
 				id={"videoElement-" + participantId}
-				className={["h-full w-full", noVideo ? "hidden" : ""].join(" ")}
+				className={clsx("md:w-full md:h-full", noVideo && "hidden")}
 			></video>
 			<audio ref={refAudio} autoPlay={true} playsInline={true} id={"audioElement-" + participantId}></audio>
 			<div

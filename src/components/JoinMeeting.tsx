@@ -82,7 +82,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 	};
 	return (
 		<div className={className}>
-			<div className="flex items-center justify-between h-screen">
+			<div className="flex items-center justify-between md:h-screen">
 				<div className="w-full">
 					<div className="border border-red-500 text-center">
 						{initializing && (
