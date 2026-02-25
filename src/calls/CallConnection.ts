@@ -153,8 +153,6 @@ export class CallConnection {
 
 	private readonly mMainParticipant: CallParticipant;
 
-	private mVideoTrackId: string | null = null;
-	private mAudioTrackId: string | null = null;
 	private mConnectionStartTime: number = 0;
 
 	private mTimer: Timer | null = null;
@@ -478,7 +476,7 @@ export class CallConnection {
 		// Handle the audio/video track.
 		pc.ontrack = (event: RTCTrackEvent) => {
 			if (DEBUG) {
-				console.log(this.mPeerConnectionId, ": received on track event");
+				console.log(this.mPeerConnectionId, ": received on track event", event);
 			}
 
 			// Legacy streams (does nothing on modern WebRTC)
@@ -1010,7 +1008,6 @@ export class CallConnection {
 
 		if (this.mPeerConnection != null && this.mVideoTrack) {
 			this.mVideoTrack = null;
-			this.mVideoTrackId = null;
 
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
 			for (const transceiver of transceivers) {
@@ -1148,17 +1145,20 @@ export class CallConnection {
 				const trackId: string = track.id;
 				if (track.kind === "video") {
 					participant.addVideoTrack(track);
-					this.mVideoTrackId = trackId;
-					participant.setCameraMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_VIDEO_ON);
 					track.onmute = () => {
+						if (DEBUG) {
+							console.log(this.mPeerConnectionId, "mute video track", trackId);
+						}
 						this.removeRemoteTrack(trackId);
 					};
 				} else if (track.kind === "audio") {
 					participant.addAudioTrack(track);
-					this.mAudioTrackId = trackId;
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_ON);
 					track.onmute = () => {
+						if (DEBUG) {
+							console.log(this.mPeerConnectionId, "mute audio track", trackId);
+						}
 						this.removeRemoteTrack(trackId);
 					};
 				}
@@ -1175,17 +1175,10 @@ export class CallConnection {
 	 */
 	removeRemoteTrack(trackId: string): void {
 		const participant: CallParticipant | null = this.getMainParticipant();
-		if (trackId === this.mVideoTrackId) {
-			this.mVideoTrackId = null;
-			if (participant) {
-				participant.setCameraMute(true);
+		if (participant) {
+			const event = participant.removeTrack(trackId);
+			if (event) {
 				this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_VIDEO_OFF);
-			}
-		} else if (trackId === this.mAudioTrackId) {
-			this.mAudioTrackId = null;
-			if (participant) {
-				participant.removeAudioTrack();
-				this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_OFF);
 			}
 		}
 	}
@@ -1282,13 +1275,13 @@ export class CallConnection {
 							if (stat.audioLevel > 0.01) {
 								speaking = true;
 							}
-							console.error("Audio level=", stat.audioLevel, speaking);
+							// console.error("Audio level=", stat.audioLevel, speaking);
 						}
-						console.info(stat);
+						// console.info(stat);
 					} else if (stat.type == "outbound-rtp") {
-						console.info(stat);
+						// console.info(stat);
 					} else {
-						console.info(stat);
+						// console.info(stat);
 					}
 				});
 				const participant: CallParticipant | null = this.getMainParticipant();

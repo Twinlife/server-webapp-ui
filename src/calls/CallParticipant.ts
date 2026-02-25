@@ -10,6 +10,7 @@
  */
 import { UUID } from "../utils/UUID";
 import { CallConnection } from "./CallConnection";
+import { CallParticipantEvent } from "./CallParticipantEvent";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
@@ -45,6 +46,8 @@ export class CallParticipant {
 	private mDescription: string | null;
 	private mAudioMute: boolean = false;
 	private mCameraMute: boolean = false;
+	private mVideoTrackId: string | null = null;
+	private mAudioTrackId: string | null = null;
 	private mVideoWidth: number = 0;
 	private mVideoHeight: number = 0;
 	private mSenderId: UUID | null = null;
@@ -193,18 +196,30 @@ export class CallParticipant {
 		}
 	}
 
-	public addAudioTrack(track: MediaStreamTrack) {
+	addAudioTrack(track: MediaStreamTrack) {
+		this.mAudioTrackId = track.id;
 		this.mAudioStream.addTrack(track);
 		this.mAudioMute = false;
 	}
 
-	public removeAudioTrack(): void {
-		this.mAudioMute = true;
-		this.mIsSpeaking = false;
+	addVideoTrack(track: MediaStreamTrack) {
+		this.mVideoTrackId = track.id;
+		this.mVideoStream.addTrack(track);
+		this.mCameraMute = false;
 	}
 
-	public addVideoTrack(track: MediaStreamTrack) {
-		this.mVideoStream.addTrack(track);
+	removeTrack(trackId: string): CallParticipantEvent | null {
+		if (trackId == this.mVideoTrackId) {
+			this.mVideoTrackId = null;
+			this.mCameraMute = true;
+			return CallParticipantEvent.EVENT_VIDEO_OFF;
+		}
+		if (trackId == this.mAudioTrackId) {
+			this.mAudioTrackId = null;
+			this.mAudioMute = true;
+			return CallParticipantEvent.EVENT_AUDIO_OFF;
+		}
+		return null;
 	}
 
 	constructor(callConnection: CallConnection, participantId: number, transfer: boolean = false) {
@@ -218,10 +233,6 @@ export class CallParticipant {
 		this.mVideoHeight = 0;
 		this.mParticipantId = participantId;
 		this.transfer = transfer;
-	}
-
-	setCameraMute(mute: boolean): void {
-		this.mCameraMute = mute;
 	}
 
 	setInformation(name: string, description: string | null, avatarUrl: string | null): void {
