@@ -98,10 +98,10 @@ export class VirtualBackground {
 		this.mask = new ImageData(this.maskWidth, this.maskHeight);
 		this.maskCanvas.width = this.maskWidth;
 		this.maskCanvas.height = this.maskHeight;
-		this.maskCtx = this.maskCanvas.getContext("2d");
-		this.ctx = this.canvas.getContext("2d")!;
+		this.maskCtx = this.maskCanvas.getContext("2d", { willReadFrequently: true });
 		this.canvas.width = width;
 		this.canvas.height = height;
+		this.ctx = this.canvas.getContext("2d", { willReadFrequently: true })!;
 		this.count = this.count + 1;
 		if (this.timerWorker == null) {
 			this.timerWorker = new Worker(timerWorkerScript, { name: "Video processing " + this.count });
