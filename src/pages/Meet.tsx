@@ -27,6 +27,9 @@ import { chatStore } from "../stores/chat";
 import { Notifications } from "../notifications/Notifications";
 import { backgroundStore } from "../stores/backgrounds";
 import { ContactService } from "../services/ContactService";
+import { browser } from "../utils/BrowserCapabilities";
+
+const isMobile = browser.isMobile();
 
 export class Meet extends Call {
 	private videoBackground: VirtualBackground | null = null;
@@ -46,7 +49,7 @@ export class Meet extends Call {
 
 	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
 		const background = backgroundStore.background;
-		if (isScreenSharing || background == null || background < 0) {
+		if (isMobile || isScreenSharing || background == null || background < 0) {
 			this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
 			return;
 		}
@@ -101,7 +104,7 @@ export class Meet extends Call {
 		console.log("status", status, "participants", participants.length);
 
 		return (
-			<div className="flex flex-col h-full w-screen overflow-hidden bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
+			<div className="flex flex-col h-full w-screen overflow-hidden bg-black p-2 landscape:lg:p-4">
 				<Header
 					openChatButtonDisplayed={
 						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
@@ -114,7 +117,7 @@ export class Meet extends Call {
 
 				{!CallStatusOps.isActive(status) && (
 					<JoinMeeting
-						className="flex flex-col md:flex-row"
+						className="flex flex-col md:flex-row h-full"
 						initializing={initializing}
 						twincodeId={id}
 						twincode={twincode}
