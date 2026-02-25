@@ -377,6 +377,12 @@ export class CallService implements PeerCallServiceObserver {
 			return;
 		}
 
+		// If we already received this session initiate, ignore it because a CallConnection is already managing it.
+		if (this.mPeers.get(sessionId) != null) {
+			console.info(sessionId, ": was already received");
+			return;
+		}
+
 		const status: CallStatus = offer.video
 			? CallStatus.ACCEPTED_INCOMING_VIDEO_CALL
 			: CallStatus.ACCEPTED_INCOMING_CALL;
