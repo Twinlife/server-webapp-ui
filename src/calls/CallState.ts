@@ -126,13 +126,11 @@ export class CallState {
 				}
 			} else if (this.mState & CallState.WAIT_MEETING && (this.mState & CallState.WAIT_MEETING_DONE) == 0) {
 				return CallStatus.WAIT_MEETING;
+			} else {
+				return CallStatus.TERMINATED;
 			}
 		}
-
-		if (this.mPeers.length === 0) {
-			return CallStatus.TERMINATED;
-		}
-		return this.mPeers[0].getStatus();
+		return CallStatus.IN_CALL;
 	}
 
 	/**
@@ -544,6 +542,15 @@ export class CallState {
 		}
 		const empty: boolean = this.mPeers.length === 0;
 		this.onRemoveParticipants(callConnection.release());
+		this.mState &= ~CallState.CONNECTED;
+		if (!empty) {
+			for (const connection of this.mPeers) {
+				if (connection.isConnected()) {
+					this.mState |= CallState.CONNECTED;
+					break;
+				}
+			}
+		}
 		return empty;
 	}
 
