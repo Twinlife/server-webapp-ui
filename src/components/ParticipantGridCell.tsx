@@ -48,9 +48,10 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	return (
 		<div
 			className={clsx(
-				"relative flex w-full items-center justify-center border-2 border-solid border-transparent overflow-hidden rounded-lg bg-[#202020]",
+				"relative flex w-full items-center justify-center border-2 border-solid overflow-hidden rounded-lg bg-[#202020]",
 				cellClassName,
-				isSpeaking && "border-blue",
+				!isSpeaking && "border-transparent",
+				isSpeaking && "border-solid border-blue",
 			)}
 			onClick={(e) => {
 				videoClick(e, participantId);
@@ -72,7 +73,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 			{!avatarUrl && noVideo && (
 				<DefaultAvatar
 					name={name ? name : "?"}
-					className={clsx("md:h-48 md:w-48 border-4", isSpeaking && "border-blue border-solid")}
+					className={clsx("md:h-24 md:w-24 border-4", isSpeaking && "border-blue border-solid")}
 				/>
 			)}
 
@@ -96,7 +97,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 				autoPlay={true}
 				playsInline={true}
 				id={"videoElement-" + participantId}
-				className={clsx("md:w-full md:h-full", noVideo && "hidden")}
+				className={clsx("h-full object-cover", noVideo && "hidden")}
 			></video>
 			<audio ref={refAudio} autoPlay={true} playsInline={true} id={"audioElement-" + participantId}></audio>
 			<div
@@ -104,7 +105,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 					"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4 border-solid",
 					name == null && "hidden",
 					!isSpeaking && "border-transparent",
-					isSpeaking && "fast-blink border-blue",
+					isSpeaking && "fast-blink border-transparent",
 				)}
 			>
 				{name}

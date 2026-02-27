@@ -31,7 +31,7 @@ import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConversationService } from "./ConversationService";
 import { AudioTrack } from "../utils/AudioTrack";
 import { VideoTrack } from "../utils/VideoTrack";
-import { MediaStreams } from "../utils/MediaStreams";
+import { mediaStreams, MediaStreams } from "../utils/MediaStreams";
 
 import TransferDirection = CallState.TransferDirection;
 
@@ -74,7 +74,7 @@ export class CallService implements PeerCallServiceObserver {
 	private readonly mPeers: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private readonly mPeerTo: Map<string, CallConnection> = new Map<string, CallConnection>();
 	private mActiveCall: CallState | null = null;
-	private readonly mLocalStream: MediaStreams = new MediaStreams();
+	private readonly mLocalStream: MediaStreams = mediaStreams;
 	private mIdentityName: string = "Unknown";
 	private mIdentityImage: ArrayBuffer = new ArrayBuffer(0);
 	private wakeLock: WakelockHandler | null = null;

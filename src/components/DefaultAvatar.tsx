@@ -24,9 +24,9 @@ export const DefaultAvatar: React.FC<{ className: string; name: string }> = ({ c
 		<>
 			<div
 				style={{ backgroundColor: stringToColour(name) }}
-				className={`pointer-events-none relative z-10 flex h-full w-full items-center justify-center object-cover md:rounded-full md:shadow-lg ${className}`}
+				className={`pointer-events-none relative z-10 flex w-full items-center justify-center object-cover md:rounded-full md:shadow-lg ${className}`}
 			>
-				<div className={["text-sm drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"].join(" ")}>{name}</div>
+				<div className="text-sm drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]">{name}</div>
 			</div>
 			<div className="pointer-events-none absolute left-0 top-0 hidden h-full w-full object-cover blur md:block"></div>
 		</>

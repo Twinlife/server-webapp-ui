@@ -75,7 +75,6 @@ export interface CallState {
 	usedVideoDevice: string;
 	isSharingScreen: boolean;
 	items: Item[];
-	atLeastOneParticipantSupportsMessages: boolean;
 	alertOpen: boolean;
 	alertTitle: string;
 	alertContent: ReactNode;
@@ -121,7 +120,6 @@ export class Call
 		usedVideoDevice: "",
 		isSharingScreen: false,
 		items: [],
-		atLeastOneParticipantSupportsMessages: false,
 		alertOpen: false,
 		alertTitle: "",
 		alertContent: <></>,
@@ -273,7 +271,6 @@ export class Call
 		}
 		displayMode.showLocalThumbnail = list.length === 1 && isMobile;
 		this.setState({ participants: list, displayMode: displayMode });
-		this.checkIsMessageSupported();
 		if (list.length >= 1) {
 			this.notificationCenter.postMemberLeave();
 		}
@@ -293,7 +290,7 @@ export class Call
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: participants });
 		if (event === CallParticipantEvent.EVENT_SUPPORTS_MESSAGES) {
-			this.checkIsMessageSupported();
+			// We now assume everybody supports messages.
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_ON) {
 			const displayMode: DisplayMode = this.state.displayMode;
 			displayMode.showScreenSharing = true;
@@ -308,22 +305,6 @@ export class Call
 			this.notificationCenter.postMemberJoined(participant);
 		}
 	}
-
-	private checkIsMessageSupported = () => {
-		if (DEBUG) {
-			console.log("Check if participants support messages");
-		}
-		const atLeastOneParticipantSupportsMessages = this.callService.getParticipants().some((participant) => {
-			if (DEBUG) {
-				console.log("isMessageSupported", participant.getCallConnection()?.isMessageSupported());
-			}
-			return participant.getCallConnection()?.isMessageSupported();
-		});
-		if (DEBUG) {
-			console.log("At least one participant supports messages: ", atLeastOneParticipantSupportsMessages);
-		}
-		this.setState({ atLeastOneParticipantSupportsMessages });
-	};
 
 	/**
 	 * A descriptor (message, invitation) was send by the participant.
@@ -580,6 +561,11 @@ export class Call
 		} else {
 			this.stopScreenSharing();
 		}
+	};
+
+	onChatClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
+		ev.preventDefault();
+		chatStore.chatPanelOpened = !chatStore.chatPanelOpened;
 	};
 
 	private startScreenSharing = async () => {
@@ -859,7 +845,6 @@ export class Call
 			displayThanks,
 			isSharingScreen,
 			items,
-			atLeastOneParticipantSupportsMessages,
 			alertOpen,
 			alertTitle,
 			alertContent,
@@ -878,15 +863,8 @@ export class Call
 		});
 
 		return (
-			<div className=" flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
-				<Header
-					openChatButtonDisplayed={
-						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
-					}
-					openChatPanel={() => {
-						chatStore.chatPanelOpened = !chatStore.chatPanelOpened;
-					}}
-				/>
+			<div className="relative flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
+				<Header className="" />
 				<Notifications />
 
 				{initializing && (
@@ -935,6 +913,7 @@ export class Call
 
 				{!initializing && !CallStatusOps.isTerminated(status) && (
 					<CallButtons
+						className={""}
 						status={status}
 						callbacks={this}
 						audioMute={audioMute}

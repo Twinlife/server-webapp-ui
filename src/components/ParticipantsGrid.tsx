@@ -76,23 +76,24 @@ export const ParticipantsGrid: React.FC<{
 			? "relative grid flex-1 gap-4 overflow-hidden py-4 transition-all"
 			: "relative grid flex-1 gap-4 overflow-hidden py-4 landscape:py-2 lg:py-4 transition-all";
 	if (DEBUG) {
-		console.log("Display grid", nbParticipants, "participants absolute: ", localAbsolute, "mode", mode, "screenParticipant", screenParticipantId);
+		console.log(
+			"Display grid",
+			nbParticipants,
+			"participants absolute: ",
+			localAbsolute,
+			"mode",
+			mode,
+			"screenParticipant",
+			screenParticipantId,
+		);
 	}
 
-	const setScreenRenderer = (video: HTMLVideoElement) => {
-		if (screens.length > 0) {
-			screens[0].setRemoteRenderer(video, null);
-		} else {
-			video.srcObject = localMediaStream.stream;
-		}
-	};
 	return (
 		<div className="flex flex-row w-full h-full p-1">
 			{screenParticipantId != null && (
 				<ParticipantScreen
 					key={screenParticipantId}
-					setRemoteRenderer={setScreenRenderer}
-					participantId={screenParticipantId}
+					participant={screens.length > 0 ? screens[0] : null}
 					videoClick={videoClick}
 				/>
 			)}
@@ -176,7 +177,7 @@ function getGridClass(mode: DisplayMode, participantsAmount: number) {
 		case 3:
 			return "h-full grid-cols-2 grid-rows-2 md:grid-cols-3 md:grid-rows-1 landscape:grid-cols-3 landscape:grid-rows-1";
 		case 4:
-			return "h-full grid-cols-2 grid-rows-2 md:grid-cols-4 md:grid-rows-1 landscape:grid-cols-4 landscape:grid-rows-1";
+			return "h-full grid-cols-2 grid-rows-2 md:grid-cols-4 md:grid-rows-1 landscape:grid-cols-2 landscape:grid-rows-2";
 		case 5:
 			return "h-full grid-cols-2 grid-rows-3 md:grid-cols-3 md:grid-rows-2 landscape:grid-cols-3 landscape:grid-rows-2";
 		case 6:

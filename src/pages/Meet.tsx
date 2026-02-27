@@ -7,6 +7,7 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
+import clsx from "clsx";
 import i18n from "i18next";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { subscribe } from "valtio/index";
@@ -23,7 +24,6 @@ import { LocalParticipant } from "../components/LocalParticipant";
 import { ParticipantsGrid } from "../components/ParticipantsGrid";
 import { VirtualBackground } from "../effects/VirtualBackground";
 import { VideoTrack } from "../utils/VideoTrack";
-import { chatStore } from "../stores/chat";
 import { Notifications } from "../notifications/Notifications";
 import { backgroundStore } from "../stores/backgrounds";
 import { ContactService } from "../services/ContactService";
@@ -86,7 +86,6 @@ export class Meet extends Call {
 			displayThanks,
 			isSharingScreen,
 			items,
-			atLeastOneParticipantSupportsMessages,
 			alertOpen,
 			alertTitle,
 			alertContent,
@@ -101,23 +100,18 @@ export class Meet extends Call {
 			callType: i18n.t("call"),
 			linkName: twincode.name,
 		});
-		console.log("status", status, "participants", participants.length);
+		const isActive = CallStatusOps.isActive(status);
+		const style = isMobile ? "p-1" : "p-2 landscape:lg:p-4";
+		console.log("status", status, "participants", participants.length, "active", isActive);
 
 		return (
-			<div className="flex flex-col h-full w-screen overflow-hidden bg-black p-2 landscape:lg:p-4">
-				<Header
-					openChatButtonDisplayed={
-						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
-					}
-					openChatPanel={() => {
-						chatStore.chatPanelOpened = !chatStore.chatPanelOpened;
-					}}
-				/>
+			<div className={clsx("relative flex flex-col h-full w-screen overflow-hidden bg-black", style)}>
+				<Header className={isActive ? "absolute z-10 top-3" : ""} />
 				<Notifications />
 
-				{!CallStatusOps.isActive(status) && (
+				{!isActive && (
 					<JoinMeeting
-						className="flex flex-col md:flex-row h-full"
+						className="w-full h-screen flex flex-col md:flex-row"
 						initializing={initializing}
 						twincodeId={id}
 						twincode={twincode}
@@ -125,6 +119,7 @@ export class Meet extends Call {
 						title={twincode.name ? twincode.name : "?"}
 						buttons={
 							<CallButtons
+								className=""
 								status={status}
 								callbacks={this}
 								audioMute={audioMute}
@@ -140,7 +135,7 @@ export class Meet extends Call {
 							this.onGetTwincode(twincode);
 						}}
 					>
-						<div className="flex-1 h-full w-full overflow-hidden">
+						<div className="flex-1 md:h-full w-full overflow-hidden rounded-lg">
 							<LocalParticipant
 								localVideoRef={this.localVideoRef}
 								localMediaStream={this.callService.getMediaStream()}
@@ -156,7 +151,7 @@ export class Meet extends Call {
 						</div>
 					</JoinMeeting>
 				)}
-				{CallStatusOps.isActive(status) && (
+				{isActive && (
 					<>
 						<ParticipantsGrid
 							localVideoRef={this.localVideoRef}
@@ -175,6 +170,7 @@ export class Meet extends Call {
 							items={items}
 						/>
 						<CallButtons
+							className={"absolute-button-list"}
 							status={status}
 							callbacks={this}
 							audioMute={audioMute}

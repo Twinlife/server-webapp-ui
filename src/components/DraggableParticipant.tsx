@@ -56,7 +56,7 @@ export const DraggableParticipant: React.FC<{
 	if (!localAbsolute || isSharingScreen) {
 		// 				"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
 		const cl = clsx(
-			"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
+			"relative flex w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
 			className,
 		);
 		return (

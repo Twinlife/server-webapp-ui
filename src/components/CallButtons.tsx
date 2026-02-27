@@ -14,11 +14,14 @@ import { useTranslation } from "react-i18next";
 import PhoneCallIcon from "../assets/phone-call.svg";
 import MonitorOff from "../assets/monitor-off.svg";
 import MonitorOn from "../assets/monitor.svg";
+import ChatIcon from "../assets/chat-black.svg";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import WhiteButton from "../components/WhiteButton";
 import { browser } from "../utils/BrowserCapabilities";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { SettingsDialog } from "../settings/SettingsDialog";
+import { chatStore } from "../stores/chat";
+import { useSnapshot } from "valtio";
 
 const isMobile = browser.isMobile();
 const MEETING = import.meta.env.VITE_APP_MEETING === "true";
@@ -32,6 +35,7 @@ export interface CallButtonHandlers {
 	onMuteVideoClick: React.MouseEventHandler<HTMLButtonElement>;
 	onSharingScreenClick: React.MouseEventHandler<HTMLButtonElement>;
 	onSwitchCameraClick: React.MouseEventHandler<HTMLButtonElement>;
+	onChatClick: React.MouseEventHandler<HTMLButtonElement>;
 }
 
 const Timer = () => {
@@ -70,6 +74,7 @@ const Timer = () => {
 };
 
 export const CallButtons = ({
+	className,
 	status,
 	callbacks,
 	audioMute,
@@ -78,6 +83,7 @@ export const CallButtons = ({
 	isSharingScreen,
 	transfer,
 }: {
+	className: string;
 	status: CallStatus;
 	callbacks: CallButtonHandlers;
 	audioMute: boolean;
@@ -93,6 +99,7 @@ export const CallButtons = ({
 	const callLabel = transfer ? t("transfer") : t("call");
 	const [isSettingsOpen, setSettingsOpen] = useState<boolean>(false);
 	const hasCallButton = (!MEETING && !CallStatusOps.isTerminated(status)) || inCall;
+	const chat = useSnapshot(chatStore);
 
 	const openSettings = () => {
 		setSettingsOpen(true);
@@ -102,7 +109,12 @@ export const CallButtons = ({
 	};
 
 	return (
-		<div className="mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2">
+		<div
+			className={clsx(
+				"mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2",
+				className,
+			)}
+		>
 			{hasCallButton && (
 				<div>
 					<button
@@ -140,6 +152,17 @@ export const CallButtons = ({
 			)}
 
 			<div className="flex items-center justify-end">
+				{inCall && (
+					<WhiteButton onClick={callbacks.onChatClick} className="relative ml-3 !p-[10px]">
+						{chat.unreadMessages > 0 && (
+							<span className="absolute right-1 top-1 flex h-2 w-2">
+								<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red opacity-75"></span>
+								<span className="relative inline-flex h-2 w-2 rounded-full bg-red"></span>
+							</span>
+						)}
+						<ChatIcon />
+					</WhiteButton>
+				)}
 				{isMobile && hasVideo && (
 					<WhiteButton
 						onClick={callbacks.onSwitchCameraClick}

@@ -57,6 +57,7 @@ export const LocalParticipant: React.FC<{
 	const muteClass: string = localAbsolute
 		? "absolute right-1 top-1 z-20 text-2xl md:left-auto md:right-2"
 		: "absolute right-2 top-2 z-20 text-2xl md:left-auto md:right-2";
+	const videoClass: string = localAbsolute ? "h-48 w-full md:h-full object-cover" : "w-full md:h-full object-cover";
 	return (
 		<>
 			{isLocalAudioMute && (
@@ -76,7 +77,7 @@ export const LocalParticipant: React.FC<{
 			{isScreenSharing && <DefaultAvatar name={profile.name} className="md:h-48 md:w-48" />}
 			<video
 				ref={localVideoRef}
-				className={clsx("h-full w-full", (videoMute || isScreenSharing) && "hidden")}
+				className={clsx(videoClass, (videoMute || isScreenSharing) && "hidden")}
 				autoPlay={true}
 				playsInline={true}
 				muted={true}

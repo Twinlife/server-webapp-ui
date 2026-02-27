@@ -201,6 +201,20 @@ svg {
   50% { opacity: 0.5; }
   100% { opacity: 1; }
 }
+.absolute-button-list {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  z-index: 200;
+  transform: translateX(-50%); /* Centers the buttons horizontally */
+  display: flex;
+  gap: 10px; /* Adds space between buttons */
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.9); /* Optional: Adds a background */
+  border-radius: 8px; /* Optional: Rounds the corners */
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1); /* Optional: Adds a shadow */
+}
+
 /* Adjust image size for several mobile phones to avoid scrolling */
 @media (max-width: 400px) {
 	.thanks-image {

@@ -191,7 +191,7 @@ export interface PeerCallServiceObserver {
 
 type Timer = ReturnType<typeof setTimeout>;
 type ReadyCallback = (config: CallConfigMessage) => void;
-const PING_TIMER: number = 7500;  // 7.5s, must be at least 2 times faster than server websocket idle timeout
+const PING_TIMER: number = 7500; // 7.5s, must be at least 2 times faster than server websocket idle timeout
 const PING_TIMEOUT: number = 30000; // 30s, above this we consider the websocket connection as dead.
 const CONNECT_TIMER: number = 15000; // 15s to connect for the websocket.
 const RETRY_DELAY: number = 3000; // 3s pause between reconnection.
