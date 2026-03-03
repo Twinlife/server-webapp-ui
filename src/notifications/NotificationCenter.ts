@@ -163,9 +163,11 @@ export class NotificationCenter {
 		}
 	}
 
-	public postMemberLeave(): void {
+	public postMemberLeave(participants: Array<CallParticipant>): void {
 		if (this.display.participantLeft) {
-			toast("Member leave");
+			for (const participant of participants) {
+				toast("Member " + participant.getName() + " left");
+			}
 		}
 		if (this.sound.participantLeft) {
 			this.postSound(NotificationType.MEMBER_LEAVE);

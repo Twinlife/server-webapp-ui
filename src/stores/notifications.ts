@@ -8,6 +8,7 @@
 import { proxy } from "valtio";
 import { subscribe } from "valtio/index";
 import { STORAGE_KEYS } from "../utils/storageKeys";
+import { isMobile } from "../utils/BrowserCapabilities";
 
 export type NotificationState = {
 	participantJoined: boolean;
@@ -35,8 +36,8 @@ export const DEFAULT_STATE = {
 		messageReceived: true,
 	},
 	display: {
-		participantJoined: true,
-		participantLeft: true,
+		participantJoined: !isMobile,
+		participantLeft: !isMobile,
 		messageReceived: true,
 	},
 };
