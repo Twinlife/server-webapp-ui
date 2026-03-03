@@ -8,8 +8,9 @@
 
 export class BrowserCapabilities {
 	isMobile(): boolean {
-		const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+		const userAgent = navigator.userAgent || navigator.vendor || window.opera;
 		if (
+			userAgent &&
 			/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Kindle|Silk|Windows Phone/i.test(userAgent)
 		) {
 			return true;
@@ -19,3 +20,4 @@ export class BrowserCapabilities {
 }
 
 export const browser = new BrowserCapabilities();
+export const isMobile = browser.isMobile();
