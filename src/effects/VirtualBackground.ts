@@ -180,7 +180,7 @@ export class VirtualBackground {
 				return;
 			}
 			this.imageSegmenter.segmentForVideo(this.imageData, startTimeMs, (result: ImageSegmenterResult) => {
-				const endTimeMs = performance.now();
+				// const endTimeMs = performance.now();
 				// console.log("segmentation time " + (endTimeMs - startTimeMs) + " ms");
 				resolve(result);
 			});

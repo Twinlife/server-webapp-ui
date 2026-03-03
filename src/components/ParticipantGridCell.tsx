@@ -8,21 +8,36 @@
  */
 import clsx from "clsx";
 import { useEffect, useRef } from "react";
-import { DefaultAvatar } from "./DefaultAvatar";
 import { CallParticipant } from "../calls/CallParticipant";
+import { ParticipantAvatar } from "./ParticipantAvatar";
+import { ViewMode } from "../utils/DisplayMode";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 interface ParticipantGridCellProps {
 	cellClassName: string;
 	participant: CallParticipant;
+	mode: ViewMode;
 	avatarUrl: string;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 }
 
-const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
+function getVideoClass(mode: ViewMode): string {
+	switch (mode) {
+		case ViewMode.VIEW_DEFAULT:
+		case ViewMode.VIEW_FOCUS_PARTICIPANT:
+		case ViewMode.VIEW_FOCUS_CAMERA:
+			return "h-full w-full object-cover";
+
+		case ViewMode.VIEW_SHARE_SCREEN:
+			return "h-48 w-full object-cover";
+	}
+}
+
+export const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	cellClassName,
 	participant,
+	mode,
 	avatarUrl,
 	videoClick,
 }) => {
@@ -34,16 +49,30 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	const noVideo = isCameraMute || isScreenSharing;
 	const name = participant.getName();
 	const isSpeaking = participant.isSpeaking();
+	const videoClass = getVideoClass(mode);
 
 	if (DEBUG) {
 		console.log("Refresh", participant.getParticipantId(), "name", participant.getName());
 	}
 	useEffect(() => {
-		if (refVideo.current) participant.setRemoteRenderer(refVideo.current, refAudio.current);
+		const video = refVideo.current;
+		if (!video) {
+			return;
+		}
+		const loadMedia = () => {
+			const videoWidth = video.videoWidth;
+			const videoHeight = video.videoHeight;
+			participant.setVideoSize(videoWidth, videoHeight);
+		};
+		video.addEventListener("loadedmetadata", loadMedia);
+		participant.setRemoteRenderer(video, refAudio.current);
 		if (DEBUG) {
 			console.log("set video participant", participant);
 		}
-	}, [isScreenSharing, refVideo, refAudio, isCameraMute]);
+		return () => {
+			video.removeEventListener("loadedmetadata", loadMedia);
+		};
+	}, [isScreenSharing, refVideo, refAudio, isCameraMute, participant]);
 
 	return (
 		<div
@@ -58,7 +87,7 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 			}}
 		>
 			{participant.isAudioMute() && (
-				<div className="absolute left-2 top-2 z-20 text-2xl md:left-auto md:right-2">
+				<div className="absolute right-2 top-2 z-20 text-2xl md:left-auto md:right-2">
 					<svg width="1em" height="1em" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
 						<g fill="none" fillRule="evenodd">
 							<circle fill="#FD605D" cx={13} cy={13} r={13} />
@@ -70,34 +99,13 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 					</svg>
 				</div>
 			)}
-			{!avatarUrl && noVideo && (
-				<DefaultAvatar
-					name={name ? name : "?"}
-					className={clsx("md:h-24 md:w-24 border-4", isSpeaking && "border-blue border-solid")}
-				/>
-			)}
-
-			{avatarUrl && noVideo && (
-				<>
-					<img
-						src={avatarUrl}
-						alt=""
-						className="pointer-events-none z-10 object-cover h-24 w-24 rounded-full shadow-lg landscape:lg:w-48 landscape:lg:h-48"
-					/>
-					<img
-						src={avatarUrl}
-						alt=""
-						className="pointer-events-none absolute left-0 top-0 h-full w-full object-cover blur block"
-					/>
-				</>
-			)}
-
+			{noVideo && <ParticipantAvatar name={name} avatarUrl={avatarUrl} isSpeaking={isSpeaking} />}
 			<video
 				ref={refVideo}
 				autoPlay={true}
 				playsInline={true}
 				id={"videoElement-" + participantId}
-				className={clsx("h-full object-cover", noVideo && "hidden")}
+				className={clsx(videoClass, noVideo && "hidden")}
 			></video>
 			<audio ref={refAudio} autoPlay={true} playsInline={true} id={"audioElement-" + participantId}></audio>
 			<div
@@ -113,5 +121,3 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 		</div>
 	);
 };
-
-export default ParticipantGridCell;

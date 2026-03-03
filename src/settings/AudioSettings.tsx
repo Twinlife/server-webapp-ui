@@ -32,6 +32,7 @@ export const AudioSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 	const outputDeviceId = config.outputDeviceId;
 
 	// Fetch audio devices only when the "Audio" tab is active
+	/* eslint-disable react-hooks/exhaustive-deps */
 	useEffect(() => {
 		console.info("AudioSettings useEffect", isOpen);
 		if (isOpen) {
@@ -64,7 +65,7 @@ export const AudioSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 			.fetchAudioDevices(item.id)
 			.then((stream: MediaStream) => {
 				const selectedDevice = mediaDevices.getMediaDevice(item.id);
-				if (selectedDevice) {
+				if (selectedDevice && stream) {
 					console.error("Audio ", selectedDevice, "selected");
 					onChange({ ...config, inputDeviceId: selectedDevice.deviceId });
 				}

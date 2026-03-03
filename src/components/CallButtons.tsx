@@ -17,13 +17,12 @@ import MonitorOn from "../assets/monitor.svg";
 import ChatIcon from "../assets/chat-black.svg";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import WhiteButton from "../components/WhiteButton";
-import { browser } from "../utils/BrowserCapabilities";
+import { isMobile } from "../utils/BrowserCapabilities";
 import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { SettingsDialog } from "../settings/SettingsDialog";
 import { chatStore } from "../stores/chat";
 import { useSnapshot } from "valtio";
 
-const isMobile = browser.isMobile();
 const MEETING = import.meta.env.VITE_APP_MEETING === "true";
 
 export interface CallButtonHandlers {
@@ -98,6 +97,7 @@ export const CallButtons = ({
 	const inTransfer = transfer && inCall;
 	const callLabel = transfer ? t("transfer") : t("call");
 	const [isSettingsOpen, setSettingsOpen] = useState<boolean>(false);
+	const [isButtonsVisible, setButtonsVisible] = useState<boolean>(true);
 	const hasCallButton = (!MEETING && !CallStatusOps.isTerminated(status)) || inCall;
 	const chat = useSnapshot(chatStore);
 
@@ -107,13 +107,57 @@ export const CallButtons = ({
 	const closeSettings = () => {
 		setSettingsOpen(false);
 	};
+	useEffect(() => {
+		let hideTimeout: NodeJS.Timeout | null = null;
+
+		const handleMouseMove = () => {
+			setButtonsVisible(true);
+			console.log("Set buttons visible");
+			window.removeEventListener("mousemove", handleMouseMove);
+			window.removeEventListener("touchend", handleTouchEvent);
+			if (inCall) {
+				hideTimeout = setTimeout(() => hideButtons(), 5000);
+				console.log("set hide timeout 5s");
+			} else {
+				console.log("Not in call, buttons visible");
+			}
+		};
+		const handleTouchEvent = (ev: Event) => {
+			ev.preventDefault();
+			handleMouseMove();
+		};
+
+		const hideButtons = () => {
+			setButtonsVisible(false);
+			window.addEventListener("mousemove", handleMouseMove);
+			window.addEventListener("touchend", handleTouchEvent);
+			console.log("set buttons hidden");
+			if (hideTimeout) {
+				clearTimeout(hideTimeout);
+			}
+			hideTimeout = null;
+		};
+
+		if (isButtonsVisible) {
+			handleMouseMove();
+		}
+
+		return () => {
+			if (hideTimeout) {
+				clearTimeout(hideTimeout);
+			}
+			window.removeEventListener("mousemove", handleMouseMove);
+		};
+	}, [inCall]);
 
 	return (
 		<div
 			className={clsx(
-				"mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2",
+				"mx-auto flex w-auto items-center justify-between md:rounded-lg bg-zinc-800 md:px-4 md:py-2",
 				className,
+				inCall && !isButtonsVisible ? "hidden" : "",
 			)}
+			style={{ display: inCall && !isButtonsVisible ? "none" : "flex" }}
 		>
 			{hasCallButton && (
 				<div>

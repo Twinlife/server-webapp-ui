@@ -196,6 +196,14 @@ export class CallParticipant {
 		}
 	}
 
+	public setVideoSize(videoWidth: number, videoHeight: number): void {
+		this.mVideoWidth = videoWidth;
+		this.mVideoHeight = videoHeight;
+		if (DEBUG) {
+			console.log(this.mSenderId, "Video stream", this.mVideoWidth, "x", this.mVideoHeight);
+		}
+	}
+
 	addAudioTrack(track: MediaStreamTrack) {
 		this.mAudioTrackId = track.id;
 		this.mAudioStream.addTrack(track);
@@ -257,16 +265,6 @@ export class CallParticipant {
 	updateSenderId(senderId: UUID) {
 		if (this.mSenderId == null) {
 			this.mSenderId = senderId;
-		}
-	}
-
-	public onFrameResolutionChanged(videoWidth: number, videoHeight: number, rotation: number): void {
-		if (rotation === 90 || rotation === 270) {
-			this.mVideoWidth = videoHeight;
-			this.mVideoHeight = videoWidth;
-		} else {
-			this.mVideoWidth = videoWidth;
-			this.mVideoHeight = videoHeight;
 		}
 	}
 

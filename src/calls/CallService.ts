@@ -290,13 +290,6 @@ export class CallService implements PeerCallServiceObserver {
 		}
 	}
 
-	/**
-	 * Stop the video track to release the camera.
-	 */
-	stopVideoTrack() {
-		this.mLocalStream.stop();
-	}
-
 	setVideoTrack(videoTrack: VideoTrack, isScreenSharing: boolean): void {
 		console.info("Set video track with ", videoTrack.deviceId);
 

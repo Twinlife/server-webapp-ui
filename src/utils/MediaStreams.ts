@@ -17,11 +17,13 @@ export class MediaStreams {
 	video: VideoTrack | null;
 	audio: AudioTrack | null;
 	audioMonitor: AudioMonitor | null;
+	isScreenSharing: boolean;
 
 	constructor() {
 		this.video = null;
 		this.audio = null;
 		this.audioMonitor = null;
+		this.isScreenSharing = false;
 		this.stream = new MediaStream();
 	}
 
@@ -43,6 +45,7 @@ export class MediaStreams {
 		if (videoTrack) {
 			this.stream.addTrack(videoTrack.track);
 		}
+		this.isScreenSharing = isScreenSharing;
 		return result;
 	}
 

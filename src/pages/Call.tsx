@@ -21,13 +21,15 @@ import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import { ConversationService } from "../calls/ConversationService";
 import Alert from "../components/Alert";
 import Header from "../components/Header";
-import InitializationPanel from "../components/InitializationPanel";
+import { LocalParticipant } from "../components/LocalParticipant";
+import { ViewMode } from "../utils/DisplayMode";
 import { ParticipantsGrid, DisplayMode } from "../components/ParticipantsGrid";
 import StoresBadges from "../components/StoresBadges";
+import PrepareCall from "../components/PrepareCall";
 import Thanks from "../components/Thanks";
 import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
-import { browser } from "../utils/BrowserCapabilities";
+import { isMobile } from "../utils/BrowserCapabilities";
 import { CallButtons, CallButtonHandlers } from "../components/CallButtons";
 import { NotificationCenter, notificationCenter } from "../notifications/NotificationCenter";
 import { MediaStreams } from "../utils/MediaStreams";
@@ -83,7 +85,6 @@ export interface CallState {
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
-const isMobile = browser.isMobile();
 
 // Create only one instance of PeerCallService.
 const peerCallService: PeerCallService = new PeerCallService();
@@ -124,10 +125,7 @@ export class Call
 		alertTitle: "",
 		alertContent: <></>,
 		displayMode: {
-			defaultMode: true,
-			showParticipant: false,
-			showLocalThumbnail: false,
-			showScreenSharing: false,
+			mode: ViewMode.VIEW_DEFAULT,
 			participantId: null,
 		},
 	};
@@ -250,7 +248,6 @@ export class Call
 
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showLocalThumbnail = participants.length === 1 && isMobile;
 		this.setState({ participants: participants, displayMode: displayMode });
 	}
 
@@ -263,17 +260,15 @@ export class Call
 		if (DEBUG) {
 			console.log("Remove", participants.length, "participants");
 		}
+
+		this.notificationCenter.postMemberLeave(participants);
 		const list: Array<CallParticipant> = this.callService.getParticipants();
 		const displayMode: DisplayMode = this.state.displayMode;
 		if (displayMode.participantId !== null) {
 			displayMode.participantId = null;
-			displayMode.showParticipant = false;
+			displayMode.mode = ViewMode.VIEW_DEFAULT;
 		}
-		displayMode.showLocalThumbnail = list.length === 1 && isMobile;
 		this.setState({ participants: list, displayMode: displayMode });
-		if (list.length >= 1) {
-			this.notificationCenter.postMemberLeave();
-		}
 	}
 
 	/**
@@ -293,12 +288,12 @@ export class Call
 			// We now assume everybody supports messages.
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_ON) {
 			const displayMode: DisplayMode = this.state.displayMode;
-			displayMode.showScreenSharing = true;
+			displayMode.mode = ViewMode.VIEW_SHARE_SCREEN;
 			displayMode.participantId = participant.getParticipantId();
 			this.setState({ displayMode: displayMode });
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_OFF) {
 			const displayMode: DisplayMode = this.state.displayMode;
-			displayMode.showParticipant = false;
+			displayMode.mode = ViewMode.VIEW_DEFAULT;
 			displayMode.participantId = null;
 			this.setState({ displayMode: displayMode });
 		} else if (event == CallParticipantEvent.EVENT_IDENTITY) {
@@ -404,8 +399,13 @@ export class Call
 	onVideoClick = (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => {
 		ev.preventDefault();
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showParticipant = !displayMode.showParticipant;
-		displayMode.participantId = participantId !== undefined ? participantId : null;
+		if (participantId === undefined || displayMode.participantId == participantId) {
+			displayMode.participantId = null;
+			displayMode.mode = ViewMode.VIEW_DEFAULT;
+		} else {
+			displayMode.participantId = participantId;
+			displayMode.mode = participantId > 0 ? ViewMode.VIEW_FOCUS_PARTICIPANT : ViewMode.VIEW_FOCUS_CAMERA;
+		}
 		this.setState({ displayMode: displayMode });
 	};
 
@@ -417,7 +417,7 @@ export class Call
 			if (isSharingScreen) {
 				this.callService.actionCameraMute(true);
 				this.setUsedDevices();
-				displayMode.showParticipant = false;
+				displayMode.mode = ViewMode.VIEW_DEFAULT;
 				displayMode.participantId = null;
 			}
 			this.setState(
@@ -506,7 +506,7 @@ export class Call
 					async () => {
 						const fMode = this.state.facingMode;
 
-						this.callService.stopVideoTrack();
+						this.callService.getMediaStream().setVideoTrack(null, false);
 						const constraints = {
 							audio: false,
 							video: {
@@ -581,7 +581,6 @@ export class Call
 				});
 				if (mediaStream) {
 					console.info("Selecting display stream", mediaStream.id);
-					this.callService.stopVideoTrack();
 					this.setVideoTrack(mediaStream.getVideoTracks()[0], true);
 					const callStream: MediaStreams = this.callService.getMediaStream();
 					if (callStream.video) {
@@ -593,7 +592,6 @@ export class Call
 						};
 					}
 					const displayMode: DisplayMode = this.state.displayMode;
-					// displayMode.showParticipant = true;
 					displayMode.participantId = 0;
 					this.setUsedDevices();
 					this.setState({ isSharingScreen: true, displayMode: displayMode });
@@ -613,7 +611,7 @@ export class Call
 		}
 
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showParticipant = false;
+		displayMode.mode = ViewMode.VIEW_DEFAULT;
 		displayMode.participantId = null;
 		this.setState({ isSharingScreen: false, displayMode: displayMode }, async () => {
 			const { videoMute, twincode } = this.state;
@@ -861,42 +859,97 @@ export class Call
 			callType: callType,
 			linkName: twincode.name,
 		});
+		const isActive = CallStatusOps.isActive(status);
+		const isTerminated = CallStatusOps.isTerminated(status);
 
+		if (DEBUG) {
+			if (initializing) {
+				console.log("Render initializing", status, "mode", displayMode.mode);
+			} else if (isActive) {
+				console.log("Render active", status, "mode", displayMode.mode);
+			} else if (isTerminated) {
+				console.log("Render terminated", status, "mode", displayMode.mode, terminateReason);
+			} else {
+				console.log("Render", status, "mode", displayMode.mode);
+			}
+		}
 		return (
 			<div className="relative flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
 				<Header className="" />
 				<Notifications />
 
-				{initializing && (
-					<InitializationPanel
+				{!isActive && (
+					<PrepareCall
+						className="flex h-full w-screen flex flex-col"
+						initializing={initializing}
 						twincodeId={id}
 						twincode={twincode}
-						onComplete={(twincode): string | null => {
-							return this.onGetTwincode(twincode);
+						status={status}
+						title={twincode.name ? twincode.name : "?"}
+						buttons={
+							<CallButtons
+								className=""
+								status={status}
+								callbacks={this}
+								audioMute={audioMute}
+								hasVideo={twincode.video}
+								videoMute={videoMute}
+								isSharingScreen={isSharingScreen}
+								transfer={false}
+							/>
+						}
+						onStartClick={this.onCallClick}
+						onCancelClick={this.onTerminateClick}
+						onGetTwincode={(twincode: TwincodeInfo) => {
+							this.onGetTwincode(twincode);
 						}}
-					/>
+					>
+						<div className="flex-1 h-full w-full rounded-lg overflow-hidden">
+							<LocalParticipant
+								localVideoRef={this.localVideoRef}
+								localAbsolute={false}
+								videoMute={videoMute}
+								isLocalAudioMute={false}
+								isIdle={true}
+								isScreenSharing={isSharingScreen}
+								enableVideo={true}
+								guestNameError={guestNameError}
+								muteVideoClick={this.onMuteVideoClick}
+							></LocalParticipant>
+						</div>
+					</PrepareCall>
+				)}
+				{isActive && (
+					<>
+						<ParticipantsGrid
+							localVideoRef={this.localVideoRef}
+							videoMute={videoMute}
+							isSharingScreen={isSharingScreen}
+							isLocalAudioMute={audioMute}
+							twincode={twincode}
+							participants={participants}
+							isIdle={CallStatusOps.isIdle(status)}
+							guestNameError={guestNameError}
+							muteVideoClick={this.onMuteVideoClick}
+							videoClick={this.onVideoClick}
+							mode={displayMode}
+							pushMessage={this.pushMessage}
+							items={items}
+						/>
+						<CallButtons
+							className={""}
+							status={status}
+							callbacks={this}
+							audioMute={audioMute}
+							hasVideo={twincode.video}
+							videoMute={videoMute}
+							isSharingScreen={isSharingScreen}
+							transfer={TRANSFER || twincode.transfer}
+						/>
+					</>
 				)}
 
-				{!initializing && !CallStatusOps.isTerminated(status) && (
-					<ParticipantsGrid
-						localVideoRef={this.localVideoRef}
-						localMediaStream={this.callService.getMediaStream()}
-						videoMute={videoMute}
-						isSharingScreen={isSharingScreen}
-						isLocalAudioMute={audioMute}
-						twincode={twincode}
-						participants={participants}
-						isIdle={CallStatusOps.isIdle(status)}
-						guestNameError={guestNameError}
-						muteVideoClick={this.onMuteVideoClick}
-						videoClick={this.onVideoClick}
-						mode={displayMode}
-						pushMessage={this.pushMessage}
-						items={items}
-					/>
-				)}
-
-				{!initializing && CallStatusOps.isTerminated(status) && terminateReason && (
+				{isTerminated && terminateReason && (
 					<div className="flex w-full flex-1 items-center justify-center text-center">
 						<span>
 							<Trans
@@ -910,20 +963,6 @@ export class Call
 						</span>
 					</div>
 				)}
-
-				{!initializing && !CallStatusOps.isTerminated(status) && (
-					<CallButtons
-						className={""}
-						status={status}
-						callbacks={this}
-						audioMute={audioMute}
-						hasVideo={twincode.video}
-						videoMute={videoMute}
-						isSharingScreen={isSharingScreen}
-						transfer={TRANSFER || twincode.transfer}
-					/>
-				)}
-
 				{!TRANSFER && !isMobile && CallStatusOps.isIdle(status) && (
 					<>
 						<div className="py-6 text-center font-light">{t("next_time_app")}</div>

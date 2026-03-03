@@ -203,14 +203,13 @@ svg {
 }
 .absolute-button-list {
   position: absolute;
-  bottom: 10px;
+  bottom: 20px;
   left: 50%;
   z-index: 200;
   transform: translateX(-50%); /* Centers the buttons horizontally */
   display: flex;
-  gap: 10px; /* Adds space between buttons */
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.9); /* Optional: Adds a background */
+  gap: 2px; /* Adds space between buttons */
+  padding: 10px;
   border-radius: 8px; /* Optional: Rounds the corners */
   box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1); /* Optional: Adds a shadow */
 }

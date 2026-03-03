@@ -33,6 +33,7 @@ export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 	const localVideoRef = useRef<HTMLVideoElement>(null);
 
 	// Fetch audio devices only when the "Audio" tab is active
+	/* eslint-disable react-hooks/exhaustive-deps */
 	useEffect(() => {
 		console.info("VideoSettings useEffect", isOpen);
 		if (isOpen) {

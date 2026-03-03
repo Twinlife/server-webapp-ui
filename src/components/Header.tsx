@@ -13,7 +13,7 @@ interface HeaderProps {
 }
 export default function Header({ className }: HeaderProps) {
 	return (
-		<div className={clsx("flex w-full items-center justify-between", className)}>
+		<div className={clsx("flex items-center justify-between", className)}>
 			<a href={import.meta.env.VITE_APP_WEBSITE} target="_blank" className="flex items-center justify-start">
 				<img src={"/logo/" + import.meta.env.VITE_APP_LOGO} alt="" className="w-8" />
 				<div className="ml-2 font-light text-grey">{import.meta.env.VITE_APP_NAME}</div>

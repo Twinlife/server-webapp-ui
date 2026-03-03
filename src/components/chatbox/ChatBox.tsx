@@ -69,10 +69,10 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 		<div
 			className={[
 				"absolute bottom-0 right-0 z-20 overflow-hidden transition-all",
-				"h-0 w-full px-0 opacity-0",
+				"h-0 w-full px-0 opacity-0 mb-20",
 				"md:h-full ",
 				chatPanelOpened ? "h-[300px] py-4 opacity-100 md:w-[300px]" : "h-0 py-0 md:w-0",
-				chatPanelFull && "!h-full !w-full py-4",
+				chatPanelFull && "h-[calc(100%-5em)] !w-full py-4",
 			].join(" ")}
 		>
 			<div

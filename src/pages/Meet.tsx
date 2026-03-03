@@ -27,9 +27,7 @@ import { VideoTrack } from "../utils/VideoTrack";
 import { Notifications } from "../notifications/Notifications";
 import { backgroundStore } from "../stores/backgrounds";
 import { ContactService } from "../services/ContactService";
-import { browser } from "../utils/BrowserCapabilities";
-
-const isMobile = browser.isMobile();
+import { isMobile } from "../utils/BrowserCapabilities";
 
 export class Meet extends Call {
 	private videoBackground: VirtualBackground | null = null;
@@ -101,17 +99,17 @@ export class Meet extends Call {
 			linkName: twincode.name,
 		});
 		const isActive = CallStatusOps.isActive(status);
-		const style = isMobile ? "p-1" : "p-2 landscape:lg:p-4";
+		const style = "p-1 md:p-2 landscape:lg:p-4";
 		console.log("status", status, "participants", participants.length, "active", isActive);
 
 		return (
 			<div className={clsx("relative flex flex-col h-full w-screen overflow-hidden bg-black", style)}>
-				<Header className={isActive ? "absolute z-10 top-3" : ""} />
+				<Header className={isActive ? "absolute z-10 top-5 left-5 md:top-8 md:left-8" : ""} />
 				<Notifications />
 
 				{!isActive && (
 					<JoinMeeting
-						className="w-full h-screen flex flex-col md:flex-row"
+						className="w-full h-screen flex flex-col md:flex-row landscape:flex-row"
 						initializing={initializing}
 						twincodeId={id}
 						twincode={twincode}
@@ -135,10 +133,9 @@ export class Meet extends Call {
 							this.onGetTwincode(twincode);
 						}}
 					>
-						<div className="flex-1 md:h-full w-full overflow-hidden rounded-lg">
+						<div className="flex-1 h-auto md:h-full md:w-full rounded-lg max-h-[80vh] overflow-hidden">
 							<LocalParticipant
 								localVideoRef={this.localVideoRef}
-								localMediaStream={this.callService.getMediaStream()}
 								localAbsolute={true}
 								videoMute={videoMute && !isSharingScreen}
 								isLocalAudioMute={false}
@@ -155,7 +152,6 @@ export class Meet extends Call {
 					<>
 						<ParticipantsGrid
 							localVideoRef={this.localVideoRef}
-							localMediaStream={this.callService.getMediaStream()}
 							videoMute={videoMute}
 							isSharingScreen={isSharingScreen}
 							isLocalAudioMute={audioMute}

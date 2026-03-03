@@ -32,7 +32,7 @@ const ParticipantScreen: React.FC<ParticipantGridCellProps> = ({ participant, vi
 		if (DEBUG) {
 			console.log("set video participant", participant);
 		}
-	}, [refVideo, participantId]);
+	}, [refVideo, participantId, participant]);
 
 	if (DEBUG) {
 		console.log("Show participant screen", participantId);

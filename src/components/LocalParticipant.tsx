@@ -11,12 +11,11 @@ import { RefObject, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import GuestNameForms from "./GuestNameForms";
 import { DefaultAvatar } from "./DefaultAvatar";
-import { MediaStreams } from "../utils/MediaStreams";
+import { mediaStreams } from "../utils/MediaStreams";
 import { profile } from "../stores/profile";
 
 export const LocalParticipant: React.FC<{
 	localVideoRef: RefObject<HTMLVideoElement | null>;
-	localMediaStream: MediaStreams;
 	localAbsolute: boolean;
 	videoMute: boolean;
 	isLocalAudioMute: boolean;
@@ -27,7 +26,6 @@ export const LocalParticipant: React.FC<{
 	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 }> = ({
 	localVideoRef,
-	localMediaStream,
 	localAbsolute,
 	videoMute,
 	isLocalAudioMute,
@@ -42,22 +40,22 @@ export const LocalParticipant: React.FC<{
 	useEffect(() => {
 		console.log(
 			"Update local ref " + localVideoRef.current + " with stream",
-			localMediaStream.stream.id,
+			mediaStreams.stream.id,
 			" mute ",
 			videoMute,
 		);
 		if (localVideoRef.current) {
-			localVideoRef.current.srcObject = localMediaStream.stream;
+			localVideoRef.current.srcObject = mediaStreams.stream;
 		} else {
 			console.log("There is no local video element");
 		}
-	}, [localMediaStream, localVideoRef, videoMute, localAbsolute]);
+	}, [localVideoRef, videoMute, localAbsolute]);
 
 	const muteSize: string = localAbsolute ? "0.5em" : "1em";
 	const muteClass: string = localAbsolute
 		? "absolute right-1 top-1 z-20 text-2xl md:left-auto md:right-2"
 		: "absolute right-2 top-2 z-20 text-2xl md:left-auto md:right-2";
-	const videoClass: string = localAbsolute ? "h-48 w-full md:h-full object-cover" : "w-full md:h-full object-cover";
+	const videoClass: string = "h-full w-full object-cover"; // : "w-full md:h-full object-cover";
 	return (
 		<>
 			{isLocalAudioMute && (

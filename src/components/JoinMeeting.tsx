@@ -82,11 +82,14 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 	};
 	return (
 		<div className={className}>
-			<div className="flex flex-col w-full md:w-1/4 h-1/3 md:h-full p-4 order-2 md:order-1 items-center text-center">
+			<div
+				id="info-part"
+				className="flex flex-col w-full h-auto text-sm landscape:w-1/4 landscape:h-full md:w-1/4 md:h-full p-1 order-2 md:order-1 landscape:order-1 items-center text-center"
+			>
 				{initializing && (
 					<InitializationPanel twincodeId={twincodeId} twincode={twincode} onComplete={checkTwincode} />
 				)}
-				<div className="flex-1 w-full h-30 rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition md:h-30">
+				<div className="flex-1 w-full rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition text-xs text-[clamp(0.5rem,1vw,1rem)] md:text-base">
 					{isWaiting && (
 						<>
 							<span className="">{t("wait_meeting_message")}</span>
@@ -109,18 +112,18 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 							<img
 								src={avatarUrl}
 								alt=""
-								className="m-auto pointer-events-none z-10 object-cover h-20 w-20 rounded-full shadow-lg landscape:lg:w-48 landscape:lg:h-48"
+								className="m-auto pointer-events-none z-10 object-cover h-16 w-16 rounded-full shadow-lg landscape:lg:w-48 landscape:lg:h-48"
 							/>
 						</div>
 					</>
 				)}
 				<span className="font-bold">{twincode.name}</span>
-				<div className="w-full rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 pt-8 transition">
+				<div className="w-full rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 pt-2 transition">
 					<input
 						type="text"
 						id="name"
 						value={user.name}
-						className="w-full bg-transparent border rounded px-3 py-2 focus:outline-none text-center focus:ring-2"
+						className="w-full bg-transparent border rounded px-3 py-2 landscape:px-1 landscape:py-1 landscape:lg:px-6 landscape:lg:py-3 focus:outline-none text-center focus:ring-2"
 						placeholder="Entrez un pseudo"
 						onChange={(e) => (profile.name = e.target.value)}
 					/>
@@ -129,7 +132,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 					{!isWaiting && !initializing && profile.name && profile.name.length > 0 && canCall && (
 						<button
 							className={
-								"flex w-full items-center justify-center px-6 py-3 text-white transition rounded-lg bg-blue hover:bg-blue/90 active:bg-blue/80"
+								"flex w-full items-center justify-center px-6 py-3 landscape:px-1 landscape:py-1 landscape:lg:px-6 landscape:lg:py-3 text-white transition rounded-lg bg-blue hover:bg-blue/90 active:bg-blue/80"
 							}
 							onClick={onStartClick}
 						>
@@ -139,7 +142,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 					{isWaiting && (
 						<button
 							className={
-								"flex w-full items-center justify-center px-6 py-3 text-white transition rounded-lg bg-red hover:bg-red/90 active:bg-red/80"
+								"flex w-full items-center justify-center px-6 py-3 landscape:px-1 landscape:py-1 text-white transition rounded-lg bg-red hover:bg-red/90 active:bg-red/80"
 							}
 							onClick={onCancelClick}
 						>
@@ -164,7 +167,12 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 					{buttons}
 				</div>
 			</div>
-			<div className="w-full md:w-3/4 h-auto md:h-full p-4 order-1 md:order-2"> {children} </div>
+			<div
+				id="video-part"
+				className="flex-1 w-full h-auto landscape:w-3/4 md:w-3/4 landscape:h-full md:h-full p-1 order-1 md:order-2"
+			>
+				{children}
+			</div>
 		</div>
 	);
 };

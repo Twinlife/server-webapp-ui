@@ -12,27 +12,23 @@ import { CallService } from "../calls/CallService";
 import { Item } from "../pages/Call";
 import { TwincodeInfo } from "../services/ContactService";
 import GuestNameForms from "./GuestNameForms";
-import ParticipantGridCell from "./ParticipantGridCell";
+import { ViewMode } from "../utils/DisplayMode";
+import { ParticipantGridCell } from "./ParticipantGridCell";
 import ParticipantScreen from "./ParticipantScreen";
 import ChatBox from "./chatbox/ChatBox";
 import { DraggableParticipant } from "./DraggableParticipant";
-import { MediaStreams } from "../utils/MediaStreams";
 import { chatStore } from "../stores/chat";
 import { useSnapshot } from "valtio";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 export type DisplayMode = {
-	defaultMode: boolean;
-	showParticipant: boolean;
-	showLocalThumbnail: boolean;
-	showScreenSharing: boolean;
+	mode: ViewMode;
 	participantId: number | null;
 };
 
 export const ParticipantsGrid: React.FC<{
 	localVideoRef: RefObject<HTMLVideoElement | null>;
-	localMediaStream: MediaStreams;
 	videoMute: boolean;
 	isSharingScreen: boolean;
 	isLocalAudioMute: boolean;
@@ -47,7 +43,6 @@ export const ParticipantsGrid: React.FC<{
 	pushMessage: typeof CallService.prototype.pushMessage;
 }> = ({
 	localVideoRef,
-	localMediaStream,
 	videoMute,
 	isSharingScreen,
 	isLocalAudioMute,
@@ -62,7 +57,7 @@ export const ParticipantsGrid: React.FC<{
 	pushMessage,
 }) => {
 	const chat = useSnapshot(chatStore);
-	const localAbsolute = mode.showLocalThumbnail && !mode.showParticipant;
+	const localAbsolute = mode.mode == ViewMode.VIEW_DEFAULT && participants.length <= 1;
 	const nbParticipants = participants.length === 0 ? 2 : participants.length + (localAbsolute ? 0 : 1);
 	const screens: Array<CallParticipant> = participants.filter((participant) => participant.isScreenSharing());
 	const screenParticipantId: number | null = isSharingScreen
@@ -70,11 +65,14 @@ export const ParticipantsGrid: React.FC<{
 		: screens.length > 0
 			? screens[0].getParticipantId()
 			: null;
-	const displayMode: DisplayMode = { ...mode, showScreenSharing: screenParticipantId != null };
+	const displayMode: DisplayMode = {
+		...mode,
+		mode: screenParticipantId != null ? ViewMode.VIEW_SHARE_SCREEN : mode.mode,
+	};
 	const divClass =
-		displayMode.showParticipant && !displayMode.showScreenSharing
-			? "relative grid flex-1 gap-4 overflow-hidden py-4 transition-all"
-			: "relative grid flex-1 gap-4 overflow-hidden py-4 landscape:py-2 lg:py-4 transition-all";
+		displayMode.mode == ViewMode.VIEW_FOCUS_PARTICIPANT || displayMode.mode == ViewMode.VIEW_FOCUS_CAMERA
+			? "relative grid flex-1 gap-4 overflow-hidden md:py-4 transition-all"
+			: "relative grid flex-1 gap-4 overflow-hidden md:py-4 landscape:py-2 lg:py-4 transition-all";
 	if (DEBUG) {
 		console.log(
 			"Display grid",
@@ -107,6 +105,7 @@ export const ParticipantsGrid: React.FC<{
 				{participants.map((participant) => (
 					<ParticipantGridCell
 						key={participant.getParticipantId()}
+						mode={displayMode.mode}
 						cellClassName={getCellClass(
 							participant.getParticipantId(),
 							displayMode,
@@ -119,18 +118,17 @@ export const ParticipantsGrid: React.FC<{
 				))}
 
 				{/* Display Contact before call (participants.length === 0) */}
-				{participants.length === 0 && (
+				{/* {participants.length === 0 && (
 					<ParticipantGridCell
 						cellClassName={getCellClass(0, displayMode, nbParticipants)}
 						participant={participants[0]}
 						videoClick={videoClick}
 						avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
 					/>
-				)}
+				)}*/}
 				<DraggableParticipant
 					className={getCellClass(0, displayMode, nbParticipants)}
 					localVideoRef={localVideoRef}
-					localMediaStream={localMediaStream}
 					localAbsolute={localAbsolute && !screenParticipantId}
 					videoMute={videoMute}
 					isSharingScreen={isSharingScreen}
@@ -162,10 +160,10 @@ export const ParticipantsGrid: React.FC<{
 };
 
 function getGridClass(mode: DisplayMode, participantsAmount: number) {
-	if (mode.showParticipant) {
+	if (mode.mode == ViewMode.VIEW_FOCUS_PARTICIPANT || mode.mode == ViewMode.VIEW_FOCUS_CAMERA) {
 		return "h-full grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
 	}
-	if (mode.showScreenSharing) {
+	if (mode.mode == ViewMode.VIEW_SHARE_SCREEN) {
 		return "pl-2 border-l-2 border-black grid grid-cols-1 h-full gap-1 w-48";
 	}
 	switch (participantsAmount) {
@@ -193,10 +191,10 @@ function getGridClass(mode: DisplayMode, participantsAmount: number) {
 }
 
 function getCellClass(participantId: number, mode: DisplayMode, participantsAmount: number) {
-	if (mode.showParticipant) {
+	if (mode.mode == ViewMode.VIEW_FOCUS_PARTICIPANT || mode.mode == ViewMode.VIEW_FOCUS_CAMERA) {
 		return mode.participantId === participantId ? "h-full" : "hidden";
 	}
-	if (mode.showScreenSharing) {
+	if (mode.mode == ViewMode.VIEW_SHARE_SCREEN) {
 		return "border-solid border-4 border-blue";
 	}
 	switch (participantsAmount) {
