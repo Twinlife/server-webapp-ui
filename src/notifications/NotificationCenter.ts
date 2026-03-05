@@ -40,14 +40,16 @@ function getSound(type: NotificationType): string | null {
 			return "/sounds/skred/call_end_ringtone.ogg";
 
 		case NotificationType.MEMBER_JOINED:
-			return "/sounds/joined.mp3";
+			return "/sounds/join-call.mp3";
 
 		case NotificationType.MEMBER_LEAVE:
-			return "/sounds/left.mp3";
+			return "/sounds/member-leave.mp3";
 
 		case NotificationType.MESSAGE_RECEIVED:
+			return "/sounds/message-received.mp3";
+
 		case NotificationType.MESSAGE_SENT:
-			return "/sounds/incomingMessage.mp3";
+			return "/sounds/message-sent.mp3";
 
 		default:
 			return null;
