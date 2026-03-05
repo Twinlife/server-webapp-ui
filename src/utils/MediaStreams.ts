@@ -48,6 +48,19 @@ export class MediaStreams {
 		this.isScreenSharing = isScreenSharing;
 		return result;
 	}
+	setVideoTrackNoStop(videoTrack: VideoTrack | null): boolean {
+		const result: boolean = this.video != null;
+		if (this.video) {
+			// Replace track
+			const currentTrack = this.video.track;
+			this.stream.removeTrack(currentTrack);
+		}
+		this.video = videoTrack;
+		if (videoTrack) {
+			this.stream.addTrack(videoTrack.track);
+		}
+		return result;
+	}
 
 	setAudioTrack(audioTrack: AudioTrack): boolean {
 		console.info("Replace audio track with ", audioTrack.deviceId);

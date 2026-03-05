@@ -293,12 +293,18 @@ export class CallService implements PeerCallServiceObserver {
 	setVideoTrack(videoTrack: VideoTrack, isScreenSharing: boolean): void {
 		console.info("Set video track with ", videoTrack.deviceId);
 
-		const call = this.mActiveCall;
-		const replace = this.mLocalStream.setVideoTrack(videoTrack, isScreenSharing);
-		if (call && CallStatusOps.isActive(call.getStatus())) {
-			call.setVideoTrack(videoTrack, isScreenSharing, replace);
-		}
 		this.mIsScreenSharing = isScreenSharing;
+		const replace = this.mLocalStream.setVideoTrack(videoTrack, isScreenSharing);
+		this.updateVideoTrack(videoTrack, replace);
+	}
+
+	updateVideoTrack(videoTrack: VideoTrack, replace: boolean): void {
+		console.info("Update video track with ", videoTrack.deviceId);
+
+		const call = this.mActiveCall;
+		if (call && CallStatusOps.isActive(call.getStatus())) {
+			call.setVideoTrack(videoTrack, this.mIsScreenSharing, replace);
+		}
 	}
 
 	hasAudioTrack(): boolean {

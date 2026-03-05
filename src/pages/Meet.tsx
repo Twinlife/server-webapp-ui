@@ -28,6 +28,7 @@ import { Notifications } from "../notifications/Notifications";
 import { backgroundStore } from "../stores/backgrounds";
 import { ContactService } from "../services/ContactService";
 import { isMobile } from "../utils/BrowserCapabilities";
+import { mediaStreams } from "../utils/MediaStreams.ts";
 
 export class Meet extends Call {
 	private videoBackground: VirtualBackground | null = null;
@@ -37,10 +38,46 @@ export class Meet extends Call {
 
 		// If the virtual background setting was changed, update the effect.
 		subscribe(backgroundStore, () => {
-			if (this.videoBackground) {
-				const background = backgroundStore.background;
+			const background = backgroundStore.background;
+			const video: VideoTrack | null = mediaStreams.video;
+			if (this.videoBackground && (video == null || video.hasEffect())) {
+				if (background < 0) {
+					// The current media video has the virtual background effect,
+					// we must stop the effect without stopping the camera.
+					// In the media stream, we only switch the track from the effect-track
+					// to the camera track.
+					console.info("Remove video background track changed in the media stream");
+					mediaStreams.setVideoTrackNoStop(this.videoBackground.removeEffect());
+					if (mediaStreams.video) {
+						this.callService.updateVideoTrack(mediaStreams.video, true);
+					}
+				} else {
+					// Simple case: we only change the background effect on the same track.
+					// No need to switch track, we only change the background image.
+					const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+					console.info("Change video background to", backgroundPath);
+					this.videoBackground.setBackground(backgroundPath);
+				}
+			} else if (background >= 0 && video) {
+				// Last case, the current video has no effect and we want to turn it on.
+				// Again, we have to update the media stream with a new track without
+				// stopping the camera.
 				const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
-				this.videoBackground.setBackground(backgroundPath);
+				console.info("Create video background", backgroundPath);
+				if (this.videoBackground == null) {
+					const videoBackground = new VirtualBackground();
+					this.videoBackground = videoBackground;
+					videoBackground.init().then(() => {
+						const stream = videoBackground.startEffect(video.track, backgroundPath);
+						mediaStreams.setVideoTrackNoStop(stream);
+						this.callService.updateVideoTrack(stream, true);
+					});
+				} else {
+					mediaStreams.setVideoTrackNoStop(this.videoBackground.startEffect(video.track, backgroundPath));
+					if (mediaStreams.video) {
+						this.callService.updateVideoTrack(mediaStreams.video, true);
+					}
+				}
 			}
 		});
 	};
@@ -49,6 +86,9 @@ export class Meet extends Call {
 		const background = backgroundStore.background;
 		if (isMobile || isScreenSharing || background == null || background < 0) {
 			this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
+			if (this.videoBackground) {
+				this.videoBackground.stopEffect();
+			}
 			return;
 		}
 		if (this.videoBackground == null) {

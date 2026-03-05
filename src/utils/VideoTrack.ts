@@ -35,4 +35,8 @@ export class VideoTrack {
 	stop(): void {
 		this.track.stop();
 	}
+
+	hasEffect(): boolean {
+		return false;
+	}
 }

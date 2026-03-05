@@ -17,6 +17,10 @@ class EffectVideoTrack extends VideoTrack {
 		this.effect = effect;
 	}
 
+	hasEffect(): boolean {
+		return true;
+	}
+
 	stop(): void {
 		console.log("EffectVideoTrack.stop");
 		super.stop();
@@ -42,12 +46,14 @@ export class VirtualBackground {
 	private timerWorker: Worker | null;
 	private maskPixelCount: number = 0;
 	private count: number = 0;
+	private effectTrack: EffectVideoTrack | null;
 
 	constructor() {
 		this.canvas = document.createElement("canvas");
 		this.maskCanvas = document.createElement("canvas");
 		this.timerWorker = null;
 		this.track = null;
+		this.effectTrack = null;
 	}
 
 	async init() {
@@ -74,6 +80,26 @@ export class VirtualBackground {
 		} else {
 			this.backgroundImage = null;
 		}
+	}
+
+	/**
+	 * Remove the video effect on the current track and return the new track
+	 * without the video effect.  Used only when turning off the effect background
+	 * while keeping the camera stream.
+	 * @returns  the original video track without effect.
+	 */
+	removeEffect(): VideoTrack | null {
+		let deviceId: string = "";
+		if (this.effectTrack) {
+			deviceId = this.effectTrack.deviceId;
+		}
+		const track = this.track;
+		if (track == null) {
+			return null;
+		}
+		this.track = null;
+		this.stopEffect();
+		return new VideoTrack(track, deviceId);
 	}
 
 	startEffect(track: MediaStreamTrack, backgroundPath: string | null): VideoTrack {
@@ -118,7 +144,8 @@ export class VirtualBackground {
 		this.timerWorker?.postMessage({ id: SET_TIMEOUT, timeMs: 100 });
 		const result = this.canvas.captureStream(frameRate);
 		console.log("Created new stream " + result);
-		return new EffectVideoTrack(this, result, deviceId ? deviceId : track.label);
+		this.effectTrack = new EffectVideoTrack(this, result, deviceId ? deviceId : track.label);
+		return this.effectTrack;
 	}
 
 	stopEffect() {
@@ -128,12 +155,13 @@ export class VirtualBackground {
 			//this.timerWorker.terminate();
 			//this.timerWorker = null;
 		}
-		if (this.track) {
-			this.track.stop();
-			this.track = null;
-		}
 		if (this.video) {
 			this.video.srcObject = null;
+		}
+		const effectTrack = this.effectTrack;
+		if (effectTrack) {
+			this.effectTrack = null;
+			effectTrack.stop();
 		}
 	}
 

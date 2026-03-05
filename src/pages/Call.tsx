@@ -73,8 +73,6 @@ export interface CallState {
 	participants: Array<CallParticipant>;
 	displayThanks: boolean;
 	facingMode: FacingMode;
-	usedAudioDevice: string;
-	usedVideoDevice: string;
 	isSharingScreen: boolean;
 	items: Item[];
 	alertOpen: boolean;
@@ -117,8 +115,6 @@ export class Call
 		participants: [],
 		displayThanks: false,
 		facingMode: "user",
-		usedAudioDevice: "",
-		usedVideoDevice: "",
 		isSharingScreen: false,
 		items: [],
 		alertOpen: false,
@@ -358,16 +354,6 @@ export class Call
 		this.setState({ items });
 	};
 
-	private setUsedDevices() {
-		const mediaStream: MediaStreams = this.callService.getMediaStream();
-		if (mediaStream.audio) {
-			this.setState({ usedAudioDevice: mediaStream.audio.deviceId });
-		}
-		if (mediaStream.video) {
-			this.setState({ usedVideoDevice: mediaStream.video.deviceId });
-		}
-	}
-
 	onTerminateClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 
@@ -416,7 +402,6 @@ export class Call
 			const displayMode: DisplayMode = this.state.displayMode;
 			if (isSharingScreen) {
 				this.callService.actionCameraMute(true);
-				this.setUsedDevices();
 				displayMode.mode = ViewMode.VIEW_DEFAULT;
 				displayMode.participantId = null;
 			}
@@ -536,7 +521,6 @@ export class Call
 		const audioStream: MediaStream | null = await this.getUserMedia(constraints);
 		if (audioStream) {
 			this.callService.setAudioTrack(new AudioTrack(audioStream.getAudioTracks()[0]));
-			this.setUsedDevices();
 		}
 	};
 
@@ -549,7 +533,6 @@ export class Call
 			});
 			if (mediaStream) {
 				this.setVideoTrack(mediaStream.getVideoTracks()[0], false);
-				this.setUsedDevices();
 			}
 		}
 	};
@@ -593,7 +576,6 @@ export class Call
 					}
 					const displayMode: DisplayMode = this.state.displayMode;
 					displayMode.participantId = 0;
-					this.setUsedDevices();
 					this.setState({ isSharingScreen: true, displayMode: displayMode });
 				}
 			} catch (error: unknown) {
@@ -620,7 +602,6 @@ export class Call
 			}
 		});
 		this.callService.actionCameraMute(true);
-		this.setUsedDevices();
 	};
 
 	onCallClick: React.MouseEventHandler<HTMLButtonElement> = async (ev: React.MouseEvent<HTMLButtonElement>) => {
@@ -675,7 +656,6 @@ export class Call
 			}
 			mediaStream.removeTrack(track);
 		}
-		this.setUsedDevices();
 		return true;
 	};
 
