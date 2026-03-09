@@ -191,7 +191,8 @@ export interface PeerCallServiceObserver {
 
 type Timer = ReturnType<typeof setTimeout>;
 type ReadyCallback = (config: CallConfigMessage) => void;
-const PING_TIMER: number = 15000; // 15s, must be at least 2 times faster than server websocket idle timeout
+const PING_TIMER: number = 7500; // 7.5s, must be at least 2 times faster than server websocket idle timeout
+const PING_TIMEOUT: number = 30000; // 30s, above this we consider the websocket connection as dead.
 const CONNECT_TIMER: number = 15000; // 15s to connect for the websocket.
 const RETRY_DELAY: number = 3000; // 3s pause between reconnection.
 const MAX_RETRIES: number = 5;
@@ -331,7 +332,7 @@ export class PeerCallService {
 							initResponse.status,
 						);
 					} else {
-						this.callObserver.onSessionTerminate(null, initResponse.status);
+						this.callObserver.onSessionTerminate(initResponse.sessionId, initResponse.status);
 					}
 				}
 			} else if (req.msg === "session-initiate") {
@@ -402,7 +403,7 @@ export class PeerCallService {
 
 		this.pingTimer = setInterval(() => {
 			const now = performance.now();
-			if (now - this.lastRecvTime > 2 * PING_TIMER) {
+			if (now - this.lastRecvTime > PING_TIMEOUT) {
 				this.close(CLOSE_PING_ERROR, "ping timeout");
 			} else if (now - this.lastRecvTime > PING_TIMER) {
 				// If we have an active call, proceed with ping/pong

@@ -7,7 +7,6 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
-import { toZonedTime } from "date-fns-tz";
 import i18n, { TFunction } from "i18next";
 import { createRef, Component, ReactNode, RefObject } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
@@ -22,23 +21,28 @@ import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import { ConversationService } from "../calls/ConversationService";
 import Alert from "../components/Alert";
 import Header from "../components/Header";
-import InitializationPanel from "../components/InitializationPanel";
+import { LocalParticipant } from "../components/LocalParticipant";
+import { ViewMode } from "../utils/DisplayMode";
 import { ParticipantsGrid, DisplayMode } from "../components/ParticipantsGrid";
 import StoresBadges from "../components/StoresBadges";
+import PrepareCall from "../components/PrepareCall";
 import Thanks from "../components/Thanks";
-import { Schedule, TwincodeInfo, dateTimeToString } from "../services/ContactService";
+import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
-import IsMobile from "../utils/IsMobile";
+import { isMobile } from "../utils/BrowserCapabilities";
 import { CallButtons, CallButtonHandlers } from "../components/CallButtons";
+import { NotificationCenter, notificationCenter } from "../notifications/NotificationCenter";
+import { MediaStreams } from "../utils/MediaStreams";
+import { AudioTrack } from "../utils/AudioTrack";
+import { VideoTrack } from "../utils/VideoTrack";
+import { Notifications } from "../notifications/Notifications";
+import { chatStore } from "../stores/chat";
+import { profile } from "../stores/profile";
+import { subscribe } from "valtio/index";
+import { audioStore } from "../stores/audio";
+import { videoStore } from "../stores/video";
 
 type FacingMode = "user" | "environment";
-
-type ScheduleLabels = {
-	startDate: string;
-	endDate: string;
-	startTime: string;
-	endTime: string;
-};
 
 export type Item = {
 	participant: CallParticipant | null;
@@ -60,7 +64,6 @@ interface CallProps {
 
 export interface CallState {
 	initializing: boolean;
-	guestName: string;
 	guestNameError: boolean;
 	twincode: TwincodeInfo;
 	status: CallStatus;
@@ -69,30 +72,17 @@ export interface CallState {
 	terminateReason: TerminateReason | null;
 	participants: Array<CallParticipant>;
 	displayThanks: boolean;
-	audioDevices: MediaDeviceInfo[];
-	videoDevices: MediaDeviceInfo[];
 	facingMode: FacingMode;
-	usedAudioDevice: string;
-	usedVideoDevice: string;
 	isSharingScreen: boolean;
-	chatPanelOpened: boolean;
 	items: Item[];
-	atLeastOneParticipantSupportsMessages: boolean;
-	messageNotificationDisplayed: boolean;
 	alertOpen: boolean;
 	alertTitle: string;
 	alertContent: ReactNode;
 	displayMode: DisplayMode;
 }
 
-//e.g. "13:30"
-const timeFormat = new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" });
-//e.g. "1 Décembre 2023"
-const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" });
-
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
-const isMobile = IsMobile();
 
 // Create only one instance of PeerCallService.
 const peerCallService: PeerCallService = new PeerCallService();
@@ -103,12 +93,12 @@ export class Call
 {
 	protected localVideoRef: RefObject<HTMLVideoElement | null> = createRef();
 	protected callService: CallService = new CallService(peerCallService, this, this);
+	protected notificationCenter: NotificationCenter = notificationCenter;
 
 	state: CallState = {
 		initializing: true,
-		guestName: this.getGuestName(),
 		guestNameError: false,
-		status: CallStatus.IDDLE,
+		status: CallStatus.IDLE,
 		twincode: {
 			name: null,
 			description: null,
@@ -116,6 +106,7 @@ export class Call
 			audio: false,
 			video: false,
 			transfer: false,
+			conference: false,
 			schedule: null,
 		},
 		audioMute: false,
@@ -123,23 +114,14 @@ export class Call
 		terminateReason: null,
 		participants: [],
 		displayThanks: false,
-		audioDevices: [],
-		videoDevices: [],
 		facingMode: "user",
-		usedAudioDevice: "",
-		usedVideoDevice: "",
 		isSharingScreen: false,
-		chatPanelOpened: false,
 		items: [],
-		atLeastOneParticipantSupportsMessages: false,
-		messageNotificationDisplayed: false,
 		alertOpen: false,
 		alertTitle: "",
 		alertContent: <></>,
 		displayMode: {
-			defaultMode: true,
-			showParticipant: false,
-			showLocalThumbnail: false,
+			mode: ViewMode.VIEW_DEFAULT,
 			participantId: null,
 		},
 	};
@@ -148,12 +130,13 @@ export class Call
 		this.init();
 	};
 
-	init = () => {
+	init(): void {
+		console.error("First state video", videoStore.enable);
 		this.setState({
 			initializing: true,
-			videoMute: true,
+			videoMute: !videoStore.enable,
 			displayThanks: false,
-			status: CallStatus.IDDLE,
+			status: CallStatus.IDLE,
 			audioMute: false,
 			terminateReason: null,
 			participants: [],
@@ -164,7 +147,28 @@ export class Call
 		if (!this.callService) {
 			this.callService = new CallService(peerCallService, this, this);
 		}
-	};
+
+		subscribe(profile, () => {
+			this.setState({ guestNameError: profile.name === "" });
+			if (profile.name !== "") {
+				this.callService.updateIdentity(profile.name, new ArrayBuffer(0));
+			}
+		});
+		subscribe(audioStore, () => {
+			const deviceId = audioStore.inputDeviceId;
+			if (deviceId) {
+				console.error("Device", deviceId);
+				this.selectAudioDevice(deviceId);
+			}
+		});
+		subscribe(videoStore, () => {
+			const deviceId = videoStore.videoDeviceId;
+			if (deviceId) {
+				console.error("Device", deviceId);
+				this.selectVideoDevice(deviceId);
+			}
+		});
+	}
 
 	/**
 	 * The call status was changed.
@@ -172,11 +176,14 @@ export class Call
 	 * @param {CallStatus} status the new call status.
 	 */
 	onUpdateCallStatus(status: CallStatus): void {
+		const previousStatus: CallStatus = this.state.status;
+
 		if (DEBUG) {
-			console.log("New call status ", CallStatus[status]);
+			console.log("Call status ", CallStatus[previousStatus], " => ", CallStatus[status]);
 		}
 
 		this.setState({ status: status });
+		this.notificationCenter.onUpdateCallStatus(status, previousStatus);
 	}
 
 	onOverrideAudioVideo(audio: boolean, video: boolean): void {
@@ -197,8 +204,13 @@ export class Call
 	 * @param reason the call termination reason.
 	 */
 	onTerminateCall(reason: TerminateReason): void {
-		console.info("Call terminated", reason);
+		const { status } = this.state;
 
+		console.info("Call terminated", reason, "in state", CallStatus[status]);
+
+		this.notificationCenter.onUpdateCallStatus(CallStatus.TERMINATED, status);
+		chatStore.chatPanelOpened = false;
+		chatStore.unreadMessages = 0;
 		this.leaveFullscreen();
 		this.setState({
 			terminateReason: reason,
@@ -206,10 +218,12 @@ export class Call
 			alertOpen: false,
 			alertTitle: "",
 			alertContent: <></>,
-			chatPanelOpened: false,
 			isSharingScreen: false,
 			items: [],
 		});
+		if (reason == "cancel") {
+			return;
+		}
 
 		this.callService = new CallService(peerCallService, this, this);
 
@@ -230,7 +244,6 @@ export class Call
 
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showLocalThumbnail = participants.length === 1 && isMobile;
 		this.setState({ participants: participants, displayMode: displayMode });
 	}
 
@@ -243,15 +256,15 @@ export class Call
 		if (DEBUG) {
 			console.log("Remove", participants.length, "participants");
 		}
+
+		this.notificationCenter.postMemberLeave(participants);
 		const list: Array<CallParticipant> = this.callService.getParticipants();
 		const displayMode: DisplayMode = this.state.displayMode;
 		if (displayMode.participantId !== null) {
 			displayMode.participantId = null;
-			displayMode.showParticipant = false;
+			displayMode.mode = ViewMode.VIEW_DEFAULT;
 		}
-		displayMode.showLocalThumbnail = list.length === 1 && isMobile;
 		this.setState({ participants: list, displayMode: displayMode });
-		this.checkIsMessageSupported();
 	}
 
 	/**
@@ -268,35 +281,21 @@ export class Call
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: participants });
 		if (event === CallParticipantEvent.EVENT_SUPPORTS_MESSAGES) {
-			this.checkIsMessageSupported();
+			// We now assume everybody supports messages.
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_ON) {
 			const displayMode: DisplayMode = this.state.displayMode;
-			displayMode.showParticipant = true;
+			displayMode.mode = ViewMode.VIEW_SHARE_SCREEN;
 			displayMode.participantId = participant.getParticipantId();
 			this.setState({ displayMode: displayMode });
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_OFF) {
 			const displayMode: DisplayMode = this.state.displayMode;
-			displayMode.showParticipant = false;
+			displayMode.mode = ViewMode.VIEW_DEFAULT;
 			displayMode.participantId = null;
 			this.setState({ displayMode: displayMode });
+		} else if (event == CallParticipantEvent.EVENT_IDENTITY) {
+			this.notificationCenter.postMemberJoined(participant);
 		}
 	}
-
-	private checkIsMessageSupported = () => {
-		if (DEBUG) {
-			console.log("Check if participants support messages");
-		}
-		const atLeastOneParticipantSupportsMessages = this.callService.getParticipants().some((participant) => {
-			if (DEBUG) {
-				console.log("isMessageSupported", participant.getCallConnection()?.isMessageSupported());
-			}
-			return participant.getCallConnection()?.isMessageSupported();
-		});
-		if (DEBUG) {
-			console.log("At least one participant supports messages: ", atLeastOneParticipantSupportsMessages);
-		}
-		this.setState({ atLeastOneParticipantSupportsMessages });
-	};
 
 	/**
 	 * A descriptor (message, invitation) was send by the participant.
@@ -328,6 +327,7 @@ export class Call
 		items.push(newItem);
 
 		this.updateItems(items);
+		this.notificationCenter.postNewMessage();
 	}
 
 	private updateItems = (items: Item[]) => {
@@ -341,6 +341,7 @@ export class Call
 				item.corners.tl = "rounded-tl";
 				previousItem.corners.bl = "rounded-bl";
 			}
+			chatStore.unreadMessages++;
 		} else {
 			// Local item
 			if (previousItem && !previousItem.participant) {
@@ -350,21 +351,8 @@ export class Call
 			}
 		}
 
-		const { chatPanelOpened } = this.state;
-		this.setState({ items, messageNotificationDisplayed: !chatPanelOpened });
+		this.setState({ items });
 	};
-
-	private setUsedDevices() {
-		const mediaStream = this.callService.getMediaStream();
-		for (const track of mediaStream.getTracks()) {
-			if (track.kind === "audio") {
-				this.setState({ usedAudioDevice: track.getSettings().deviceId ?? "" });
-			}
-			if (track.kind === "video") {
-				this.setState({ usedVideoDevice: track.getSettings().deviceId ?? "" });
-			}
-		}
-	}
 
 	onTerminateClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
@@ -397,45 +385,47 @@ export class Call
 	onVideoClick = (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => {
 		ev.preventDefault();
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showParticipant = !displayMode.showParticipant;
-		displayMode.participantId = participantId !== undefined ? participantId : null;
+		if (participantId === undefined || displayMode.participantId == participantId) {
+			displayMode.participantId = null;
+			displayMode.mode = ViewMode.VIEW_DEFAULT;
+		} else {
+			displayMode.participantId = participantId;
+			displayMode.mode = participantId > 0 ? ViewMode.VIEW_FOCUS_PARTICIPANT : ViewMode.VIEW_FOCUS_CAMERA;
+		}
 		this.setState({ displayMode: displayMode });
 	};
 
-	private toggleVideo = () => {
+	public toggleVideo = () => {
 		if (this.state.twincode.video) {
 			const { videoMute, isSharingScreen } = this.state;
 
 			const displayMode: DisplayMode = this.state.displayMode;
 			if (isSharingScreen) {
 				this.callService.actionCameraMute(true);
-				this.setUsedDevices();
-				displayMode.showParticipant = false;
+				displayMode.mode = ViewMode.VIEW_DEFAULT;
 				displayMode.participantId = null;
 			}
 			this.setState(
 				{ videoMute: !videoMute && !isSharingScreen, isSharingScreen: false, displayMode: displayMode },
 				async () => {
 					const { videoMute } = this.state;
+					videoStore.enable = !videoMute;
 					if (!videoMute && !this.callService.hasVideoTrack()) {
 						await this.askForMediaPermission("video");
 					}
 
 					if (this.callService.hasVideoTrack()) {
-						this.callService.actionCameraMute(videoMute);
+						this.muteCamera(videoMute);
 					}
 				},
 			);
 		}
 	};
 
-	updateGuestName = (guestName: string) => {
-		this.setState({ guestName, guestNameError: guestName === "" });
-		window.localStorage.setItem("guestName", guestName);
-		if (guestName !== "") {
-			this.callService.updateIdentity(guestName, new ArrayBuffer(0));
-		}
+	muteCamera = (videoMute: boolean) => {
+		this.callService.actionCameraMute(videoMute);
 	};
+
 	pushMessage = (message: string, copyAllowed: boolean) => {
 		const descriptor = this.callService.pushMessage(message, copyAllowed);
 		if (descriptor) {
@@ -448,6 +438,7 @@ export class Call
 					corners: {},
 				},
 			]);
+			this.notificationCenter.postMessageSent();
 		}
 		return descriptor;
 	};
@@ -500,7 +491,7 @@ export class Call
 					async () => {
 						const fMode = this.state.facingMode;
 
-						this.callService.stopVideoTrack();
+						this.callService.getMediaStream().setVideoTrack(null, false);
 						const constraints = {
 							audio: false,
 							video: {
@@ -509,15 +500,16 @@ export class Call
 						};
 						const mediaStream = await this.getUserMedia(constraints);
 						if (mediaStream) {
-							this.callService.addOrReplaceVideoTrack(mediaStream, false);
+							this.setVideoTrack(mediaStream.getVideoTracks()[0], false);
 						}
 					},
 				);
-			} else {
-				console.log(this.state.audioDevices);
-				console.log(this.state.videoDevices);
 			}
 		}
+	};
+
+	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
+		this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
 	};
 
 	selectAudioDevice = async (deviceId: string) => {
@@ -528,8 +520,7 @@ export class Call
 
 		const audioStream: MediaStream | null = await this.getUserMedia(constraints);
 		if (audioStream) {
-			this.callService.addOrReplaceAudioTrack(audioStream.getAudioTracks()[0]);
-			this.setUsedDevices();
+			this.callService.setAudioTrack(new AudioTrack(audioStream.getAudioTracks()[0]));
 		}
 	};
 
@@ -541,8 +532,7 @@ export class Call
 				video: { deviceId },
 			});
 			if (mediaStream) {
-				this.callService.addOrReplaceVideoTrack(mediaStream, false);
-				this.setUsedDevices();
+				this.setVideoTrack(mediaStream.getVideoTracks()[0], false);
 			}
 		}
 	};
@@ -554,6 +544,11 @@ export class Call
 		} else {
 			this.stopScreenSharing();
 		}
+	};
+
+	onChatClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
+		ev.preventDefault();
+		chatStore.chatPanelOpened = !chatStore.chatPanelOpened;
 	};
 
 	private startScreenSharing = async () => {
@@ -569,17 +564,18 @@ export class Call
 				});
 				if (mediaStream) {
 					console.info("Selecting display stream", mediaStream.id);
-					this.callService.stopVideoTrack();
-					this.callService.addOrReplaceVideoTrack(mediaStream, true).onended = (_event: Event) => {
-						// onended is called if the user stops screen sharing from its browser
-						if (this.state.isSharingScreen) {
-							this.stopScreenSharing();
-						}
-					};
+					this.setVideoTrack(mediaStream.getVideoTracks()[0], true);
+					const callStream: MediaStreams = this.callService.getMediaStream();
+					if (callStream.video) {
+						callStream.video.track.onended = (_event: Event) => {
+							// onended is called if the user stops screen sharing from its browser
+							if (this.state.isSharingScreen) {
+								this.stopScreenSharing();
+							}
+						};
+					}
 					const displayMode: DisplayMode = this.state.displayMode;
-					displayMode.showParticipant = true;
 					displayMode.participantId = 0;
-					this.setUsedDevices();
 					this.setState({ isSharingScreen: true, displayMode: displayMode });
 				}
 			} catch (error: unknown) {
@@ -597,7 +593,7 @@ export class Call
 		}
 
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showParticipant = false;
+		displayMode.mode = ViewMode.VIEW_DEFAULT;
 		displayMode.participantId = null;
 		this.setState({ isSharingScreen: false, displayMode: displayMode }, async () => {
 			const { videoMute, twincode } = this.state;
@@ -606,11 +602,11 @@ export class Call
 			}
 		});
 		this.callService.actionCameraMute(true);
-		this.setUsedDevices();
 	};
 
 	onCallClick: React.MouseEventHandler<HTMLButtonElement> = async (ev: React.MouseEvent<HTMLButtonElement>) => {
-		const { twincode, guestName } = this.state;
+		const { twincode } = this.state;
+		const guestName = profile.name;
 		if (guestName === "") {
 			this.setState({ guestNameError: true });
 			console.error("Identity name needed");
@@ -636,7 +632,7 @@ export class Call
 		}
 	};
 
-	private askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
+	public askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
 		const fMode = this.state.facingMode;
 
 		// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
@@ -653,12 +649,10 @@ export class Call
 
 		for (const track of mediaStream.getTracks()) {
 			if (track.kind === "audio" && kind === "audio") {
-				this.callService.addOrReplaceAudioTrack(track);
-				this.setUsedDevices();
+				this.callService.setAudioTrack(new AudioTrack(track));
 			}
 			if (track.kind === "video" && kind === "video") {
-				this.callService.addOrReplaceVideoTrack(track, false);
-				this.setUsedDevices();
+				this.setVideoTrack(track, false);
 			}
 			mediaStream.removeTrack(track);
 		}
@@ -671,13 +665,6 @@ export class Call
 			// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
 			// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
 			const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-			const devices = await navigator.mediaDevices.enumerateDevices();
-			const enumeratedDevices = {
-				audioDevices: devices.filter((device) => device.kind === "audioinput").slice(),
-				videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
-			};
-			this.setState(enumeratedDevices);
 
 			return mediaStream;
 		} catch (error: unknown) {
@@ -732,7 +719,7 @@ export class Call
 	};
 
 	onTransferClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
-		const { twincode, guestName, status } = this.state;
+		const { twincode, status } = this.state;
 
 		if (!CallStatusOps.isActive(status) || !twincode.transfer) {
 			console.error(
@@ -744,7 +731,7 @@ export class Call
 			return;
 		}
 
-		this.callService.setIdentity(guestName, new ArrayBuffer(0));
+		this.callService.setIdentity(profile.name, new ArrayBuffer(0));
 
 		const name: string = twincode.name ? twincode.name : "Unknown";
 		const transfer: boolean = twincode.transfer;
@@ -803,53 +790,28 @@ export class Call
 
 		//special case for schedule, as it has different messages according to the schedule's settings.
 		if (terminateReason === "schedule" && this.state.twincode.schedule) {
-			//for now, we only handle schedules with a single time range of type DateTimeRange
-			const timeRange = this.state.twincode.schedule.timeRanges[0];
-
-			const start = timeRange.start.date;
-			const end = timeRange.end.date;
-
-			if (start.day === end.day && start.month === end.month && start.year === end.year) {
-				return "audio_call_activity_terminate_schedule_single_day";
-			} else {
-				return "audio_call_activity_terminate_schedule_multiple_days";
-			}
+			return ContactService.getSchedule(this.state.twincode.schedule);
 		}
 
 		return this.terminateMessages[terminateReason];
 	};
 
-	/**
-	 * Returns values for the schedule error messages, localized in i18next's current langage
-	 */
-	getScheduleLabels(schedule: Schedule | null): ScheduleLabels | null {
-		if (!schedule?.timeRanges[0]) {
-			return null;
+	onGetTwincode(twincode: TwincodeInfo): string | null {
+		if (!twincode.name || !twincode.audio) {
+			return "twincode_error";
 		}
-
-		const range = schedule.timeRanges[0];
-		const timeZone = schedule.timeZone;
-
-		const startDate = toZonedTime(dateTimeToString(range.start), timeZone);
-		const endDate = toZonedTime(dateTimeToString(range.end), timeZone);
-
-		return {
-			startDate: dateFormat.format(startDate),
-			endDate: dateFormat.format(endDate),
-			startTime: timeFormat.format(startDate),
-			endTime: timeFormat.format(endDate),
-		};
+		this.setState({ twincode, initializing: false }, () => {
+			this.onReadyCall();
+		});
+		return null;
 	}
 
-	getGuestName(): string {
-		return window.localStorage.getItem("guestName") ?? this.props.t("guest");
-	}
+	onReadyCall(): void {}
 
 	render() {
 		const { id, t } = this.props;
 		const {
 			initializing,
-			guestName,
 			guestNameError,
 			twincode,
 			videoMute,
@@ -859,15 +821,8 @@ export class Call
 			displayMode,
 			terminateReason,
 			displayThanks,
-			audioDevices,
-			videoDevices,
-			usedAudioDevice,
-			usedVideoDevice,
 			isSharingScreen,
-			chatPanelOpened,
 			items,
-			atLeastOneParticipantSupportsMessages,
-			messageNotificationDisplayed,
 			alertOpen,
 			alertTitle,
 			alertContent,
@@ -884,87 +839,110 @@ export class Call
 			callType: callType,
 			linkName: twincode.name,
 		});
+		const isActive = CallStatusOps.isActive(status);
+		const isTerminated = CallStatusOps.isTerminated(status);
 
+		if (DEBUG) {
+			if (initializing) {
+				console.log("Render initializing", status, "mode", displayMode.mode);
+			} else if (isActive) {
+				console.log("Render active", status, "mode", displayMode.mode);
+			} else if (isTerminated) {
+				console.log("Render terminated", status, "mode", displayMode.mode, terminateReason);
+			} else {
+				console.log("Render", status, "mode", displayMode.mode);
+			}
+		}
 		return (
-			<div className=" flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
-				<Header
-					messageNotificationDisplayed={messageNotificationDisplayed}
-					openChatButtonDisplayed={
-						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
-					}
-					openChatPanel={() =>
-						this.setState({ chatPanelOpened: !chatPanelOpened, messageNotificationDisplayed: false })
-					}
-				/>
+			<div className="relative flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
+				<Header className="" />
+				<Notifications />
 
-				{initializing && (
-					<InitializationPanel
+				{!isActive && (
+					<PrepareCall
+						className="flex h-full w-screen flex flex-col"
+						initializing={initializing}
 						twincodeId={id}
 						twincode={twincode}
-						onComplete={(twincode) => {
-							this.setState({ twincode, initializing: false });
+						status={status}
+						title={twincode.name ? twincode.name : "?"}
+						buttons={
+							<CallButtons
+								className=""
+								status={status}
+								callbacks={this}
+								audioMute={audioMute}
+								hasVideo={twincode.video}
+								videoMute={videoMute}
+								isSharingScreen={isSharingScreen}
+								transfer={false}
+							/>
+						}
+						onStartClick={this.onCallClick}
+						onCancelClick={this.onTerminateClick}
+						onGetTwincode={(twincode: TwincodeInfo) => {
+							this.onGetTwincode(twincode);
 						}}
-					/>
+					>
+						<div className="flex-1 h-full w-full rounded-lg overflow-hidden">
+							<LocalParticipant
+								localVideoRef={this.localVideoRef}
+								localAbsolute={false}
+								videoMute={videoMute}
+								isLocalAudioMute={false}
+								isIdle={true}
+								isScreenSharing={isSharingScreen}
+								enableVideo={true}
+								guestNameError={guestNameError}
+								muteVideoClick={this.onMuteVideoClick}
+							></LocalParticipant>
+						</div>
+					</PrepareCall>
+				)}
+				{isActive && (
+					<>
+						<ParticipantsGrid
+							localVideoRef={this.localVideoRef}
+							videoMute={videoMute}
+							isSharingScreen={isSharingScreen}
+							isLocalAudioMute={audioMute}
+							twincode={twincode}
+							participants={participants}
+							isIdle={CallStatusOps.isIdle(status)}
+							guestNameError={guestNameError}
+							muteVideoClick={this.onMuteVideoClick}
+							videoClick={this.onVideoClick}
+							mode={displayMode}
+							pushMessage={this.pushMessage}
+							items={items}
+						/>
+						<CallButtons
+							className={""}
+							status={status}
+							callbacks={this}
+							audioMute={audioMute}
+							hasVideo={twincode.video}
+							videoMute={videoMute}
+							isSharingScreen={isSharingScreen}
+							transfer={TRANSFER || twincode.transfer}
+						/>
+					</>
 				)}
 
-				{!initializing && !CallStatusOps.isTerminated(status) && (
-					<ParticipantsGrid
-						chatPanelOpened={chatPanelOpened}
-						closeChatPanel={() => this.setState({ chatPanelOpened: false })}
-						localVideoRef={this.localVideoRef}
-						localMediaStream={this.callService.getMediaStream()}
-						videoMute={videoMute}
-						isSharingScreen={isSharingScreen}
-						isLocalAudioMute={audioMute}
-						twincode={twincode}
-						participants={participants}
-						isIdle={CallStatusOps.isIdle(status)}
-						guestName={guestName}
-						guestNameError={guestNameError}
-						setGuestName={this.updateGuestName}
-						updateGuestName={this.updateGuestName}
-						muteVideoClick={this.onMuteVideoClick}
-						videoClick={this.onVideoClick}
-						mode={displayMode}
-						pushMessage={this.pushMessage}
-						items={items}
-					/>
-				)}
-
-				{!initializing && CallStatusOps.isTerminated(status) && terminateReason && (
+				{isTerminated && terminateReason && (
 					<div className="flex w-full flex-1 items-center justify-center text-center">
 						<span>
 							<Trans
 								i18nKey={this.getTerminateReasonMessage(terminateReason)}
 								values={{
 									contactName: twincode?.name,
-									...this.getScheduleLabels(twincode?.schedule),
+									...ContactService.getScheduleLabels(twincode?.schedule),
 								}}
 								t={t}
 							/>
 						</span>
 					</div>
 				)}
-
-				{!initializing && !CallStatusOps.isTerminated(status) && (
-					<CallButtons
-						status={status}
-						callbacks={this}
-						audioMute={audioMute}
-						hasVideo={twincode.video}
-						videoMute={videoMute}
-						audioDevices={audioDevices}
-						videoDevices={videoDevices}
-						usedAudioDevice={usedAudioDevice}
-						usedVideoDevice={usedVideoDevice}
-						isSharingScreen={isSharingScreen}
-						selectAudioDevice={this.selectAudioDevice}
-						selectVideoDevice={this.selectVideoDevice}
-						transfer={TRANSFER || twincode.transfer}
-						hasCallButton={true}
-					/>
-				)}
-
 				{!TRANSFER && !isMobile && CallStatusOps.isIdle(status) && (
 					<>
 						<div className="py-6 text-center font-light">{t("next_time_app")}</div>

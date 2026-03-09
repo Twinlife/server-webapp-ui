@@ -7,30 +7,112 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
+import clsx from "clsx";
 import i18n from "i18next";
 import "react-confirm-alert/src/react-confirm-alert.css";
+import { subscribe } from "valtio/index";
 import { Trans, useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import { CallStatusOps } from "../calls/CallStatus";
 import Alert from "../components/Alert";
 import Header from "../components/Header";
-import InitializationPanel from "../components/InitializationPanel";
 import Thanks from "../components/Thanks";
 import { CallButtons } from "../components/CallButtons";
 import { Call } from "./Call.tsx";
 import JoinMeeting from "../components/JoinMeeting.tsx";
 import { LocalParticipant } from "../components/LocalParticipant";
 import { ParticipantsGrid } from "../components/ParticipantsGrid";
+import { VirtualBackground } from "../effects/VirtualBackground";
+import { VideoTrack } from "../utils/VideoTrack";
+import { Notifications } from "../notifications/Notifications";
+import { backgroundStore } from "../stores/backgrounds";
+import { ContactService } from "../services/ContactService";
+import { isMobile } from "../utils/BrowserCapabilities";
+import { mediaStreams } from "../utils/MediaStreams.ts";
 
-const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
-const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
+export class Meet extends Call {
+	private videoBackground: VirtualBackground | null = null;
 
-class Meet extends Call {
+	public init = () => {
+		super.init();
+
+		// If the virtual background setting was changed, update the effect.
+		subscribe(backgroundStore, () => {
+			const background = backgroundStore.background;
+			const video: VideoTrack | null = mediaStreams.video;
+			if (this.videoBackground && (video == null || video.hasEffect())) {
+				if (background < 0) {
+					// The current media video has the virtual background effect,
+					// we must stop the effect without stopping the camera.
+					// In the media stream, we only switch the track from the effect-track
+					// to the camera track.
+					console.info("Remove video background track changed in the media stream");
+					mediaStreams.setVideoTrackNoStop(this.videoBackground.removeEffect());
+					if (mediaStreams.video) {
+						this.callService.updateVideoTrack(mediaStreams.video, true);
+					}
+				} else {
+					// Simple case: we only change the background effect on the same track.
+					// No need to switch track, we only change the background image.
+					const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+					console.info("Change video background to", backgroundPath);
+					this.videoBackground.setBackground(backgroundPath);
+				}
+			} else if (background >= 0 && video) {
+				// Last case, the current video has no effect and we want to turn it on.
+				// Again, we have to update the media stream with a new track without
+				// stopping the camera.
+				const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+				console.info("Create video background", backgroundPath);
+				if (this.videoBackground == null) {
+					const videoBackground = new VirtualBackground();
+					this.videoBackground = videoBackground;
+					videoBackground.init().then(() => {
+						const stream = videoBackground.startEffect(video.track, backgroundPath);
+						mediaStreams.setVideoTrackNoStop(stream);
+						this.callService.updateVideoTrack(stream, true);
+					});
+				} else {
+					mediaStreams.setVideoTrackNoStop(this.videoBackground.startEffect(video.track, backgroundPath));
+					if (mediaStreams.video) {
+						this.callService.updateVideoTrack(mediaStreams.video, true);
+					}
+				}
+			}
+		});
+	};
+
+	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
+		const background = backgroundStore.background;
+		if (isMobile || isScreenSharing || background == null || background < 0) {
+			this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
+			if (this.videoBackground) {
+				this.videoBackground.stopEffect();
+			}
+			return;
+		}
+		if (this.videoBackground == null) {
+			this.videoBackground = new VirtualBackground();
+			this.videoBackground.init().then(() => {
+				this.setVideoTrack(mediaStream, isScreenSharing);
+			});
+		} else {
+			const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+			const stream = this.videoBackground.startEffect(mediaStream as MediaStreamTrack, backgroundPath);
+			this.callService.setVideoTrack(stream, isScreenSharing);
+		}
+	};
+
+	onReadyCall(): void {
+		if (!this.state.videoMute && !this.callService.hasVideoTrack()) {
+			this.askForMediaPermission("video");
+		}
+	}
+
 	render() {
 		const { id, t } = this.props;
 		const {
 			initializing,
-			guestName,
 			guestNameError,
 			twincode,
 			videoMute,
@@ -40,15 +122,8 @@ class Meet extends Call {
 			displayMode,
 			terminateReason,
 			displayThanks,
-			audioDevices,
-			videoDevices,
-			usedAudioDevice,
-			usedVideoDevice,
 			isSharingScreen,
-			chatPanelOpened,
 			items,
-			atLeastOneParticipantSupportsMessages,
-			messageNotificationDisplayed,
 			alertOpen,
 			alertTitle,
 			alertContent,
@@ -58,101 +133,72 @@ class Meet extends Call {
 			return <Thanks onCallBackClick={this.init} />;
 		}
 
-		const callType = twincode.transfer ? i18n.t("transfer") : i18n.t("call");
-
 		document.title = i18n.t("title", {
 			appName: import.meta.env.VITE_APP_NAME,
-			callType: callType,
+			callType: i18n.t("call"),
 			linkName: twincode.name,
 		});
+		const isActive = CallStatusOps.isActive(status);
+		const style = "p-1 md:p-2 landscape:lg:p-4";
+		console.log("status", status, "participants", participants.length, "active", isActive);
 
 		return (
-			<div className="flex flex-col h-full w-screen bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
-				<Header
-					messageNotificationDisplayed={messageNotificationDisplayed}
-					openChatButtonDisplayed={
-						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
-					}
-					openChatPanel={() =>
-						this.setState({ chatPanelOpened: !chatPanelOpened, messageNotificationDisplayed: false })
-					}
-				/>
+			<div className={clsx("relative flex flex-col h-full w-screen overflow-hidden bg-black", style)}>
+				<Header className={isActive ? "absolute z-10 top-5 left-5 md:top-8 md:left-8" : ""} />
+				<Notifications />
 
-				{!CallStatusOps.isActive(status) && (
+				{!isActive && (
 					<JoinMeeting
-						className="flex flex-row"
+						className="w-full h-screen flex flex-col md:flex-row landscape:flex-row"
+						initializing={initializing}
+						twincodeId={id}
 						twincode={twincode}
 						status={status}
 						title={twincode.name ? twincode.name : "?"}
-						guestName={guestName}
-						setGuestName={this.updateGuestName}
 						buttons={
 							<CallButtons
+								className=""
 								status={status}
 								callbacks={this}
 								audioMute={audioMute}
 								hasVideo={twincode.video}
 								videoMute={videoMute}
-								audioDevices={audioDevices}
-								videoDevices={videoDevices}
-								usedAudioDevice={usedAudioDevice}
-								usedVideoDevice={usedVideoDevice}
 								isSharingScreen={isSharingScreen}
-								selectAudioDevice={this.selectAudioDevice}
-								selectVideoDevice={this.selectVideoDevice}
-								transfer={TRANSFER || twincode.transfer}
-								hasCallButton={false}
+								transfer={false}
 							/>
 						}
 						onStartClick={this.onCallClick}
 						onCancelClick={this.onTerminateClick}
+						onGetTwincode={(twincode) => {
+							this.onGetTwincode(twincode);
+						}}
 					>
-						<div className="flex-1 h-full w-full overflow-hidden">
-							{initializing && (
-								<InitializationPanel
-									twincodeId={id}
-									twincode={twincode}
-									onComplete={(twincode) => {
-										this.setState({ twincode, initializing: false });
-									}}
-								/>
-							)}
-
+						<div className="flex-1 h-auto md:h-full md:w-full rounded-lg max-h-[80vh] overflow-hidden">
 							<LocalParticipant
 								localVideoRef={this.localVideoRef}
-								localMediaStream={this.callService.getMediaStream()}
 								localAbsolute={true}
 								videoMute={videoMute && !isSharingScreen}
 								isLocalAudioMute={false}
 								isIdle={true}
 								isScreenSharing={isSharingScreen}
 								enableVideo={true}
-								guestName={guestName}
 								guestNameError={guestNameError}
-								setGuestName={this.updateGuestName}
-								updateGuestName={this.updateGuestName}
 								muteVideoClick={this.onMuteVideoClick}
 							></LocalParticipant>
 						</div>
 					</JoinMeeting>
 				)}
-				{CallStatusOps.isActive(status) && (
+				{isActive && (
 					<>
 						<ParticipantsGrid
-							chatPanelOpened={chatPanelOpened}
-							closeChatPanel={() => this.setState({ chatPanelOpened: false })}
 							localVideoRef={this.localVideoRef}
-							localMediaStream={this.callService.getMediaStream()}
 							videoMute={videoMute}
 							isSharingScreen={isSharingScreen}
 							isLocalAudioMute={audioMute}
 							twincode={twincode}
 							participants={participants}
 							isIdle={CallStatusOps.isIdle(status)}
-							guestName={guestName}
 							guestNameError={guestNameError}
-							setGuestName={this.updateGuestName}
-							updateGuestName={this.updateGuestName}
 							muteVideoClick={this.onMuteVideoClick}
 							videoClick={this.onVideoClick}
 							mode={displayMode}
@@ -160,20 +206,14 @@ class Meet extends Call {
 							items={items}
 						/>
 						<CallButtons
+							className={"absolute-button-list"}
 							status={status}
 							callbacks={this}
 							audioMute={audioMute}
 							hasVideo={twincode.video}
 							videoMute={videoMute}
-							audioDevices={audioDevices}
-							videoDevices={videoDevices}
-							usedAudioDevice={usedAudioDevice}
-							usedVideoDevice={usedVideoDevice}
 							isSharingScreen={isSharingScreen}
-							selectAudioDevice={this.selectAudioDevice}
-							selectVideoDevice={this.selectVideoDevice}
-							transfer={TRANSFER || twincode.transfer}
-							hasCallButton={true}
+							transfer={false}
 						/>
 					</>
 				)}
@@ -184,7 +224,7 @@ class Meet extends Call {
 								i18nKey={this.getTerminateReasonMessage(terminateReason)}
 								values={{
 									contactName: twincode?.name,
-									...this.getScheduleLabels(twincode?.schedule),
+									...ContactService.getScheduleLabels(twincode?.schedule),
 								}}
 								t={t}
 							/>

@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -10,6 +10,7 @@
  */
 import { UUID } from "../utils/UUID";
 import { CallConnection } from "./CallConnection";
+import { CallParticipantEvent } from "./CallParticipantEvent";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
@@ -45,10 +46,13 @@ export class CallParticipant {
 	private mDescription: string | null;
 	private mAudioMute: boolean = false;
 	private mCameraMute: boolean = false;
+	private mVideoTrackId: string | null = null;
+	private mAudioTrackId: string | null = null;
 	private mVideoWidth: number = 0;
 	private mVideoHeight: number = 0;
 	private mSenderId: UUID | null = null;
 	private mIsScreenSharing: boolean = false;
+	private mIsSpeaking: boolean = false;
 
 	/**
 	 * Get the call connection associated with this participant.
@@ -93,6 +97,15 @@ export class CallParticipant {
 	 */
 	public isScreenSharing(): boolean {
 		return this.mIsScreenSharing;
+	}
+
+	/**
+	 * Returns true if the peer is speaking (the AudioMonitor detects some activity).
+	 *
+	 * @returns {boolean} true if the peer is speaking.
+	 */
+	public isSpeaking(): boolean {
+		return this.mIsSpeaking;
 	}
 
 	/**
@@ -183,12 +196,38 @@ export class CallParticipant {
 		}
 	}
 
-	public addAudioTrack(track: MediaStreamTrack) {
-		this.mAudioStream.addTrack(track);
+	public setVideoSize(videoWidth: number, videoHeight: number): void {
+		this.mVideoWidth = videoWidth;
+		this.mVideoHeight = videoHeight;
+		if (DEBUG) {
+			console.log(this.mSenderId, "Video stream", this.mVideoWidth, "x", this.mVideoHeight);
+		}
 	}
 
-	public addVideoTrack(track: MediaStreamTrack) {
+	addAudioTrack(track: MediaStreamTrack) {
+		this.mAudioTrackId = track.id;
+		this.mAudioStream.addTrack(track);
+		this.mAudioMute = false;
+	}
+
+	addVideoTrack(track: MediaStreamTrack) {
+		this.mVideoTrackId = track.id;
 		this.mVideoStream.addTrack(track);
+		this.mCameraMute = false;
+	}
+
+	removeTrack(trackId: string): CallParticipantEvent | null {
+		if (trackId == this.mVideoTrackId) {
+			this.mVideoTrackId = null;
+			this.mCameraMute = true;
+			return CallParticipantEvent.EVENT_VIDEO_OFF;
+		}
+		if (trackId == this.mAudioTrackId) {
+			this.mAudioTrackId = null;
+			this.mAudioMute = true;
+			return CallParticipantEvent.EVENT_AUDIO_OFF;
+		}
+		return null;
 	}
 
 	constructor(callConnection: CallConnection, participantId: number, transfer: boolean = false) {
@@ -204,14 +243,6 @@ export class CallParticipant {
 		this.transfer = transfer;
 	}
 
-	setMicrophoneMute(mute: boolean): void {
-		this.mAudioMute = mute;
-	}
-
-	setCameraMute(mute: boolean): void {
-		this.mCameraMute = mute;
-	}
-
 	setInformation(name: string, description: string | null, avatarUrl: string | null): void {
 		this.mName = name;
 		this.mDescription = description;
@@ -222,6 +253,10 @@ export class CallParticipant {
 		this.mIsScreenSharing = state;
 	}
 
+	setSpeaking(state: boolean) {
+		this.mIsSpeaking = state;
+	}
+
 	/**
 	 * Release the remote renderer when the connexion is destroyed.
 	 */
@@ -230,16 +265,6 @@ export class CallParticipant {
 	updateSenderId(senderId: UUID) {
 		if (this.mSenderId == null) {
 			this.mSenderId = senderId;
-		}
-	}
-
-	public onFrameResolutionChanged(videoWidth: number, videoHeight: number, rotation: number): void {
-		if (rotation === 90 || rotation === 270) {
-			this.mVideoWidth = videoHeight;
-			this.mVideoHeight = videoWidth;
-		} else {
-			this.mVideoWidth = videoWidth;
-			this.mVideoHeight = videoHeight;
 		}
 	}
 

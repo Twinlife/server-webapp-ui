@@ -18,7 +18,7 @@
 		"camera_access_not_found": "カメラが見つかりませんでした。",
 		"camera_access_error": "エラーが発生しました。カメラが別のアプリケーションで使用されていないことを確認して、ページを更新してください。",
 		"screen_sharing_access": "画面共有",
-		"twincode_error": "入力した「Click-to-Call」リンクは無効のようです。",
+		"twincode_not_found": "入力した「Click-to-Call」リンクは無効のようです。",
 		"general_error_title": "おっとっと！",
 		"general_error_message": "申し訳ありませんが、問題が発生しました。"
 	}

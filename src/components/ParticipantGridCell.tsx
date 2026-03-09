@@ -1,55 +1,93 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import clsx from "clsx";
 import { useEffect, useRef } from "react";
+import { CallParticipant } from "../calls/CallParticipant";
+import { ParticipantAvatar } from "./ParticipantAvatar";
+import { ViewMode } from "../utils/DisplayMode";
+
+const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 interface ParticipantGridCellProps {
 	cellClassName: string;
-	setRemoteRenderer?: (remoteRenderer: HTMLVideoElement, audioRenderer: HTMLAudioElement | null) => void;
-	isAudioMute: boolean;
-	isCameraMute: boolean;
-	isScreenSharing: boolean;
-	name: string;
-	participantId?: number;
+	participant: CallParticipant;
+	mode: ViewMode;
 	avatarUrl: string;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 }
 
-const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
+function getVideoClass(mode: ViewMode): string {
+	switch (mode) {
+		case ViewMode.VIEW_DEFAULT:
+		case ViewMode.VIEW_FOCUS_PARTICIPANT:
+		case ViewMode.VIEW_FOCUS_CAMERA:
+			return "h-full w-full object-cover";
+
+		case ViewMode.VIEW_SHARE_SCREEN:
+			return "h-48 w-full object-cover";
+	}
+}
+
+export const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	cellClassName,
-	setRemoteRenderer,
-	isAudioMute,
-	isCameraMute,
-	isScreenSharing,
-	name,
-	participantId,
+	participant,
+	mode,
 	avatarUrl,
 	videoClick,
 }) => {
+	const participantId = participant.getParticipantId();
 	const refVideo = useRef<HTMLVideoElement>(null);
 	const refAudio = useRef<HTMLAudioElement>(null);
+	const isCameraMute = participant.isCameraMute();
+	const isScreenSharing = participant.isScreenSharing();
+	const noVideo = isCameraMute || isScreenSharing;
+	const name = participant.getName();
+	const isSpeaking = participant.isSpeaking();
+	const videoClass = getVideoClass(mode);
 
+	if (DEBUG) {
+		console.log("Refresh", participant.getParticipantId(), "name", participant.getName());
+	}
 	useEffect(() => {
-		if (refVideo.current && setRemoteRenderer) setRemoteRenderer(refVideo.current, refAudio.current);
-	}, [setRemoteRenderer, refVideo, refAudio]);
+		const video = refVideo.current;
+		if (!video) {
+			return;
+		}
+		const loadMedia = () => {
+			const videoWidth = video.videoWidth;
+			const videoHeight = video.videoHeight;
+			participant.setVideoSize(videoWidth, videoHeight);
+		};
+		video.addEventListener("loadedmetadata", loadMedia);
+		participant.setRemoteRenderer(video, refAudio.current);
+		if (DEBUG) {
+			console.log("set video participant", participant);
+		}
+		return () => {
+			video.removeEventListener("loadedmetadata", loadMedia);
+		};
+	}, [isScreenSharing, refVideo, refAudio, isCameraMute, participant]);
 
 	return (
 		<div
-			className={[
-				"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
+			className={clsx(
+				"relative flex w-full items-center justify-center border-2 border-solid overflow-hidden rounded-lg bg-[#202020]",
 				cellClassName,
-			].join(" ")}
+				!isSpeaking && "border-transparent",
+				isSpeaking && "border-solid border-blue",
+			)}
 			onClick={(e) => {
 				videoClick(e, participantId);
 			}}
 		>
-			{isAudioMute && (
-				<div className="absolute left-2 top-2 z-20 text-2xl md:left-auto md:right-2">
+			{participant.isAudioMute() && (
+				<div className="absolute right-2 top-2 z-20 text-2xl md:left-auto md:right-2">
 					<svg width="1em" height="1em" viewBox="0 0 26 26" xmlns="http://www.w3.org/2000/svg">
 						<g fill="none" fillRule="evenodd">
 							<circle fill="#FD605D" cx={13} cy={13} r={13} />
@@ -61,68 +99,25 @@ const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 					</svg>
 				</div>
 			)}
-			{!avatarUrl && isCameraMute && (
-				<>
-					<div
-						style={{ backgroundColor: stringToColour(name) }}
-						className="pointer-events-none relative z-10 flex h-full w-full items-center justify-center object-cover md:h-48 md:w-48 md:rounded-full md:shadow-lg"
-					>
-						<div className={["text-sm drop-shadow-[0_1.2px_1.2px_rgba(0,0,0,0.8)]"].join(" ")}>{name}</div>
-					</div>
-					<div className="pointer-events-none absolute left-0 top-0 hidden h-full w-full object-cover blur md:block"></div>
-				</>
-			)}
-
-			{avatarUrl && isCameraMute && (
-				<>
-					<img
-						src={avatarUrl}
-						alt=""
-						className="pointer-events-none z-10 object-cover h-24 w-24 rounded-full shadow-lg landscape:lg:w-48 landscape:lg:h-48"
-					/>
-					<img
-						src={avatarUrl}
-						alt=""
-						className="pointer-events-none absolute left-0 top-0 h-full w-full object-cover blur block"
-					/>
-				</>
-			)}
-
+			{noVideo && <ParticipantAvatar name={name} avatarUrl={avatarUrl} isSpeaking={isSpeaking} />}
 			<video
 				ref={refVideo}
 				autoPlay={true}
 				playsInline={true}
 				id={"videoElement-" + participantId}
-				className={[
-					"h-full w-full",
-					isScreenSharing ? "object-contain" : "object-cover",
-					isCameraMute ? "hidden" : "",
-				].join(" ")}
+				className={clsx(videoClass, noVideo && "hidden")}
 			></video>
 			<audio ref={refAudio} autoPlay={true} playsInline={true} id={"audioElement-" + participantId}></audio>
 			<div
-				className={[
-					"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm",
-					name ? "" : "hidden",
-				].join(" ")}
+				className={clsx(
+					"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4 border-solid",
+					name == null && "hidden",
+					!isSpeaking && "border-transparent",
+					isSpeaking && "fast-blink border-transparent",
+				)}
 			>
 				{name}
 			</div>
 		</div>
 	);
 };
-
-const stringToColour = (str: string) => {
-	let hash = 0;
-	str.split("").forEach((char) => {
-		hash = char.charCodeAt(0) + ((hash << 5) - hash);
-	});
-	let colour = "#";
-	for (let i = 0; i < 3; i++) {
-		const value = (hash >> (i * 8)) & 0xff;
-		colour += value.toString(16).padStart(2, "0");
-	}
-	return colour;
-};
-
-export default ParticipantGridCell;

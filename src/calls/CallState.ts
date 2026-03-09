@@ -18,7 +18,8 @@ import { CallService } from "./CallService";
 import { CallStatus, CallStatusOps } from "./CallStatus";
 import { ConversationService } from "./ConversationService";
 import { PushObjectIQ } from "./PushObjectIQ.ts";
-import { ConnectionOperation } from "./ConnectionOperation.ts";
+import { AudioTrack } from "../utils/AudioTrack";
+import { VideoTrack } from "../utils/VideoTrack";
 
 /**
  * The call state associated with an Audio or Video call:
@@ -41,6 +42,12 @@ import { ConnectionOperation } from "./ConnectionOperation.ts";
  *
  */
 export class CallState {
+	static readonly WAIT_MEETING: number = 1;
+	static readonly WAIT_MEETING_DONE: number = 1 << 1;
+	static readonly START_CALL: number = 1 << 2;
+	static readonly RINGING: number = 1 << 3;
+	static readonly CONNECTED: number = 1 << 4;
+
 	private readonly mCallService: CallService;
 	private readonly mPeerCallService: PeerCallService;
 	private mIdentityAvatar: ArrayBuffer;
@@ -94,15 +101,6 @@ export class CallState {
 	}
 
 	/**
-	 * Returns true if the call handles video.
-	 *
-	 * @return {boolean} true if the call handles video.
-	 */
-	public isVideo(): boolean {
-		return CallStatusOps.isVideo(this.getStatus());
-	}
-
-	/**
 	 * Returns true if this call is a group call.  The call is changed to a group call when a first participant is added.
 	 *
 	 * @return {boolean} true if this is a group call.
@@ -121,16 +119,18 @@ export class CallState {
 	 * @return {CallStatus} the current call status.
 	 */
 	public getStatus(): CallStatus {
-		if (this.mPeers.length === 0) {
-			if (
-				this.isDoneOperation(ConnectionOperation.WAIT_MEETING) &&
-				!this.isDoneOperation(ConnectionOperation.WAIT_MEETING_DONE)
-			) {
+		if ((this.mState & CallState.CONNECTED) == 0) {
+			if ((this.mState & CallState.START_CALL) !== 0) {
+				if ((this.mState & CallState.RINGING) !== 0) {
+					return CallStatus.OUTGOING_RINGING;
+				}
+			} else if (this.mState & CallState.WAIT_MEETING && (this.mState & CallState.WAIT_MEETING_DONE) == 0) {
 				return CallStatus.WAIT_MEETING;
+			} else {
+				return CallStatus.TERMINATED;
 			}
-			return CallStatus.TERMINATED;
 		}
-		return this.mPeers[0].getStatus();
+		return CallStatus.IN_CALL;
 	}
 
 	/**
@@ -141,8 +141,7 @@ export class CallState {
 	public needConnection(): boolean {
 		return (
 			this.mPeers.length > 0 ||
-			(this.isDoneOperation(ConnectionOperation.WAIT_MEETING) &&
-				!this.isDoneOperation(ConnectionOperation.WAIT_MEETING_DONE))
+			((this.mState & CallState.WAIT_MEETING) !== 0 && (this.mState & CallState.WAIT_MEETING_DONE) == 0)
 		);
 	}
 
@@ -210,6 +209,16 @@ export class CallState {
 		return this.mMaxMemberCount;
 	}
 
+	getStats(): boolean {
+		if (this.mPeers.length == 0) {
+			return false;
+		}
+		for (const connection of this.mPeers.values()) {
+			connection.getStats();
+		}
+		return true;
+	}
+
 	/**
 	 * Send a message to each peer connected with us.
 	 *
@@ -265,6 +274,12 @@ export class CallState {
 		for (const connection of this.mPeers) {
 			connection.sendParticipantInfoIQ();
 		}
+	}
+
+	setDeviceRinging(): boolean {
+		const state = this.mState;
+		this.mState |= CallState.RINGING;
+		return state != this.mState;
 	}
 
 	/**
@@ -362,23 +377,25 @@ export class CallState {
 		}
 	}
 
-	setAudioTrack(audioTrack: MediaStreamTrack) {
-		console.info("Replace audio track with ", audioTrack.label);
+	setAudioTrack(audioTrack: AudioTrack) {
+		console.info("Replace audio track with ", audioTrack.deviceId);
 
 		if (CallStatusOps.isActive(this.getStatus())) {
 			for (const callConnection of this.mPeers) {
-				callConnection.replaceAudioTrack(audioTrack);
+				callConnection.replaceAudioTrack(audioTrack.track);
 			}
 		}
 	}
 
-	setVideoTrack(videoTrack: MediaStreamTrack | null, isScreenSharing: boolean, replace: boolean): void {
+	setVideoTrack(videoTrack: VideoTrack | null, isScreenSharing: boolean, replace: boolean): void {
 		let scaleDown;
+		let track: MediaStreamTrack | null;
 		if (videoTrack) {
-			const settings = videoTrack.getSettings();
+			track = videoTrack.track;
+			const settings = track.getSettings();
 			console.info(
 				"Replace video",
-				videoTrack.label,
+				track.label,
 				"width",
 				settings.width,
 				"height",
@@ -391,17 +408,18 @@ export class CallState {
 			scaleDown = this.scaleDownFactor(settings.width, settings.height);
 		} else {
 			scaleDown = 0;
+			track = null;
 			console.info("Stop video track");
 		}
 
 		if (CallStatusOps.isActive(this.getStatus())) {
 			for (const connection of this.mPeers) {
-				if (!videoTrack) {
+				if (!track) {
 					connection.stopVideoTrack();
 				} else if (replace) {
-					connection.replaceVideoTrack(videoTrack, scaleDown);
+					connection.replaceVideoTrack(track, scaleDown);
 				} else {
-					connection.addVideoTrack(videoTrack, scaleDown);
+					connection.addVideoTrack(track, scaleDown);
 				}
 				if (this.mIsScreenSharing != isScreenSharing) {
 					connection.sendScreenSharingIQ(isScreenSharing);
@@ -461,6 +479,7 @@ export class CallState {
 		if (!callConnection.updateConnectionState(state)) {
 			return CallState.UpdateState.IGNORE;
 		}
+		this.mState |= CallState.CONNECTED;
 		if (this.mConnectionStartTime !== 0) {
 			if (this.mPeers.length === 1) {
 				return CallState.UpdateState.IGNORE;
@@ -523,6 +542,15 @@ export class CallState {
 		}
 		const empty: boolean = this.mPeers.length === 0;
 		this.onRemoveParticipants(callConnection.release());
+		this.mState &= ~CallState.CONNECTED;
+		if (!empty) {
+			for (const connection of this.mPeers) {
+				if (connection.isConnected()) {
+					this.mState |= CallState.CONNECTED;
+					break;
+				}
+			}
+		}
 		return empty;
 	}
 

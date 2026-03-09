@@ -18,7 +18,7 @@
 		"camera_access_not_found": "Ingen kamera ble funnet.",
 		"camera_access_error": "Det oppstod en feil, sjekk at kameraet ikke er i bruk av et annet program og oppdater siden.",
 		"screen_sharing_access": "Skjermdeling",
-		"twincode_error": "Click-to-Call-koblingen du skrev inn, ser ut til å være ugyldig.",
+		"twincode_not_found": "Click-to-Call-koblingen du skrev inn, ser ut til å være ugyldig.",
 		"general_error_title": "Oops!",
 		"general_error_message": "Beklager, noe gikk galt."
 	}

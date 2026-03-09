@@ -34,14 +34,12 @@ export enum CallStatus {
 	ACCEPTED_INCOMING_VIDEO_CALL,
 	OUTGOING_CALL,
 	OUTGOING_VIDEO_CALL,
-	OUTGOING_VIDEO_BELL,
-	ACCEPTED_OUTGOING_CALL,
-	ACCEPTED_OUTGOING_VIDEO_CALL,
+	OUTGOING_RINGING,
 	IN_CALL,
 	IN_VIDEO_CALL,
 	FALLBACK,
 	TERMINATED,
-	IDDLE,
+	IDLE,
 }
 
 /** @ignore */
@@ -49,13 +47,10 @@ export class CallStatusOps {
 	public static toActive(mode: CallStatus): CallStatus {
 		switch (mode) {
 			case CallStatus.ACCEPTED_INCOMING_CALL:
-			case CallStatus.OUTGOING_CALL:
-			case CallStatus.ACCEPTED_OUTGOING_CALL:
-				return CallStatus.IN_CALL;
-			case CallStatus.OUTGOING_VIDEO_BELL:
-			case CallStatus.OUTGOING_VIDEO_CALL:
 			case CallStatus.ACCEPTED_INCOMING_VIDEO_CALL:
-			case CallStatus.ACCEPTED_OUTGOING_VIDEO_CALL:
+			case CallStatus.OUTGOING_CALL:
+				return CallStatus.IN_CALL;
+			case CallStatus.OUTGOING_VIDEO_CALL:
 				return CallStatus.IN_VIDEO_CALL;
 			default:
 				return mode;
@@ -66,7 +61,8 @@ export class CallStatusOps {
 		return (
 			mode === CallStatus.OUTGOING_CALL ||
 			mode === CallStatus.OUTGOING_VIDEO_CALL ||
-			mode === CallStatus.OUTGOING_VIDEO_BELL
+			mode === CallStatus.OUTGOING_RINGING ||
+			mode === CallStatus.WAIT_MEETING
 		);
 	}
 
@@ -75,33 +71,19 @@ export class CallStatusOps {
 	}
 
 	public static isIdle(mode: CallStatus): boolean {
-		return mode === CallStatus.IDDLE;
+		return mode === CallStatus.IDLE;
 	}
 
 	public static isAccepted(mode: CallStatus): boolean {
-		return (
-			mode === CallStatus.ACCEPTED_INCOMING_CALL ||
-			mode === CallStatus.ACCEPTED_INCOMING_VIDEO_CALL ||
-			mode === CallStatus.ACCEPTED_OUTGOING_CALL ||
-			mode === CallStatus.ACCEPTED_OUTGOING_VIDEO_CALL
-		);
+		return mode === CallStatus.ACCEPTED_INCOMING_CALL || mode === CallStatus.ACCEPTED_INCOMING_VIDEO_CALL;
+	}
+
+	public static isRinging(mode: CallStatus): boolean {
+		return mode === CallStatus.OUTGOING_RINGING;
 	}
 
 	public static isTerminated(mode: CallStatus): boolean {
 		return mode === CallStatus.TERMINATED;
-	}
-
-	public static isVideo(mode: CallStatus): boolean {
-		switch (mode) {
-			case CallStatus.OUTGOING_VIDEO_BELL:
-			case CallStatus.OUTGOING_VIDEO_CALL:
-			case CallStatus.ACCEPTED_OUTGOING_VIDEO_CALL:
-			case CallStatus.ACCEPTED_INCOMING_VIDEO_CALL:
-			case CallStatus.IN_VIDEO_CALL:
-				return true;
-			default:
-				return false;
-		}
 	}
 
 	public static getName(mode: CallStatus): string {

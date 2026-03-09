@@ -21,24 +21,27 @@ interface InvitationDialogProps {
 
 const InvitationDialog: React.FC<InvitationDialogProps> = ({ open, invitationUI, handleClose }) => {
 	const { t } = useTranslation();
-	const [urlString, setUrlString] = useState("");
-	const [qrcodeImgSrc, setQrcodeImgSrc] = useState("");
+	const [urlString, setUrlString] = useState<string>("");
+	const [qrcodeImgSrc, setQrcodeImgSrc] = useState<string>("");
 
 	useEffect(() => {
-		if (invitationUI) {
-			const inviteURL = VITE_INVITE_URL + invitationUI.twincode;
-			QRCode.toDataURL(inviteURL)
-				.then((url) => {
-					setUrlString(inviteURL);
-					setQrcodeImgSrc(url);
-				})
-				.catch((err: Error) => {
-					console.error("Can't generate QRCode image.", err);
-				});
-		} else {
-			setUrlString("");
-			setQrcodeImgSrc("");
-		}
+		const createQRCode = () => {
+			if (invitationUI) {
+				const inviteURL = VITE_INVITE_URL + invitationUI.twincode;
+				QRCode.toDataURL(inviteURL)
+					.then((url) => {
+						setUrlString(inviteURL);
+						setQrcodeImgSrc(url);
+					})
+					.catch((err: Error) => {
+						console.error("Can't generate QRCode image.", err);
+					});
+			} else {
+				setUrlString("");
+				setQrcodeImgSrc("");
+			}
+		};
+		createQRCode();
 	}, [invitationUI]);
 
 	if (!open) return null;

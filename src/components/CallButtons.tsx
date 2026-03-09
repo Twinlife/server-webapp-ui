@@ -7,19 +7,23 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
-
+import clsx from "clsx";
 import { Mic, MicOff, SwitchCamera, Video, VideoOff } from "lucide-react";
 import { useEffect, useState, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import PhoneCallIcon from "../assets/phone-call.svg";
 import MonitorOff from "../assets/monitor-off.svg";
 import MonitorOn from "../assets/monitor.svg";
+import ChatIcon from "../assets/chat-black.svg";
 import { CallStatus, CallStatusOps } from "../calls/CallStatus";
-import SelectDevicesButton from "../components/SelectDevicesButton";
 import WhiteButton from "../components/WhiteButton";
-import IsMobile from "../utils/IsMobile";
+import { isMobile } from "../utils/BrowserCapabilities";
+import { Cog6ToothIcon } from "@heroicons/react/24/outline";
+import { SettingsDialog } from "../settings/SettingsDialog";
+import { chatStore } from "../stores/chat";
+import { useSnapshot } from "valtio";
 
-const isMobile = IsMobile();
+const MEETING = import.meta.env.VITE_APP_MEETING === "true";
 
 export interface CallButtonHandlers {
 	onCallClick: React.MouseEventHandler<HTMLButtonElement>;
@@ -30,6 +34,7 @@ export interface CallButtonHandlers {
 	onMuteVideoClick: React.MouseEventHandler<HTMLButtonElement>;
 	onSharingScreenClick: React.MouseEventHandler<HTMLButtonElement>;
 	onSwitchCameraClick: React.MouseEventHandler<HTMLButtonElement>;
+	onChatClick: React.MouseEventHandler<HTMLButtonElement>;
 }
 
 const Timer = () => {
@@ -68,53 +73,101 @@ const Timer = () => {
 };
 
 export const CallButtons = ({
+	className,
 	status,
 	callbacks,
 	audioMute,
 	hasVideo,
 	videoMute,
-	audioDevices,
-	videoDevices,
-	usedAudioDevice,
-	usedVideoDevice,
 	isSharingScreen,
-	selectAudioDevice,
-	selectVideoDevice,
 	transfer,
-	hasCallButton,
 }: {
+	className: string;
 	status: CallStatus;
 	callbacks: CallButtonHandlers;
 	audioMute: boolean;
 	hasVideo: boolean;
 	videoMute: boolean;
-	audioDevices: MediaDeviceInfo[];
-	videoDevices: MediaDeviceInfo[];
-	usedAudioDevice: string;
-	usedVideoDevice: string;
 	isSharingScreen: boolean;
-	selectAudioDevice: (deviceId: string) => void;
-	selectVideoDevice: (deviceId: string) => void;
 	transfer: boolean;
-	hasCallButton: boolean;
 }) => {
 	const { t } = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
 	const isIdle = CallStatusOps.isIdle(status);
 	const inTransfer = transfer && inCall;
 	const callLabel = transfer ? t("transfer") : t("call");
+	const [isSettingsOpen, setSettingsOpen] = useState<boolean>(false);
+	const [isButtonsVisible, setButtonsVisible] = useState<boolean>(true);
+	const hasCallButton = (!MEETING && !CallStatusOps.isTerminated(status)) || inCall;
+	const chat = useSnapshot(chatStore);
+
+	const openSettings = () => {
+		setSettingsOpen(true);
+	};
+	const closeSettings = () => {
+		setSettingsOpen(false);
+	};
+	useEffect(() => {
+		let hideTimeout: NodeJS.Timeout | null = null;
+
+		const handleMouseMove = () => {
+			setButtonsVisible(true);
+			console.log("Set buttons visible");
+			window.removeEventListener("mousemove", handleMouseMove);
+			window.removeEventListener("touchend", handleTouchEvent);
+			if (inCall) {
+				hideTimeout = setTimeout(() => hideButtons(), 5000);
+				console.log("set hide timeout 5s");
+			} else {
+				console.log("Not in call, buttons visible");
+			}
+		};
+		const handleTouchEvent = (ev: Event) => {
+			ev.preventDefault();
+			handleMouseMove();
+		};
+
+		const hideButtons = () => {
+			setButtonsVisible(false);
+			window.addEventListener("mousemove", handleMouseMove);
+			window.addEventListener("touchend", handleTouchEvent);
+			console.log("set buttons hidden");
+			if (hideTimeout) {
+				clearTimeout(hideTimeout);
+			}
+			hideTimeout = null;
+		};
+
+		if (isButtonsVisible) {
+			handleMouseMove();
+		}
+
+		return () => {
+			if (hideTimeout) {
+				clearTimeout(hideTimeout);
+			}
+			window.removeEventListener("mousemove", handleMouseMove);
+		};
+	}, [inCall]);
 
 	return (
-		<div className="mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2">
+		<div
+			className={clsx(
+				"mx-auto flex w-auto items-center justify-between md:rounded-lg bg-zinc-800 md:px-4 md:py-2",
+				className,
+				inCall && !isButtonsVisible ? "hidden" : "",
+			)}
+			style={{ display: inCall && !isButtonsVisible ? "none" : "flex" }}
+		>
 			{hasCallButton && (
 				<div>
 					<button
-						className={[
+						className={clsx(
 							"flex items-center justify-center rounded-full px-6 py-3 text-white transition ",
 							isIdle
 								? "bg-blue hover:bg-blue/90 active:bg-blue/80"
 								: "bg-red hover:bg-red/90 active:bg-red/80",
-						].join(" ")}
+						)}
 						onClick={isIdle ? callbacks.onCallClick : callbacks.onTerminateClick}
 					>
 						<span className="mr-3">
@@ -143,10 +196,21 @@ export const CallButtons = ({
 			)}
 
 			<div className="flex items-center justify-end">
+				{inCall && (
+					<WhiteButton onClick={callbacks.onChatClick} className="relative ml-3 !p-[10px]">
+						{chat.unreadMessages > 0 && (
+							<span className="absolute right-1 top-1 flex h-2 w-2">
+								<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red opacity-75"></span>
+								<span className="relative inline-flex h-2 w-2 rounded-full bg-red"></span>
+							</span>
+						)}
+						<ChatIcon />
+					</WhiteButton>
+				)}
 				{isMobile && hasVideo && (
 					<WhiteButton
 						onClick={callbacks.onSwitchCameraClick}
-						className={["ml-3 !p-[10px]", videoMute ? "btn-white-disabled" : ""].join(" ")}
+						className={clsx("ml-3 !p-[10px]", videoMute ? "btn-white-disabled" : "")}
 					>
 						<SwitchCamera color="black" />
 					</WhiteButton>
@@ -167,28 +231,12 @@ export const CallButtons = ({
 					</WhiteButton>
 				)}
 				{!isMobile && (
-					<SelectDevicesButton
-						audioDevices={audioDevices}
-						videoDevices={videoDevices}
-						usedAudioDevice={usedAudioDevice}
-						usedVideoDevice={usedVideoDevice}
-						selectAudioDevice={selectAudioDevice}
-						selectVideoDevice={selectVideoDevice}
-					/>
-				)}
-				{hasCallButton && (
-					<div>
-						<button
-							className={
-								"flex items-center justify-center rounded-full ml-3 !p-[10px] px-3 py-2 text-white transition bg-red hover:bg-red/90 active:bg-red/80"
-							}
-							onClick={callbacks.onTerminateClick}
-						>
-							<span className="mr-1">
-								<PhoneCallIcon />
-							</span>
-						</button>
-					</div>
+					<>
+						<WhiteButton onClick={openSettings} className="ml-3 !p-[10px]">
+							<Cog6ToothIcon className="m-auto w-[29px] text-black" aria-hidden="true" />
+						</WhiteButton>
+						<SettingsDialog isOpen={isSettingsOpen} onClose={closeSettings} title="test" />
+					</>
 				)}
 			</div>
 		</div>
