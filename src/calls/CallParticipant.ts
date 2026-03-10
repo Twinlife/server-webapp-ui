@@ -243,10 +243,12 @@ export class CallParticipant {
 		this.transfer = transfer;
 	}
 
-	setInformation(name: string, description: string | null, avatarUrl: string | null): void {
+	setInformation(name: string, description: string | null, avatarUrl: string | null): CallParticipantEvent {
+		const event : CallParticipantEvent = this.mName == null ? CallParticipantEvent.EVENT_IDENTITY : CallParticipantEvent.EVENT_UPDATE_IDENTITY;
 		this.mName = name;
 		this.mDescription = description;
 		this.mAvatarUrl = avatarUrl;
+		return event;
 	}
 
 	setScreenSharing(state: boolean) {

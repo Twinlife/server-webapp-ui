@@ -157,7 +157,7 @@ export class NotificationCenter {
 	}
 
 	public postMemberJoined(participant: CallParticipant): void {
-		if (this.display.participantJoined) {
+		if (this.display.participantJoined && participant.getName()) {
 			toast(participant.getName() + " joined");
 		}
 		if (this.sound.participantJoined) {
@@ -168,7 +168,9 @@ export class NotificationCenter {
 	public postMemberLeave(participants: Array<CallParticipant>): void {
 		if (this.display.participantLeft) {
 			for (const participant of participants) {
-				toast("Member " + participant.getName() + " left");
+				if (participant.getName()) {
+					toast("Member " + participant.getName() + " left");
+				}
 			}
 		}
 		if (this.sound.participantLeft) {

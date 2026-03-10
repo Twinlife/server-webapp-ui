@@ -1342,8 +1342,8 @@ export class CallConnection {
 			imageUrl = urlCreator.createObjectURL(blob);
 		}
 
-		this.mMainParticipant.setInformation(iq.name, iq.description, imageUrl);
-		this.mCall.onEventParticipant(this.mMainParticipant, CallParticipantEvent.EVENT_IDENTITY);
+		const event = this.mMainParticipant.setInformation(iq.name, iq.description, imageUrl);
+		this.mCall.onEventParticipant(this.mMainParticipant, event);
 	}
 
 	public sendTransferDoneIQ(): void {
