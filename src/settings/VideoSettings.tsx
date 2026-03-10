@@ -54,7 +54,7 @@ export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 						localVideoRef.current.srcObject = stream;
 					}
 					if (videoTracks.length > 0) {
-						mediaStreams.setVideoTrack(new VideoTrack(videoTracks[0], null), false);
+						mediaStreams.setVideoTrackNoStop(new VideoTrack(videoTracks[0], null));
 					}
 				})
 				.catch((error) => {

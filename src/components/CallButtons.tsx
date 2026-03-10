@@ -22,6 +22,7 @@ import { Cog6ToothIcon } from "@heroicons/react/24/outline";
 import { SettingsDialog } from "../settings/SettingsDialog";
 import { chatStore } from "../stores/chat";
 import { useSnapshot } from "valtio";
+import { mediaStreams } from "../utils/MediaStreams";
 
 const MEETING = import.meta.env.VITE_APP_MEETING === "true";
 
@@ -106,6 +107,9 @@ export const CallButtons = ({
 	};
 	const closeSettings = () => {
 		setSettingsOpen(false);
+		if (!inCall && videoMute) {
+			mediaStreams.stop();
+		}
 	};
 	useEffect(() => {
 		let hideTimeout: NodeJS.Timeout | null = null;
