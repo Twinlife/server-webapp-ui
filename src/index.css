@@ -195,6 +195,9 @@ svg {
 .fast-blink {
   animation: blink 0.5s infinite;
 }
+.video-mirror {
+	transform: scaleX(-1);
+}
 
 @keyframes blink {
   0% { opacity: 1; }

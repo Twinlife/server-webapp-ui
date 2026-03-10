@@ -86,7 +86,7 @@ export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 				<div className="w-full h-full overflow-hidden">
 					<video
 						ref={localVideoRef}
-						className="h-full w-full object-contain"
+						className="h-full w-full object-contain video-mirror"
 						autoPlay={true}
 						playsInline={true}
 						muted={true}

@@ -75,7 +75,7 @@ export const LocalParticipant: React.FC<{
 			{isScreenSharing && <DefaultAvatar name={profile.name} className="md:h-48 md:w-48" />}
 			<video
 				ref={localVideoRef}
-				className={clsx(videoClass, (videoMute || isScreenSharing) && "hidden")}
+				className={clsx(videoClass, (videoMute || isScreenSharing) && "hidden", "video-mirror")}
 				autoPlay={true}
 				playsInline={true}
 				muted={true}
