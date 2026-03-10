@@ -41,6 +41,7 @@ import { profile } from "../stores/profile";
 import { subscribe } from "valtio/index";
 import { audioStore } from "../stores/audio";
 import { videoStore } from "../stores/video";
+import { mediaStreams } from "../utils/MediaStreams";
 
 type FacingMode = "user" | "environment";
 
@@ -225,6 +226,7 @@ export class Call
 			return;
 		}
 
+		this.callService.actionCameraMute(true);
 		this.callService = new CallService(peerCallService, this, this);
 
 		setTimeout(() => {
