@@ -45,7 +45,11 @@ export const DraggableParticipant: React.FC<{
 	const nodeRef = useRef<HTMLDivElement>(null);
 	const dragStartPositionXYRef = useRef<Position>({ x: 0, y: 0 });
 	const cl = clsx(
-		localAbsolute ? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16 md:w-24 md:h-24 lg:w-48 lg:h-48" : isIdle ? "relative" : "relative",
+		localAbsolute
+			? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16 md:w-24 md:h-24 lg:w-48 lg:h-48"
+			: isIdle
+				? "relative"
+				: "relative",
 		"overflow-hidden rounded-md",
 		videoMute && !isSharingScreen && localAbsolute ? "hidden" : "",
 		!localAbsolute && className,

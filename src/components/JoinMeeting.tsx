@@ -58,7 +58,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 				retryTimeout = null;
 			}
 			if (scheduleState.delay > 0) {
-				retryTimeout = setTimeout(() => refreshState(), 10000);
+				retryTimeout = setTimeout(() => refreshState(), scheduleState.delay > 60000 ? 10000 : 1000);
 			}
 		};
 		refreshState();
@@ -153,9 +153,9 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 						<>
 							<span className={state.delay <= 60000 ? "blink" : ""}>
 								<Trans
-									i18nKey="call_start_in_minutes"
+									i18nKey={state.delay <= 60000 ? "call_start_in_seconds" : "call_start_in_minutes"}
 									values={{
-										delay: Math.round(state.delay / 60000),
+										delay: state.delay <= 60000 ? Math.round(state.delay / 1000) : Math.round(state.delay / 60000),
 									}}
 									t={t}
 								/>

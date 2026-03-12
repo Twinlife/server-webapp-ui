@@ -32,8 +32,9 @@ export type Schedule = {
 export type TimeRange = DateTimeRange;
 
 export type DateTimeRange = {
-	start: DateTime;
-	end: DateTime;
+	start: DateTime | TLTime;
+	end: DateTime | TLTime;
+	days: Array<string> | null;
 };
 
 export type DateTime = {
@@ -53,10 +54,12 @@ export type TLDate = {
 };
 
 export type ScheduleLabels = {
-	startDate: string;
-	endDate: string;
-	startTime: string;
-	endTime: string;
+	startDate?: string;
+	endDate?: string;
+	startTime?: string;
+	endTime?: string;
+	days?: string;
+	time?: string;
 };
 
 export enum ScheduleStatus {
@@ -70,18 +73,25 @@ export type ScheduleState = {
 	delay: number;
 };
 
-function dateTimeToString(dt: DateTime): string {
-	return (
-		pad(dt.date.year, 4) +
-		"-" +
-		pad(dt.date.month) +
-		"-" +
-		pad(dt.date.day) +
-		" " +
-		pad(dt.time.hour) +
-		":" +
-		pad(dt.time.minute)
-	);
+function timeToString(time: TLTime): string {
+	return pad(time.hour) + ":" + pad(time.minute);
+}
+
+function dateTimeToString(dt: DateTime | TLTime): string {
+	if ((dt as DateTime).date !== undefined) {
+		const date: DateTime = dt as DateTime;
+		return (
+			pad(date.date.year, 4) +
+			"-" +
+			pad(date.date.month) +
+			"-" +
+			pad(date.date.day) +
+			" " +
+			timeToString(date.time)
+		);
+	} else {
+		return timeToString(dt as TLTime);
+	}
 }
 
 function pad(n: number, maxLen: number = 2): string {
@@ -107,6 +117,13 @@ export class ContactService {
 		}
 	}
 
+	public static isAllowedDay(day: number, allowed: Array<string>): boolean {
+		const dayNames = ["SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"];
+		const dayIndex = day === 7 ? 0 : day;
+		const dayName = dayNames[dayIndex];
+		return allowed.includes(dayName);
+	}
+
 	/**
 	 * Check if the current time is within the schedule so that we are allows to make the call.
 	 *
@@ -120,17 +137,43 @@ export class ContactService {
 		const timeZone = schedule.timeZone;
 		const now = new Date();
 		for (const timeRange of schedule.timeRanges) {
-			const startDate = fromZonedTime(dateTimeToString(timeRange.start), timeZone);
-			const endDate = fromZonedTime(dateTimeToString(timeRange.end), timeZone);
+			if ((timeRange.start as DateTime).date !== undefined) {
+				const startDate = fromZonedTime(dateTimeToString(timeRange.start), timeZone);
+				const endDate = fromZonedTime(dateTimeToString(timeRange.end), timeZone);
 
-			if (now <= endDate) {
-				const delay = startDate.getTime() - now.getTime();
-				if (now >= startDate) {
-					return { status: ScheduleStatus.WITHIN_SCHEDULE, delay: 0 };
+				if (now <= endDate) {
+					const delay = startDate.getTime() - now.getTime();
+					if (now >= startDate) {
+						return { status: ScheduleStatus.WITHIN_SCHEDULE, delay: 0 };
+					}
+					const startLimit = new Date(startDate.getTime() - 5 * 60 * 1000);
+					if (now >= startLimit) {
+						return { status: ScheduleStatus.SOON_IN_SCHEDULE, delay: delay };
+					}
 				}
-				const startLimit = new Date(startDate.getTime() - 5 * 60 * 1000);
-				if (now >= startLimit) {
-					return { status: ScheduleStatus.SOON_IN_SCHEDULE, delay: delay };
+			} else {
+				const day = now.getDay();
+				if (timeRange.days && this.isAllowedDay(day, timeRange.days)) {
+					const isoDateString = now.toISOString().split("T")[0];
+					const startDate = fromZonedTime(
+						isoDateString + " " + timeToString(timeRange.start as TLTime),
+						timeZone,
+					);
+					const endDate = fromZonedTime(
+						isoDateString + " " + timeToString(timeRange.end as TLTime),
+						timeZone,
+					);
+
+					if (now <= endDate) {
+						const delay = startDate.getTime() - now.getTime();
+						if (now >= startDate) {
+							return { status: ScheduleStatus.WITHIN_SCHEDULE, delay: 0 };
+						}
+						const startLimit = new Date(startDate.getTime() - 5 * 60 * 1000);
+						if (now >= startLimit) {
+							return { status: ScheduleStatus.SOON_IN_SCHEDULE, delay: delay };
+						}
+					}
 				}
 			}
 		}
@@ -148,24 +191,46 @@ export class ContactService {
 		const range = schedule.timeRanges[0];
 		const timeZone = schedule.timeZone;
 
-		const startDate = fromZonedTime(dateTimeToString(range.start), timeZone);
-		const endDate = fromZonedTime(dateTimeToString(range.end), timeZone);
+		if ((range.start as DateTime).date === undefined) {
+			const now = new Date();
+			const isoDateString = now.toISOString().split("T")[0];
+			const startTime = fromZonedTime(isoDateString + timeToString(range.start as TLTime), timeZone);
+			const endTime = fromZonedTime(isoDateString + timeToString(range.end as TLTime), timeZone);
 
-		return {
-			startDate: dateFormat.format(startDate),
-			endDate: dateFormat.format(endDate),
-			startTime: timeFormat.format(startDate),
-			endTime: timeFormat.format(endDate),
-		};
+			const time = timeToString(range.start as TLTime);
+
+			return {
+				days: range.days?.join(", "),
+				time: time
+			};
+		} else {
+			const startDate = fromZonedTime(dateTimeToString(range.start), timeZone);
+			const endDate = fromZonedTime(dateTimeToString(range.end), timeZone);
+
+			return {
+				startDate: dateFormat.format(startDate),
+				endDate: dateFormat.format(endDate),
+				startTime: timeFormat.format(startDate),
+				endTime: timeFormat.format(endDate)
+			};
+		}
+	}
+
+	public static isSameDay(start: DateTime, end: DateTime): boolean {
+		return (
+			start.date.day === end.date.day && start.date.month == end.date.month && start.date.year == end.date.year
+		);
 	}
 
 	public static getSchedule(schedule: Schedule): string {
 		const timeRange = schedule.timeRanges[0];
-		const start = timeRange.start.date;
-		const end = timeRange.end.date;
+		const start = timeRange.start;
+		const end = timeRange.end;
 		// const labels : ScheduleLabels = this.getScheduleLabels(schedule);
 
-		if (start.day === end.day && start.month === end.month && start.year === end.year) {
+		if ((start as DateTime).date === undefined || (end as DateTime).date === undefined) {
+			return "call_periodic_schedule";
+		} else if (this.isSameDay(start as DateTime, end as DateTime)) {
 			return "audio_call_activity_terminate_schedule_single_day";
 		} else {
 			return "audio_call_activity_terminate_schedule_multiple_days";
