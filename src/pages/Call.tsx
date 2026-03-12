@@ -41,7 +41,6 @@ import { profile } from "../stores/profile";
 import { subscribe } from "valtio/index";
 import { audioStore } from "../stores/audio";
 import { videoStore } from "../stores/video";
-import { mediaStreams } from "../utils/MediaStreams";
 
 type FacingMode = "user" | "environment";
 
@@ -132,7 +131,7 @@ export class Call
 	};
 
 	init(): void {
-		console.error("First state video", videoStore.enable);
+		console.error("First state video", videoStore.enable, this);
 		this.setState({
 			initializing: true,
 			videoMute: !videoStore.enable,
@@ -624,7 +623,7 @@ export class Call
 		this.callService.setIdentity(guestName, new ArrayBuffer(0));
 
 		const name: string = twincode.name ? twincode.name : "Unknown";
-		const video: boolean = !this.state.videoMute || this.state.isSharingScreen;
+		const video: boolean = twincode.video && (!this.state.videoMute || this.state.isSharingScreen);
 		const transfer: boolean = twincode.transfer;
 		const avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionOutgoingCall(this.props.id, video, transfer, name, avatarUrl);
@@ -857,7 +856,7 @@ export class Call
 		}
 		return (
 			<div className="relative flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
-				<Header className="" />
+				<Header className={isActive ? "absolute z-10 top-5 left-5 md:top-8 md:left-8" : ""} />
 				<Notifications />
 
 				{!isActive && (
@@ -868,25 +867,17 @@ export class Call
 						twincode={twincode}
 						status={status}
 						title={twincode.name ? twincode.name : "?"}
-						buttons={
-							<CallButtons
-								className=""
-								status={status}
-								callbacks={this}
-								audioMute={audioMute}
-								hasVideo={twincode.video}
-								videoMute={videoMute}
-								isSharingScreen={isSharingScreen}
-								transfer={false}
-							/>
-						}
+						callbacks={this}
+						audioMute={audioMute}
+						videoMute={videoMute}
+						isSharingScreen={isSharingScreen}
 						onStartClick={this.onCallClick}
 						onCancelClick={this.onTerminateClick}
 						onGetTwincode={(twincode: TwincodeInfo) => {
 							this.onGetTwincode(twincode);
 						}}
 					>
-						<div className="flex-1 h-full w-full rounded-lg overflow-hidden">
+						<div className="flex-1 relative h-full w-full rounded-lg overflow-hidden">
 							<LocalParticipant
 								localVideoRef={this.localVideoRef}
 								localAbsolute={false}
@@ -919,14 +910,14 @@ export class Call
 							items={items}
 						/>
 						<CallButtons
-							className={""}
+							className={"absolute-button-list"}
 							status={status}
 							callbacks={this}
+							allowCall={true}
 							audioMute={audioMute}
 							hasVideo={twincode.video}
 							videoMute={videoMute}
 							isSharingScreen={isSharingScreen}
-							transfer={TRANSFER || twincode.transfer}
 						/>
 					</>
 				)}

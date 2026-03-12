@@ -27,12 +27,12 @@ export const ParticipantAvatar: React.FC<{ name: string | null; avatarUrl: strin
 					<img
 						src={avatarUrl}
 						alt=""
-						className="pointer-events-none z-10 object-cover h-24 w-24 rounded-full shadow-lg landscape:lg:w-48 landscape:lg:h-48"
+						className="pointer-events-none absolute left-0 top-0 h-full w-full object-cover blur block"
 					/>
 					<img
 						src={avatarUrl}
 						alt=""
-						className="pointer-events-none absolute left-0 top-0 h-full w-full object-cover blur block"
+						className="pointer-events-none z-10 object-cover h-24 w-24 rounded-full shadow-lg landscape:lg:w-48 landscape:lg:h-48"
 					/>
 				</>
 			)}

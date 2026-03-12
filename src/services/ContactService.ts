@@ -59,7 +59,8 @@ export type ScheduleLabels = {
 	startTime?: string;
 	endTime?: string;
 	days?: string;
-	time?: string;
+	fromTime?: string;
+	toTime?: string;
 };
 
 export enum ScheduleStatus {
@@ -194,14 +195,16 @@ export class ContactService {
 		if ((range.start as DateTime).date === undefined) {
 			const now = new Date();
 			const isoDateString = now.toISOString().split("T")[0];
-			const startTime = fromZonedTime(isoDateString + timeToString(range.start as TLTime), timeZone);
-			const endTime = fromZonedTime(isoDateString + timeToString(range.end as TLTime), timeZone);
+			const startTime = fromZonedTime(isoDateString + " " + timeToString(range.start as TLTime), timeZone);
+			const endTime = fromZonedTime(isoDateString + " " + timeToString(range.end as TLTime), timeZone);
 
-			const time = timeToString(range.start as TLTime);
+			const start = timeToString({ hour: startTime.getHours(), minute: startTime.getMinutes() });
+			const end = timeToString({ hour: endTime.getHours(), minute: endTime.getMinutes() });
 
 			return {
 				days: range.days?.join(", "),
-				time: time
+				fromTime: start,
+				toTime: end,
 			};
 		} else {
 			const startDate = fromZonedTime(dateTimeToString(range.start), timeZone);
@@ -211,7 +214,7 @@ export class ContactService {
 				startDate: dateFormat.format(startDate),
 				endDate: dateFormat.format(endDate),
 				startTime: timeFormat.format(startDate),
-				endTime: timeFormat.format(endDate)
+				endTime: timeFormat.format(endDate),
 			};
 		}
 	}

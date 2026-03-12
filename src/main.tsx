@@ -13,6 +13,7 @@ import "./i18n/i18n.ts";
 import "./index.css";
 
 const MEETING = import.meta.env.VITE_APP_MEETING === "true";
+const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
 
 const ErrorPage = lazy(() => import("./pages/ErrorPage.tsx"));
 
@@ -29,6 +30,26 @@ function createRouter() {
 			{
 				path: "/call/:id",
 				element: <Meet />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/",
+				element: <></>,
+				errorElement: <ErrorPage />,
+			},
+		]);
+	} else if (TRANSFER) {
+		const Transfer = lazy(() => import("./pages/Transfer.tsx"));
+
+		return createBrowserRouter([
+			{
+				path: "/call",
+				element: <Transfer />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/call/:id",
+				element: <Transfer />,
 				errorElement: <ErrorPage />,
 			},
 			{

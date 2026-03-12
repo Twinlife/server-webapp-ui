@@ -155,7 +155,10 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 								<Trans
 									i18nKey={state.delay <= 60000 ? "call_start_in_seconds" : "call_start_in_minutes"}
 									values={{
-										delay: state.delay <= 60000 ? Math.round(state.delay / 1000) : Math.round(state.delay / 60000),
+										delay:
+											state.delay <= 60000
+												? Math.round(state.delay / 1000)
+												: Math.round(state.delay / 60000),
 									}}
 									t={t}
 								/>

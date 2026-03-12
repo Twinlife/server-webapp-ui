@@ -25,6 +25,7 @@ import { useSnapshot } from "valtio";
 import { mediaStreams } from "../utils/MediaStreams";
 
 const MEETING = import.meta.env.VITE_APP_MEETING === "true";
+const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
 
 export interface CallButtonHandlers {
 	onCallClick: React.MouseEventHandler<HTMLButtonElement>;
@@ -80,8 +81,8 @@ export const CallButtons = ({
 	audioMute,
 	hasVideo,
 	videoMute,
+	allowCall,
 	isSharingScreen,
-	transfer,
 }: {
 	className: string;
 	status: CallStatus;
@@ -89,14 +90,14 @@ export const CallButtons = ({
 	audioMute: boolean;
 	hasVideo: boolean;
 	videoMute: boolean;
+	allowCall: boolean;
 	isSharingScreen: boolean;
-	transfer: boolean;
 }) => {
 	const { t } = useTranslation();
 	const inCall = CallStatusOps.isActive(status);
 	const isIdle = CallStatusOps.isIdle(status);
-	const inTransfer = transfer && inCall;
-	const callLabel = transfer ? t("transfer") : t("call");
+	const inTransfer = TRANSFER && inCall;
+	const callLabel = TRANSFER ? t("transfer") : t("call");
 	const [isSettingsOpen, setSettingsOpen] = useState<boolean>(false);
 	const [isButtonsVisible, setButtonsVisible] = useState<boolean>(true);
 	const hasCallButton = (!MEETING && !CallStatusOps.isTerminated(status)) || inCall;
@@ -166,8 +167,10 @@ export const CallButtons = ({
 			{hasCallButton && (
 				<div>
 					<button
+						disabled={!allowCall && !inCall}
 						className={clsx(
 							"flex items-center justify-center rounded-full px-6 py-3 text-white transition ",
+							isIdle && !allowCall ? "button-disabled" : "",
 							isIdle
 								? "bg-blue hover:bg-blue/90 active:bg-blue/80"
 								: "bg-red hover:bg-red/90 active:bg-red/80",
@@ -185,7 +188,7 @@ export const CallButtons = ({
 					</button>
 				</div>
 			)}
-			{inTransfer && (
+			{TRANSFER && inTransfer && (
 				<div>
 					<button
 						className="ml-3 flex items-center justify-center rounded-full bg-blue px-6 py-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
@@ -239,7 +242,12 @@ export const CallButtons = ({
 						<WhiteButton onClick={openSettings} className="ml-3 !p-[10px]">
 							<Cog6ToothIcon className="m-auto w-[29px] text-black" aria-hidden="true" />
 						</WhiteButton>
-						<SettingsDialog isOpen={isSettingsOpen} onClose={closeSettings} title="test" />
+						<SettingsDialog
+							isOpen={isSettingsOpen}
+							hasVideo={hasVideo}
+							onClose={closeSettings}
+							title="test"
+						/>
 					</>
 				)}
 			</div>

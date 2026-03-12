@@ -8,6 +8,11 @@
 import { ImageSegmenter, FilesetResolver, ImageSegmenterResult } from "@mediapipe/tasks-vision";
 import { CLEAR_TIMEOUT, SET_TIMEOUT, TIMEOUT_TICK, timerWorkerScript } from "../utils/TimerWorker";
 import { VideoTrack } from "../utils/VideoTrack";
+import { CallService } from "../calls/CallService";
+import { subscribe } from "valtio/index";
+import { backgroundStore } from "../stores/backgrounds";
+import { mediaStreams } from "../utils/MediaStreams.ts";
+import { isMobile } from "../utils/BrowserCapabilities";
 
 class EffectVideoTrack extends VideoTrack {
 	effect: VirtualBackground;
@@ -29,6 +34,8 @@ class EffectVideoTrack extends VideoTrack {
 }
 
 export class VirtualBackground {
+	private readonly callService: CallService;
+	private isInitialized: boolean;
 	private imageSegmenter?: ImageSegmenter | null;
 	private canvas: HTMLCanvasElement;
 	private ctx?: CanvasRenderingContext2D;
@@ -48,15 +55,79 @@ export class VirtualBackground {
 	private count: number = 0;
 	private effectTrack: EffectVideoTrack | null;
 
-	constructor() {
+	constructor(callService: CallService) {
+		this.callService = callService;
+		this.isInitialized = false;
 		this.canvas = document.createElement("canvas");
 		this.maskCanvas = document.createElement("canvas");
 		this.timerWorker = null;
 		this.track = null;
 		this.effectTrack = null;
+
+		// If the virtual background setting was changed, update the effect.
+		subscribe(backgroundStore, () => {
+			const background = backgroundStore.background;
+			const video: VideoTrack | null = mediaStreams.video;
+			if (video == null || video.hasEffect()) {
+				if (background < 0) {
+					// The current media video has the virtual background effect,
+					// we must stop the effect without stopping the camera.
+					// In the media stream, we only switch the track from the effect-track
+					// to the camera track.
+					console.info("Remove video background track changed in the media stream");
+					mediaStreams.setVideoTrackNoStop(this.removeEffect());
+					if (mediaStreams.video) {
+						this.callService.updateVideoTrack(mediaStreams.video, true);
+					}
+				} else {
+					// Simple case: we only change the background effect on the same track.
+					// No need to switch track, we only change the background image.
+					const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+					console.info("Change video background to", backgroundPath);
+					this.setBackground(backgroundPath);
+				}
+			} else if (background >= 0 && video) {
+				// Last case, the current video has no effect and we want to turn it on.
+				// Again, we have to update the media stream with a new track without
+				// stopping the camera.
+				const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+				console.info("Create video background", backgroundPath);
+				if (!this.isInitialized) {
+					this.init().then(() => {
+						const stream = this.startEffect(video.track, backgroundPath);
+						mediaStreams.setVideoTrackNoStop(stream);
+						this.callService.updateVideoTrack(stream, true);
+					});
+				} else {
+					mediaStreams.setVideoTrackNoStop(this.startEffect(video.track, backgroundPath));
+					if (mediaStreams.video) {
+						this.callService.updateVideoTrack(mediaStreams.video, true);
+					}
+				}
+			}
+		});
 	}
 
+	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
+		const background = backgroundStore.background;
+		if (isMobile || isScreenSharing || background == null || background < 0) {
+			this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
+			this.stopEffect();
+			return;
+		}
+		if (!this.isInitialized) {
+			this.init().then(() => {
+				this.setVideoTrack(mediaStream, isScreenSharing);
+			});
+		} else {
+			const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+			const stream = this.startEffect(mediaStream as MediaStreamTrack, backgroundPath);
+			this.callService.setVideoTrack(stream, isScreenSharing);
+		}
+	};
+
 	async init() {
+		this.isInitialized = true;
 		const vision = await FilesetResolver.forVisionTasks("/@mediapipe/wasm");
 		this.imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
 			baseOptions: {

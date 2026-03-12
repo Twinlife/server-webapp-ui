@@ -116,29 +116,21 @@ export const ParticipantsGrid: React.FC<{
 						avatarUrl={participant.getAvatarUrl() ?? ""}
 					/>
 				))}
-
-				{/* Display Contact before call (participants.length === 0) */}
-				{/* {participants.length === 0 && (
-					<ParticipantGridCell
-						cellClassName={getCellClass(0, displayMode, nbParticipants)}
-						participant={participants[0]}
+				{twincode.video && (
+					<DraggableParticipant
+						className={getCellClass(0, displayMode, nbParticipants)}
+						localVideoRef={localVideoRef}
+						localAbsolute={localAbsolute && !screenParticipantId}
+						videoMute={videoMute}
+						isSharingScreen={isSharingScreen}
+						isLocalAudioMute={isLocalAudioMute}
+						isIdle={isIdle}
+						enableVideo={twincode.video}
+						guestNameError={guestNameError}
+						muteVideoClick={muteVideoClick}
 						videoClick={videoClick}
-						avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
-					/>
-				)}*/}
-				<DraggableParticipant
-					className={getCellClass(0, displayMode, nbParticipants)}
-					localVideoRef={localVideoRef}
-					localAbsolute={localAbsolute && !screenParticipantId}
-					videoMute={videoMute}
-					isSharingScreen={isSharingScreen}
-					isLocalAudioMute={isLocalAudioMute}
-					isIdle={isIdle}
-					enableVideo={twincode.video}
-					guestNameError={guestNameError}
-					muteVideoClick={muteVideoClick}
-					videoClick={videoClick}
-				></DraggableParticipant>
+					></DraggableParticipant>
+				)}
 
 				{localAbsolute && (
 					<div

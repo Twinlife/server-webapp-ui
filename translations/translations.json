@@ -603,13 +603,18 @@
 	},
 	{
 		"key": "call_periodic_schedule",
-		"en": "Call scheduled on <strong>{{days}}</strong> at <strong>{{time}}</strong>",
-		"fr": "Appel programmé les <strong>{{days}}</strong> à <strong>{{time}}</strong>"
+		"en": "Call allowed on <strong>{{days}}</strong> from <strong>{{fromTime}}</strong> to <strong>{{toTime}}</strong>",
+		"fr": "Appel autorisé les <strong>{{days}}</strong> de <strong>{{fromTime}}</strong> à <strong>{{toTime}}</strong>"
 	},
 	{
 		"key": "twincode_invalid",
 		"en": "The link you entered cannot be used to make the conference call",
 		"fr": "Le lien que vous avez entré ne peut pas etre utilisé pour la conférence"
+	},
+	{
+		"key": "twincode_invalid_for_transfer",
+		"en": "The link you entered cannot be used to make a transfer",
+		"fr": "Le lien que vous avez entré ne peut pas etre utilisé pour un transfert"
 	},
 	{
 		"key": "twincode_expired",

@@ -31,6 +31,7 @@ interface DialogConfig {
 interface SettingsProps {
 	title: string;
 	isOpen: boolean;
+	hasVideo: boolean;
 	onClose: () => void;
 }
 
@@ -52,7 +53,7 @@ function getSettings(): DialogConfig {
 	};
 }
 
-export const SettingsDialog: FC<SettingsProps> = ({ isOpen, onClose }) => {
+export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose }) => {
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [config, setConfig] = useState<DialogConfig>(getSettings());
 
@@ -107,28 +108,32 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, onClose }) => {
 							>
 								Audio
 							</Tab>
-							<Tab
-								className={({ selected }) =>
-									`px-4 py-2 font-medium border-r-2 ${
-										selected
-											? "text-white bg-gray-700 border-white"
-											: "text-gray-300 hover:text-white border-gray-800"
-									}`
-								}
-							>
-								Video
-							</Tab>
-							<Tab
-								className={({ selected }) =>
-									`px-4 py-2 font-medium border-r-2 ${
-										selected
-											? "text-white bg-gray-700 border-white"
-											: "text-gray-300 hover:text-white border-gray-800"
-									}`
-								}
-							>
-								Backgrounds
-							</Tab>
+							{hasVideo && (
+								<Tab
+									className={({ selected }) =>
+										`px-4 py-2 font-medium border-r-2 ${
+											selected
+												? "text-white bg-gray-700 border-white"
+												: "text-gray-300 hover:text-white border-gray-800"
+										}`
+									}
+								>
+									Video
+								</Tab>
+							)}
+							{hasVideo && (
+								<Tab
+									className={({ selected }) =>
+										`px-4 py-2 font-medium border-r-2 ${
+											selected
+												? "text-white bg-gray-700 border-white"
+												: "text-gray-300 hover:text-white border-gray-800"
+										}`
+									}
+								>
+									Backgrounds
+								</Tab>
+							)}
 							<Tab
 								className={({ selected }) =>
 									`px-4 py-2 font-medium border-r-2 ${
@@ -155,12 +160,20 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, onClose }) => {
 
 						<TabPanels className="flex w-full bg-gray-800 h-[50vh] overflow-y-auto">
 							<AudioSettings isOpen={selectedIndex == 0} config={config.audio} onChange={updateAudio} />
-							<VideoSettings isOpen={selectedIndex == 1} config={config.video} onChange={updateVideo} />
-							<BackgroundSettings
-								isOpen={selectedIndex == 2}
-								config={config.background}
-								onChange={updateBackground}
-							/>
+							{hasVideo && (
+								<VideoSettings
+									isOpen={selectedIndex == 1}
+									config={config.video}
+									onChange={updateVideo}
+								/>
+							)}
+							{hasVideo && (
+								<BackgroundSettings
+									isOpen={selectedIndex == 2}
+									config={config.background}
+									onChange={updateBackground}
+								/>
+							)}
 							<NotificationSettings
 								isOpen={selectedIndex == 3}
 								config={{ sound: config.sound, display: config.display }}

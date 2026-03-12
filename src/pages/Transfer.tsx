@@ -18,14 +18,14 @@ import Header from "../components/Header";
 import Thanks from "../components/Thanks";
 import { CallButtons } from "../components/CallButtons";
 import { Call } from "./Call.tsx";
-import JoinMeeting from "../components/JoinMeeting.tsx";
+import PrepareCall from "../components/PrepareCall";
 import { LocalParticipant } from "../components/LocalParticipant";
 import { ParticipantsGrid } from "../components/ParticipantsGrid";
 import { VirtualBackground } from "../effects/VirtualBackground";
 import { Notifications } from "../notifications/Notifications";
-import { ContactService } from "../services/ContactService";
+import { ContactService, TwincodeInfo } from "../services/ContactService";
 
-export class Meet extends Call {
+export class Transfer extends Call {
 	private videoBackground: VirtualBackground | null = null;
 
 	public init = () => {
@@ -83,35 +83,28 @@ export class Meet extends Call {
 				<Notifications />
 
 				{!isActive && (
-					<JoinMeeting
-						className="w-full h-screen flex flex-col md:flex-row landscape:flex-row"
+					<PrepareCall
+						className="flex h-full w-screen flex flex-col"
 						initializing={initializing}
 						twincodeId={id}
 						twincode={twincode}
 						status={status}
 						title={twincode.name ? twincode.name : "?"}
-						buttons={
-							<CallButtons
-								className=""
-								status={status}
-								callbacks={this}
-								audioMute={audioMute}
-								hasVideo={twincode.video}
-								videoMute={videoMute}
-								isSharingScreen={isSharingScreen}
-							/>
-						}
+						audioMute={audioMute}
+						videoMute={videoMute}
+						isSharingScreen={isSharingScreen}
+						callbacks={this}
 						onStartClick={this.onCallClick}
 						onCancelClick={this.onTerminateClick}
-						onGetTwincode={(twincode) => {
+						onGetTwincode={(twincode: TwincodeInfo) => {
 							this.onGetTwincode(twincode);
 						}}
 					>
-						<div className="flex-1 h-auto md:h-full md:w-full rounded-lg max-h-[80vh] overflow-hidden">
+						<div className="flex-1 h-full w-full relative rounded-lg overflow-hidden">
 							<LocalParticipant
 								localVideoRef={this.localVideoRef}
-								localAbsolute={true}
-								videoMute={videoMute && !isSharingScreen}
+								localAbsolute={false}
+								videoMute={videoMute}
 								isLocalAudioMute={false}
 								isIdle={true}
 								isScreenSharing={isSharingScreen}
@@ -120,8 +113,9 @@ export class Meet extends Call {
 								muteVideoClick={this.onMuteVideoClick}
 							></LocalParticipant>
 						</div>
-					</JoinMeeting>
+					</PrepareCall>
 				)}
+
 				{isActive && (
 					<>
 						<ParticipantsGrid
@@ -175,11 +169,11 @@ export class Meet extends Call {
 		);
 	}
 }
-const MeetWithParams = () => {
+const TransferWithParams = () => {
 	const { t } = useTranslation();
 	const { id } = useParams();
 	const navigate = useNavigate();
-	return <Meet id={id!} t={t} navigate={navigate} />;
+	return <Transfer id={id!} t={t} navigate={navigate} />;
 };
 
-export default MeetWithParams;
+export default TransferWithParams;

@@ -14,6 +14,8 @@ import { DefaultAvatar } from "./DefaultAvatar";
 import { mediaStreams } from "../utils/MediaStreams";
 import { profile } from "../stores/profile";
 
+const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
+
 export const LocalParticipant: React.FC<{
 	localVideoRef: RefObject<HTMLVideoElement | null>;
 	localAbsolute: boolean;
@@ -56,6 +58,7 @@ export const LocalParticipant: React.FC<{
 		? "absolute right-1 top-1 z-20 text-2xl md:left-auto md:right-2"
 		: "absolute right-2 top-2 z-20 text-2xl md:left-auto md:right-2";
 	const videoClass: string = "h-full w-full object-cover"; // : "w-full md:h-full object-cover";
+	const editName: boolean = !localAbsolute && (!TRANSFER || !isIdle);
 	return (
 		<>
 			{isLocalAudioMute && (
@@ -130,7 +133,7 @@ export const LocalParticipant: React.FC<{
 					)}
 				</div>
 			</div>
-			{!localAbsolute && (
+			{editName && (
 				<div className="absolute bottom-2 right-2 text-sm">
 					<GuestNameForms update={!isIdle} guestNameError={guestNameError} />
 				</div>

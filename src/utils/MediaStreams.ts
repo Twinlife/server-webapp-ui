@@ -84,6 +84,7 @@ export class MediaStreams {
 	}
 
 	stop(): void {
+		console.info("Stopping media streams");
 		if (this.video) {
 			this.video.stop();
 			this.video = null;
