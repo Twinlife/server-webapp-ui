@@ -16,7 +16,7 @@ type State = {
 
 export const DEFAULT_STATE = {
 	videoDeviceId: null,
-	enable: true,
+	enable: import.meta.env.VITE_APP_MEETING === "true" || import.meta.env.VITE_APP_TRANSFER === "true",
 };
 
 function getVideoSettings(): State {

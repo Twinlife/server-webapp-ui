@@ -18,6 +18,10 @@ import { backgroundStore } from "../stores/backgrounds";
 import { notificationStore, NotificationState, copyNotificationState } from "../stores/notifications";
 import { audioStore } from "../stores/audio";
 import { videoStore } from "../stores/video";
+import { isMobile, isSafari } from "../utils/BrowserCapabilities";
+
+const hasVideoBackground = (import.meta.env.VITE_APP_MEETING === "true" || import.meta.env.VITE_APP_TRANSFER === "true")
+	&& !isMobile && !isSafari;
 
 interface DialogConfig {
 	audio: AudioConfig;
@@ -121,7 +125,7 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose })
 									Video
 								</Tab>
 							)}
-							{hasVideo && (
+							{hasVideo && hasVideoBackground && (
 								<Tab
 									className={({ selected }) =>
 										`px-4 py-2 font-medium border-r-2 ${
@@ -167,7 +171,7 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose })
 									onChange={updateVideo}
 								/>
 							)}
-							{hasVideo && (
+							{hasVideo && hasVideoBackground && (
 								<BackgroundSettings
 									isOpen={selectedIndex == 2}
 									config={config.background}
