@@ -166,19 +166,25 @@ function getGridClass(mode: DisplayMode, participantsAmount: number) {
 			return "h-full grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1 landscape:grid-cols-2 landscape:grid-rows-1";
 		case 3:
 			return "h-full grid-cols-2 grid-rows-2 md:grid-cols-3 md:grid-rows-1 landscape:grid-cols-3 landscape:grid-rows-1";
-		case 4:
+		case 4 /* 2x2 grid */:
 			return "h-full grid-cols-2 grid-rows-2 md:grid-cols-4 md:grid-rows-1 landscape:grid-cols-2 landscape:grid-rows-2";
-		case 5:
+		case 5 /* 2x3 grid */:
 			return "h-full grid-cols-2 grid-rows-3 md:grid-cols-3 md:grid-rows-2 landscape:grid-cols-3 landscape:grid-rows-2";
 		case 6:
 			return "h-full grid-cols-2 md:grid-cols-3 landscape:grid-cols-3";
 		case 7:
 			return "h-full grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
-		case 8:
+		case 8 /* 2x4 grid */:
 			return "h-full grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
+		case 9 /* 3x3 grid */:
+			return "h-full grid-cols-3 grid-rows-3 md:grid-cols-3 md:grid-rows-3 landscape:grid-cols-3 landscape:grid-rows-3";
+		case 10:
+		case 11:
+		case 12 /* 3x4 grid */:
+			return "h-full grid-cols-3 grid-rows-4 md:grid-cols-3 md:grid-rows-4 landscape:grid-cols-4 landscape:grid-rows-3";
 
-		default:
-			return "";
+		default: /* 4x4 grid */
+			return "h-full grid-cols-4 grid-rows-4 md:grid-cols-4 md:grid-rows-4 landscape:grid-cols-4 landscape:grid-rows-4";
 	}
 }
 
@@ -203,9 +209,20 @@ function getCellClass(participantId: number, mode: DisplayMode, participantsAmou
 			return "h-full";
 		case 7:
 			return "h-full first:row-span-2 md:first:col-span-1 md:first:row-span-2 landscape:first:col-span-1 landscape:first-row-span-2";
+		case 10:
+			return "h-full portrait:first:col-span-3 landscape:first:row-span-4";
+		case 11:
+			return "h-full portrait:first:col-span-2 landscape:first:row-span-2";
+		case 13:
+			return "h-full portrait:first:col-span-3 landscape:first:row-span-4 landscape:last-child:row-span-4";
+		case 14:
+			return "h-full portrait:first:col-span-3 landscape:first:row-span-3 landscape:last-child:row-span-3";
+		case 15:
+			return "h-full portrait:first:col-span-2 landscape:first:row-span-2 landscape:last-child:row-span-2";
 		case 8:
-			return "h-full";
-
+		case 9:
+		case 12:
+		case 16:
 		default:
 			return "h-full";
 	}
