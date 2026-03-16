@@ -99,6 +99,7 @@ export class Meet extends Call {
 								hasVideo={twincode.video}
 								videoMute={videoMute}
 								isSharingScreen={isSharingScreen}
+								allowCall={true}
 							/>
 						}
 						onStartClick={this.onCallClick}
@@ -147,6 +148,7 @@ export class Meet extends Call {
 							hasVideo={twincode.video}
 							videoMute={videoMute}
 							isSharingScreen={isSharingScreen}
+							allowCall={true}
 						/>
 					</>
 				)}

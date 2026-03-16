@@ -5,6 +5,7 @@
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import clsx from "clsx";
 import { useEffect, useState } from "react";
 import { PropsWithChildren, ReactNode } from "react";
 import { Trans, useTranslation } from "react-i18next";
@@ -95,32 +96,37 @@ const PrepareCall: React.FC<PrepareCallProps> = ({
 		(state == null || (state.status === ScheduleStatus.WITHIN_SCHEDULE && state.delay == 0));
 	return (
 		<div className={className}>
-			<div className="grid flex-1 gap-4 md:grid-rows-1 landscape:grid-cols-2">
+			<div className="flex items-center rounded-lg border-2 border-solid border-transparent bg-black/70 py-1 transition">
+				{initializing && (
+					<InitializationPanel twincodeId={twincodeId} twincode={twincode} onComplete={checkTwincode} />
+				)}
+				{!TRANSFER && (
+					<div className="w-full rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
+						{!isWaiting && twincode.schedule && (
+							<Trans
+								i18nKey={ContactService.getSchedule(twincode?.schedule)}
+								values={{
+									contactName: twincode?.name,
+									...ContactService.getScheduleLabels(twincode.schedule),
+								}}
+								t={t}
+							/>
+						)}
+					</div>
+				)}
+			</div>
+			<div className="grid flex-1 gap-4 grid-rows-1 md:grid-cols-2 landscape:grid-cols-2">
 				<div className="w-full flex-1 flex flex-col items-center text-center">
-					{initializing && (
-						<InitializationPanel twincodeId={twincodeId} twincode={twincode} onComplete={checkTwincode} />
-					)}
-					{!TRANSFER && (
-						<div className="flex-1 w-48 h-30 rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition md:h-30">
-							{isWaiting && (
-								<>
-									<span className="">{t("wait_meeting_message")}</span>
-								</>
-							)}
-							{!isWaiting && twincode.schedule && (
-								<Trans
-									i18nKey={ContactService.getSchedule(twincode?.schedule)}
-									values={{
-										contactName: twincode?.name,
-										...ContactService.getScheduleLabels(twincode.schedule),
-									}}
-									t={t}
-								/>
-							)}
-						</div>
-					)}
-					<div className="relative w-full flex-1 rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
+					<div className="flex relative w-full flex-1 items-center justify-center rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
 						<ParticipantAvatar name={twincode.name} avatarUrl={avatarUrl} isSpeaking={false} />
+						<div
+							className={clsx(
+								"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4",
+								twincode.name == null && "hidden",
+							)}
+						>
+							{twincode.name}
+						</div>
 					</div>
 				</div>
 				<div className="w-full flex-1">{children}</div>

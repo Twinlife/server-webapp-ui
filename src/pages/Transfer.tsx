@@ -94,8 +94,6 @@ export class Transfer extends Call {
 						videoMute={videoMute}
 						isSharingScreen={isSharingScreen}
 						callbacks={this}
-						onStartClick={this.onCallClick}
-						onCancelClick={this.onTerminateClick}
 						onGetTwincode={(twincode: TwincodeInfo) => {
 							this.onGetTwincode(twincode);
 						}}
@@ -141,6 +139,7 @@ export class Transfer extends Call {
 							hasVideo={twincode.video}
 							videoMute={videoMute}
 							isSharingScreen={isSharingScreen}
+							allowCall={true}
 						/>
 					</>
 				)}

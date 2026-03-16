@@ -855,7 +855,7 @@ export class Call
 			}
 		}
 		return (
-			<div className="relative flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
+			<div className="relative flex h-full w-screen flex-col bg-black portrait:p-1 portrait:md:p-4 landscape:p-2 landscape:lg:p-4">
 				<Header className={isActive ? "absolute z-10 top-5 left-5 md:top-8 md:left-8" : ""} />
 				<Notifications />
 
@@ -871,8 +871,6 @@ export class Call
 						audioMute={audioMute}
 						videoMute={videoMute}
 						isSharingScreen={isSharingScreen}
-						onStartClick={this.onCallClick}
-						onCancelClick={this.onTerminateClick}
 						onGetTwincode={(twincode: TwincodeInfo) => {
 							this.onGetTwincode(twincode);
 						}}
