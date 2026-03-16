@@ -82,7 +82,6 @@ export interface CallState {
 }
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
-const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
 
 // Create only one instance of PeerCallService.
 const peerCallService: PeerCallService = new PeerCallService();
@@ -807,7 +806,11 @@ export class Call
 		return null;
 	}
 
-	onReadyCall(): void {}
+	onReadyCall(): void {
+		if (!this.state.videoMute && !this.callService.hasVideoTrack()) {
+			this.askForMediaPermission("video");
+		}
+	}
 
 	render() {
 		const { id, t } = this.props;
@@ -830,14 +833,15 @@ export class Call
 		} = this.state;
 
 		if (displayThanks) {
-			return <Thanks onCallBackClick={this.init} />;
+			const callAgain = () => {
+				this.init();
+			};
+			return <Thanks onCallBackClick={callAgain} />;
 		}
-
-		const callType = twincode.transfer ? i18n.t("transfer") : i18n.t("call");
 
 		document.title = i18n.t("title", {
 			appName: import.meta.env.VITE_APP_NAME,
-			callType: callType,
+			callType: i18n.t("call"),
 			linkName: twincode.name,
 		});
 		const isActive = CallStatusOps.isActive(status);
@@ -855,7 +859,7 @@ export class Call
 			}
 		}
 		return (
-			<div className="relative flex h-full w-screen flex-col bg-black portrait:p-1 portrait:md:p-4 landscape:p-2 landscape:lg:p-4">
+			<div className="relative flex h-full w-screen flex-col bg-black portrait:p-1 portrait:md:p-4 landscape:p-1 md:landscape:p-2 landscape:lg:p-4">
 				<Header className={isActive ? "absolute z-10 top-5 left-5 md:top-8 md:left-8" : ""} />
 				<Notifications />
 
@@ -875,7 +879,7 @@ export class Call
 							this.onGetTwincode(twincode);
 						}}
 					>
-						<div className="flex-1 relative h-full w-full rounded-lg overflow-hidden">
+						<div className="flex-1 relative h-full w-full rounded-lg overflow-hidden max-h-[80vh] ">
 							<LocalParticipant
 								localVideoRef={this.localVideoRef}
 								localAbsolute={false}
@@ -934,7 +938,7 @@ export class Call
 						</span>
 					</div>
 				)}
-				{!TRANSFER && !isMobile && CallStatusOps.isIdle(status) && (
+				{!isMobile && CallStatusOps.isIdle(status) && (
 					<>
 						<div className="py-6 text-center font-light">{t("next_time_app")}</div>
 						<div className="mx-auto">

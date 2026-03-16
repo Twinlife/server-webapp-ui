@@ -70,7 +70,7 @@ export class Transfer extends Call {
 
 		document.title = i18n.t("title", {
 			appName: import.meta.env.VITE_APP_NAME,
-			callType: i18n.t("call"),
+			callType: i18n.t("transfer"),
 			linkName: twincode.name,
 		});
 		const isActive = CallStatusOps.isActive(status);
