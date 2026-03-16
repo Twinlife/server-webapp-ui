@@ -4,6 +4,7 @@
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import clsx from "clsx";
 import { X } from "lucide-react";
@@ -21,9 +22,14 @@ export default function GuestNameForms({ update, guestNameError }: GuestNameForm
 	const { t } = useTranslation();
 	const user = useSnapshot(profile);
 
-	const updateNameChange = (name: string) => {
-		profile.name = name;
+	const updateNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		profile.name = event.target.value;
 	};
+	const closeKeyboard = (event: React.KeyboardEvent<HTMLInputElement>) => {
+		if (event.key == 'Enter') {
+			event.currentTarget.blur();
+		}
+	}
 	return (
 		<>
 			{guestNameError && <div className="animate-skaheX py-1 text-orange-600">{t("nickname_empty_error")}</div>}
@@ -40,7 +46,8 @@ export default function GuestNameForms({ update, guestNameError }: GuestNameForm
 							value={user.name}
 							className=" bg-transparent placeholder:font-light placeholder:text-[#656565] focus:outline-none "
 							placeholder="Entrez un pseudo"
-							onChange={(e) => updateNameChange(e.target.value)}
+							onChange={updateNameChange}
+							onKeyDown={closeKeyboard}
 						/>
 					</>
 				)}
