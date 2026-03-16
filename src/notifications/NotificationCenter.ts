@@ -56,6 +56,9 @@ function getSound(type: NotificationType): string | null {
 	}
 }
 
+const NOTIFY_VOLUME: number = 0.3;
+const RINGTONE_VOLUME: number = 0.5;
+
 /**
  * Notification center to centralize and handle all notifications to play sound
  * and post visual notifications.
@@ -67,6 +70,7 @@ export class NotificationCenter {
 	activeNotification: NotificationType | null;
 	audioContext: AudioContext | null;
 	audioSource: AudioBufferSourceNode | null;
+	gainNode: GainNode | null;
 
 	constructor() {
 		this.sound = notificationStore.sound;
@@ -75,6 +79,7 @@ export class NotificationCenter {
 		this.chatPanelOpened = chatStore.chatPanelOpened;
 		this.audioContext = null;
 		this.audioSource = null;
+		this.gainNode = null;
 	}
 
 	/**
@@ -85,17 +90,17 @@ export class NotificationCenter {
 	public onUpdateCallStatus(newStatus: CallStatus, oldStatus: CallStatus): void {
 		if (newStatus == CallStatus.OUTGOING_CALL) {
 			if (!MEETING) {
-				this.postSound(NotificationType.AUDIO_CALLING);
+				this.postSound(NotificationType.AUDIO_CALLING, RINGTONE_VOLUME);
 			}
 		} else if (newStatus == CallStatus.OUTGOING_VIDEO_CALL) {
 			if (!MEETING) {
-				this.postSound(NotificationType.VIDEO_CALLING);
+				this.postSound(NotificationType.VIDEO_CALLING, RINGTONE_VOLUME);
 			}
 		} else if (newStatus == CallStatus.OUTGOING_RINGING) {
-			this.postSound(NotificationType.PEER_RINGING);
+			this.postSound(NotificationType.PEER_RINGING, RINGTONE_VOLUME);
 		} else if (newStatus == CallStatus.TERMINATED) {
 			if (CallStatusOps.isActive(oldStatus)) {
-				this.postSound(NotificationType.CALL_TERMINATED);
+				this.postSound(NotificationType.CALL_TERMINATED, RINGTONE_VOLUME);
 			} else {
 				this.stopSound();
 			}
@@ -115,11 +120,15 @@ export class NotificationCenter {
 		if (this.audioContext) {
 			this.audioContext.close();
 		}
+		if (this.gainNode) {
+			this.gainNode.disconnect();
+		}
 		this.audioSource = null;
 		this.audioContext = null;
+		this.gainNode = null;
 	}
 
-	public playSound(type: NotificationType, loop: boolean) {
+	public playSound(type: NotificationType, loop: boolean, volume?: number | null | undefined) {
 		const soundFile = getSound(type);
 		this.stopSound();
 		this.audioContext = new window.AudioContext();
@@ -136,23 +145,31 @@ export class NotificationCenter {
 					this.audioSource = source;
 					source.buffer = audioBuffer;
 					source.loop = loop;
-					source.connect(this.audioContext.destination);
+					if (volume != null) {
+						const gainNode = this.audioContext.createGain();
+						gainNode.gain.value = volume;
+						this.gainNode = gainNode;
+						source.connect(gainNode);
+						gainNode.connect(this.audioContext.destination);
+					} else {
+						source.connect(this.audioContext.destination);
+					}
 					source.start(0);
 				}
 			});
 	}
 
-	public postSound(type: NotificationType) {
+	public postSound(type: NotificationType, volume: number) {
 		console.error("Posting sound notification " + type);
 		if (
 			type == NotificationType.AUDIO_CALLING ||
 			type == NotificationType.VIDEO_CALLING ||
 			type == NotificationType.PEER_RINGING
 		) {
-			this.playSound(type, true);
+			this.playSound(type, true, volume);
 			return;
 		}
-		this.playSound(type, false);
+		this.playSound(type, false, volume);
 		this.activeNotification = type;
 	}
 
@@ -161,7 +178,7 @@ export class NotificationCenter {
 			toast(participant.getName() + " joined");
 		}
 		if (this.sound.participantJoined) {
-			this.postSound(NotificationType.MEMBER_JOINED);
+			this.postSound(NotificationType.MEMBER_JOINED, NOTIFY_VOLUME);
 		}
 	}
 
@@ -174,13 +191,13 @@ export class NotificationCenter {
 			}
 		}
 		if (this.sound.participantLeft) {
-			this.postSound(NotificationType.MEMBER_LEAVE);
+			this.postSound(NotificationType.MEMBER_LEAVE, NOTIFY_VOLUME);
 		}
 	}
 
 	public postMessageSent(): void {
 		if (this.sound.messageReceived) {
-			this.postSound(NotificationType.MESSAGE_SENT);
+			this.postSound(NotificationType.MESSAGE_SENT, NOTIFY_VOLUME);
 		}
 	}
 
@@ -189,7 +206,7 @@ export class NotificationCenter {
 			toast("New message posted", { autoClose: 1000 });
 		}
 		if (this.sound.messageReceived) {
-			this.postSound(NotificationType.MESSAGE_RECEIVED);
+			this.postSound(NotificationType.MESSAGE_RECEIVED, NOTIFY_VOLUME);
 		}
 	}
 
