@@ -116,17 +116,17 @@ const PrepareCall: React.FC<PrepareCallProps> = ({
 				)}
 			</div>
 			<div className="grid flex flex-1 gap-4 grid-rows-1 md:grid-cols-2 landscape:grid-cols-2 overflow-hidden">
-					<div className="flex relative h-full w-full flex items-center justify-center rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
-						<ParticipantAvatar name={twincode.name} avatarUrl={avatarUrl} isSpeaking={false} />
-						<div
-							className={clsx(
-								"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4",
-								twincode.name == null && "hidden",
-							)}
-						>
-							{twincode.name}
-						</div>
+				<div className="flex relative h-full w-full flex items-center justify-center rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
+					<ParticipantAvatar name={twincode.name} avatarUrl={avatarUrl} isSpeaking={false} />
+					<div
+						className={clsx(
+							"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4",
+							twincode.name == null && "hidden",
+						)}
+					>
+						{twincode.name}
 					</div>
+				</div>
 				{children}
 			</div>
 			<div className="flex items-center rounded-lg border-2 border-solid border-transparent bg-black/70 py-1 transition">

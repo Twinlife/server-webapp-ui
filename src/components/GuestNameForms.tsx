@@ -26,10 +26,10 @@ export default function GuestNameForms({ update, guestNameError }: GuestNameForm
 		profile.name = event.target.value;
 	};
 	const closeKeyboard = (event: React.KeyboardEvent<HTMLInputElement>) => {
-		if (event.key == 'Enter') {
+		if (event.key == "Enter") {
 			event.currentTarget.blur();
 		}
-	}
+	};
 	return (
 		<>
 			{guestNameError && <div className="animate-skaheX py-1 text-orange-600">{t("nickname_empty_error")}</div>}

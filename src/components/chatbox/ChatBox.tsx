@@ -6,6 +6,7 @@
  *   Olivier Dupont <olivier.dupont@twin.life>
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import Linkify from "react-linkify";
 import { useEffect, useRef, useState } from "react";
 import closeImage from "../../assets/close.png";
 import CollapseIcon from "../../assets/collapse.svg";
@@ -122,7 +123,20 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 												item.corners.br,
 											].join(" ")}
 										>
-											{messageDescriptor.message}
+											<Linkify
+												componentDecorator={(decoratedHref, decoratedText, key) => (
+													<a
+														href={decoratedHref}
+														key={key}
+														target="_blank"
+														rel="noopener noreferrer"
+													>
+														{decoratedText}
+													</a>
+												)}
+											>
+												{messageDescriptor.message}
+											</Linkify>
 										</div>
 									</div>
 								);

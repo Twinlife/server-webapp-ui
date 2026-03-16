@@ -20,8 +20,10 @@ import { audioStore } from "../stores/audio";
 import { videoStore } from "../stores/video";
 import { isMobile, isSafari } from "../utils/BrowserCapabilities";
 
-const hasVideoBackground = (import.meta.env.VITE_APP_MEETING === "true" || import.meta.env.VITE_APP_TRANSFER === "true")
-	&& !isMobile && !isSafari;
+const hasVideoBackground =
+	(import.meta.env.VITE_APP_MEETING === "true" || import.meta.env.VITE_APP_TRANSFER === "true") &&
+	!isMobile &&
+	!isSafari;
 
 interface DialogConfig {
 	audio: AudioConfig;
