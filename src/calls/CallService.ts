@@ -692,7 +692,6 @@ export class CallService implements PeerCallServiceObserver {
 	private terminateCall(terminateReason: TerminateReason): void {
 		console.info("call terminated with", terminateReason);
 
-		this.mLocalStream.stop();
 		this.mObserver.onTerminateCall(terminateReason);
 		this.mActiveCall = null;
 

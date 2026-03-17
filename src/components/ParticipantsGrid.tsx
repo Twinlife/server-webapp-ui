@@ -19,6 +19,7 @@ import ChatBox from "./chatbox/ChatBox";
 import { DraggableParticipant } from "./DraggableParticipant";
 import { chatStore } from "../stores/chat";
 import { useSnapshot } from "valtio";
+import { isMobile } from "../utils/BrowserCapabilities";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
@@ -69,10 +70,11 @@ export const ParticipantsGrid: React.FC<{
 		...mode,
 		mode: screenParticipantId != null ? ViewMode.VIEW_SHARE_SCREEN : mode.mode,
 	};
+	const showName : boolean = !isMobile || participants.length < 12;
 	const divClass =
 		displayMode.mode == ViewMode.VIEW_FOCUS_PARTICIPANT || displayMode.mode == ViewMode.VIEW_FOCUS_CAMERA
 			? "relative grid flex-1 gap-4 overflow-hidden md:py-4 transition-all"
-			: "relative grid flex-1 gap-4 overflow-hidden md:py-4 landscape:py-2 lg:py-4 transition-all";
+			: "relative grid flex-1 grid-auto-rows-fr gap-4 overflow-hidden md:py-4 landscape:py-2 lg:py-4 transition-all";
 	if (DEBUG) {
 		console.log(
 			"Display grid",
@@ -113,6 +115,7 @@ export const ParticipantsGrid: React.FC<{
 						)}
 						participant={participant}
 						videoClick={videoClick}
+						showName={showName}
 						avatarUrl={participant.getAvatarUrl() ?? ""}
 					/>
 				))}
@@ -132,7 +135,7 @@ export const ParticipantsGrid: React.FC<{
 					></DraggableParticipant>
 				)}
 
-				{localAbsolute && (
+				{localAbsolute && isMobile && (
 					<div
 						className={[
 							isIdle ? "relative" : "relative ring-2 ring-black",
@@ -156,7 +159,7 @@ function getGridClass(mode: DisplayMode, participantsAmount: number) {
 		return "h-full grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
 	}
 	if (mode.mode == ViewMode.VIEW_SHARE_SCREEN) {
-		return "pl-2 border-l-2 border-black grid grid-cols-1 h-full gap-1 w-48";
+		return "pl-2 border-l-2 border-black grid grid-cols-1 gap-1 w-48 h-full overflow-scroll";
 	}
 	switch (participantsAmount) {
 		case 0:
@@ -193,7 +196,7 @@ function getCellClass(participantId: number, mode: DisplayMode, participantsAmou
 		return mode.participantId === participantId ? "h-full" : "hidden";
 	}
 	if (mode.mode == ViewMode.VIEW_SHARE_SCREEN) {
-		return "border-solid border-4 border-blue";
+		return "border-solid border-4 border-blue w-48 h-48";
 	}
 	switch (participantsAmount) {
 		case 1:

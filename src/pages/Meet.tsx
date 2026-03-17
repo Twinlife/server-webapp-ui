@@ -36,14 +36,9 @@ export class Meet extends Call {
 	};
 
 	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
+		console.log("Setting video track", mediaStream);
 		this.videoBackground?.setVideoTrack(mediaStream, isScreenSharing);
 	};
-
-	onReadyCall(): void {
-		if (!this.state.videoMute && !this.callService.hasVideoTrack()) {
-			this.askForMediaPermission("video");
-		}
-	}
 
 	render() {
 		const { id, t } = this.props;

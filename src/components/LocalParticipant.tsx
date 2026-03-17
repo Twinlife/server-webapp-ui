@@ -13,6 +13,7 @@ import GuestNameForms from "./GuestNameForms";
 import { DefaultAvatar } from "./DefaultAvatar";
 import { mediaStreams } from "../utils/MediaStreams";
 import { profile } from "../stores/profile";
+import { isMobile } from "../utils/BrowserCapabilities";
 
 const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
 
@@ -57,7 +58,6 @@ export const LocalParticipant: React.FC<{
 	const muteClass: string = localAbsolute
 		? "absolute right-1 top-1 z-20 text-2xl md:left-auto md:right-2"
 		: "absolute right-2 top-2 z-20 text-2xl md:left-auto md:right-2";
-	const videoClass: string = "h-full w-full object-cover"; // : "w-full md:h-full object-cover";
 	const editName: boolean = !localAbsolute && (!TRANSFER || !isIdle);
 	return (
 		<>
@@ -78,7 +78,7 @@ export const LocalParticipant: React.FC<{
 			{isScreenSharing && <DefaultAvatar name={profile.name} className="md:h-48 md:w-48" />}
 			<video
 				ref={localVideoRef}
-				className={clsx(videoClass, (videoMute || isScreenSharing) && "hidden", "video-mirror")}
+				className={clsx("h-full w-full object-cover video-mirror", (videoMute || isScreenSharing) && "hidden")}
 				autoPlay={true}
 				playsInline={true}
 				muted={true}
@@ -135,10 +135,19 @@ export const LocalParticipant: React.FC<{
 					)}
 				</div>
 			</div>
-			{editName && (
+			{editName && isMobile && (
 				<div className="absolute bottom-2 right-2 text-sm">
 					<GuestNameForms update={!isIdle} guestNameError={guestNameError} />
 				</div>
+			)}
+			{editName && !isMobile && (
+			<div
+				className={clsx(
+					"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4 border-solid border-transparent"
+					)}
+			>
+				{profile.name}
+			</div>
 			)}
 		</>
 	);

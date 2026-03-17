@@ -32,7 +32,7 @@ import { PeerCallService, TerminateReason } from "../services/PeerCallService";
 import { isMobile } from "../utils/BrowserCapabilities";
 import { CallButtons, CallButtonHandlers } from "../components/CallButtons";
 import { NotificationCenter, notificationCenter } from "../notifications/NotificationCenter";
-import { MediaStreams } from "../utils/MediaStreams";
+import { mediaStreams, MediaStreams } from "../utils/MediaStreams";
 import { AudioTrack } from "../utils/AudioTrack";
 import { VideoTrack } from "../utils/VideoTrack";
 import { Notifications } from "../notifications/Notifications";
@@ -224,7 +224,8 @@ export class Call
 			return;
 		}
 
-		this.callService.actionCameraMute(true);
+		mediaStreams.stop();
+		// this.callService.actionCameraMute(true);
 		this.callService = new CallService(peerCallService, this, this);
 
 		setTimeout(() => {
@@ -642,10 +643,12 @@ export class Call
 			video: kind === "video" ? { facingMode: fMode === "user" ? "user" : { exact: "environment" } } : false,
 		};
 
+		console.log("asking media permissions", constraints);
 		const mediaStream = await this.getUserMedia(constraints);
 		if (mediaStream == null) {
 			return false;
 		}
+		console.log("Got media stream", mediaStream);
 
 		for (const track of mediaStream.getTracks()) {
 			if (track.kind === "audio" && kind === "audio") {

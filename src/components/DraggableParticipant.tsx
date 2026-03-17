@@ -46,7 +46,7 @@ export const DraggableParticipant: React.FC<{
 	const dragStartPositionXYRef = useRef<Position>({ x: 0, y: 0 });
 	const cl = clsx(
 		localAbsolute
-			? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16 md:w-24 md:h-24 lg:w-48 lg:h-48"
+			? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16 md:w-32 md:h-32 lg:w-48 lg:h-48"
 			: isIdle
 				? "relative"
 				: "relative",

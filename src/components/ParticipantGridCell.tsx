@@ -19,6 +19,7 @@ interface ParticipantGridCellProps {
 	participant: CallParticipant;
 	mode: ViewMode;
 	avatarUrl: string;
+	showName: boolean;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 }
 
@@ -39,6 +40,7 @@ export const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	participant,
 	mode,
 	avatarUrl,
+	showName,
 	videoClick,
 }) => {
 	const participantId = participant.getParticipantId();
@@ -47,7 +49,7 @@ export const ParticipantGridCell: React.FC<ParticipantGridCellProps> = ({
 	const isCameraMute = participant.isCameraMute();
 	const isScreenSharing = participant.isScreenSharing();
 	const noVideo = isCameraMute || isScreenSharing;
-	const name = participant.getName();
+	const name = showName ? participant.getName() : null;
 	const isSpeaking = participant.isSpeaking();
 	const videoClass = getVideoClass(mode);
 
