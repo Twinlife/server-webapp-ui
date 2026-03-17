@@ -29,7 +29,7 @@ class EffectVideoTrack extends VideoTrack {
 	stop(): void {
 		console.log("EffectVideoTrack.stop");
 		super.stop();
-		this.effect.stopEffect();
+		this.effect.stopEffect(true);
 	}
 }
 
@@ -112,7 +112,7 @@ export class VirtualBackground {
 		const background = backgroundStore.background;
 		if (isMobile || isSafari || isScreenSharing || background == null || background < 0) {
 			this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
-			this.stopEffect();
+			this.stopEffect(false);
 			return;
 		}
 		if (!this.isInitialized) {
@@ -169,12 +169,12 @@ export class VirtualBackground {
 			return null;
 		}
 		this.track = null;
-		this.stopEffect();
+		this.stopEffect(false);
 		return new VideoTrack(track, deviceId);
 	}
 
 	startEffect(track: MediaStreamTrack, backgroundPath: string | null): VideoTrack {
-		this.stopEffect();
+		this.stopEffect(true);
 		this.track = track;
 		console.error("startEffect track=" + track);
 		const { frameRate, height, width, deviceId } = track.getSettings();
@@ -219,8 +219,8 @@ export class VirtualBackground {
 		return this.effectTrack;
 	}
 
-	stopEffect() {
-		console.log("stop effect");
+	stopEffect(release: boolean) {
+		console.log("stop effect release", release);
 		if (this.timerWorker) {
 			this.timerWorker.postMessage({ id: CLEAR_TIMEOUT });
 			//this.timerWorker.terminate();
@@ -233,6 +233,10 @@ export class VirtualBackground {
 		if (effectTrack) {
 			this.effectTrack = null;
 			effectTrack.stop();
+		}
+		if (this.track && release) {
+			this.track.stop();
+			this.track = null;
 		}
 	}
 

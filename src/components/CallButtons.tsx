@@ -158,14 +158,14 @@ export const CallButtons = ({
 	return (
 		<div
 			className={clsx(
-				"mx-auto flex w-auto items-center justify-between md:rounded-lg bg-zinc-800 md:px-4 md:py-2",
+				"mx-auto flex w-auto items-center justify-between rounded-lg bg-zinc-800 md:px-4 md:py-2",
 				className,
 				inCall && !isButtonsVisible ? "hidden" : "",
 			)}
 			style={{ display: inCall && !isButtonsVisible ? "none" : "flex" }}
 		>
-			{hasCallButton && (
-				<div>
+			<div className="flex items-center justify-end">
+				{hasCallButton && (
 					<button
 						disabled={!allowCall && !inCall}
 						className={clsx(
@@ -186,10 +186,8 @@ export const CallButtons = ({
 							<span className="font-light">{isIdle ? callLabel : t("audio_call_activity_calling")}</span>
 						)}
 					</button>
-				</div>
-			)}
-			{TRANSFER && inTransfer && (
-				<div>
+				)}
+				{TRANSFER && inTransfer && (
 					<button
 						className="ml-3 flex items-center justify-center rounded-full bg-blue px-6 py-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
 						onClick={callbacks.onTransferClick}
@@ -199,12 +197,10 @@ export const CallButtons = ({
 						</span>
 						<span className="font-light">{t("transfer")}</span>
 					</button>
-				</div>
-			)}
+				)}
 
-			<div className="flex items-center justify-end">
 				{inCall && (
-					<WhiteButton onClick={callbacks.onChatClick} className="relative ml-3 !p-[10px]">
+					<WhiteButton onClick={callbacks.onChatClick} className="relative">
 						{chat.unreadMessages > 0 && (
 							<span className="absolute right-1 top-1 flex h-2 w-2">
 								<span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red opacity-75"></span>
@@ -217,30 +213,30 @@ export const CallButtons = ({
 				{isMobile && hasVideo && (
 					<WhiteButton
 						onClick={callbacks.onSwitchCameraClick}
-						className={clsx("ml-3 !p-[10px]", videoMute ? "btn-white-disabled" : "")}
+						className={videoMute ? "btn-white-disabled" : ""}
 					>
 						<SwitchCamera color="black" />
 					</WhiteButton>
 				)}
 				{
-					<WhiteButton onClick={callbacks.onMuteAudioClick} className="ml-3 !p-[10px] ">
+					<WhiteButton onClick={callbacks.onMuteAudioClick}>
 						{audioMute ? <MicOff color="black" /> : <Mic color="black" />}
 					</WhiteButton>
 				}
 				{hasVideo && (
-					<WhiteButton onClick={callbacks.onMuteVideoClick} className="ml-3 !p-[10px]">
+					<WhiteButton onClick={callbacks.onMuteVideoClick}>
 						{videoMute || isSharingScreen ? <VideoOff color="black" /> : <Video color="black" />}
 					</WhiteButton>
 				)}
 				{hasVideo && !isMobile && (
-					<WhiteButton onClick={callbacks.onSharingScreenClick} className="ml-3 !p-[10px]">
+					<WhiteButton onClick={callbacks.onSharingScreenClick}>
 						{isSharingScreen ? <MonitorOn /> : <MonitorOff />}
 					</WhiteButton>
 				)}
 				{!isMobile && (
 					<>
-						<WhiteButton onClick={openSettings} className="ml-3 !p-[10px]">
-							<Cog6ToothIcon className="m-auto w-[29px] text-black" aria-hidden="true" />
+						<WhiteButton onClick={openSettings}>
+							<Cog6ToothIcon className="m-auto w-[24px] text-black" aria-hidden="true" />
 						</WhiteButton>
 						<SettingsDialog
 							isOpen={isSettingsOpen}

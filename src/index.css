@@ -177,7 +177,12 @@ svg {
 }
 
 .btn-white {
-	@apply rounded-full bg-white p-1 hover:bg-white/90 active:bg-white/80;
+	@apply rounded-full bg-white hover:bg-white/90 active:bg-white/80 ml-3;
+
+	padding: 10px;
+}
+.btn-white:first-child {
+	margin-left: 0;
 }
 .btn-white-disabled {
 	@apply bg-white/50 hover:bg-white/50;
@@ -225,6 +230,14 @@ svg {
 @media (max-width: 400px) {
 	.thanks-image {
 		width: 50%;
+	}
+	.btn-white {
+		padding: 8px;
+	}
+}
+@media (max-height: 600px) {
+	.btn-white {
+		padding: 8px;
 	}
 }
 @media (max-height: 690px) and (orientation:landscape) {

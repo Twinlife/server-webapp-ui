@@ -84,12 +84,12 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 		<div className={className}>
 			<div
 				id="info-part"
-				className="flex flex-col w-full h-auto text-sm landscape:w-1/4 landscape:h-full md:w-1/4 md:h-full p-1 order-2 md:order-1 landscape:order-1 items-center text-center"
+				className="flex flex-col w-full h-1/2 text-xs lg:text-base landscape:w-1/4 landscape:h-full md:w-1/4 p-1 order-2 md:order-1 landscape:order-1 items-center text-center"
 			>
 				{initializing && (
 					<InitializationPanel twincodeId={twincodeId} twincode={twincode} onComplete={checkTwincode} />
 				)}
-				<div className="flex-1 w-full rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition text-xs text-[clamp(0.5rem,1vw,1rem)] md:text-base">
+				<div className="flex-1 w-full rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
 					{isWaiting && (
 						<>
 							<span className="">{t("wait_meeting_message")}</span>
@@ -172,7 +172,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 			</div>
 			<div
 				id="video-part"
-				className="flex-1 w-full h-auto landscape:w-3/4 md:w-3/4 landscape:h-full md:h-full p-1 order-1 md:order-2"
+				className="relative flex flex-1 w-full sh:h-full relative landscape:w-3/4 md:w-3/4 order-1 md:order-2 rounded-lg items-center justify-center overflow-hidden"
 			>
 				{children}
 			</div>

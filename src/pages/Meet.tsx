@@ -24,6 +24,7 @@ import { ParticipantsGrid } from "../components/ParticipantsGrid";
 import { VirtualBackground } from "../effects/VirtualBackground";
 import { Notifications } from "../notifications/Notifications";
 import { ContactService } from "../services/ContactService";
+import { isMobile } from "../utils/BrowserCapabilities";
 
 export class Meet extends Call {
 	private videoBackground: VirtualBackground | null = null;
@@ -79,7 +80,11 @@ export class Meet extends Call {
 
 		return (
 			<div className={clsx("relative flex flex-col h-full w-screen overflow-hidden bg-black", style)}>
-				<Header className={isActive ? "absolute z-10 top-5 left-5 md:top-8 md:left-8" : ""} />
+				<Header
+					className={
+						isActive || isMobile ? "absolute z-10 top-5 left-1/2 md:top-8 md:left-8 -translate-x-1/2" : ""
+					}
+				/>
 				<Notifications />
 
 				{!isActive && (
@@ -108,19 +113,17 @@ export class Meet extends Call {
 							this.onGetTwincode(twincode);
 						}}
 					>
-						<div className="flex-1 h-auto md:h-full md:w-full rounded-lg max-h-[80vh] overflow-hidden">
-							<LocalParticipant
-								localVideoRef={this.localVideoRef}
-								localAbsolute={true}
-								videoMute={videoMute && !isSharingScreen}
-								isLocalAudioMute={false}
-								isIdle={true}
-								isScreenSharing={isSharingScreen}
-								enableVideo={true}
-								guestNameError={guestNameError}
-								muteVideoClick={this.onMuteVideoClick}
-							></LocalParticipant>
-						</div>
+						<LocalParticipant
+							localVideoRef={this.localVideoRef}
+							localAbsolute={true}
+							videoMute={videoMute && !isSharingScreen}
+							isLocalAudioMute={false}
+							isIdle={true}
+							isScreenSharing={isSharingScreen}
+							enableVideo={true}
+							guestNameError={guestNameError}
+							muteVideoClick={this.onMuteVideoClick}
+						></LocalParticipant>
 					</JoinMeeting>
 				)}
 				{isActive && (

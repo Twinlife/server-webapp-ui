@@ -2,6 +2,10 @@
 export default {
 	content: ["./index.html", "./src/**/*.{js,ts,jsx,tsx}"],
 	theme: {
+		screens: {
+		        'sh': { 'max': '600px' },
+			'th': { 'min': '800px' },
+		},
 		extend: {
 			fontFamily: {
 				sans: "Lato",

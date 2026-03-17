@@ -33,6 +33,7 @@ export class VideoTrack {
 	}
 
 	stop(): void {
+		console.log("VideoTrack.stop");
 		this.track.stop();
 	}
 

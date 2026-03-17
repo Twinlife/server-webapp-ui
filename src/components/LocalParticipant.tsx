@@ -91,7 +91,9 @@ export const LocalParticipant: React.FC<{
 				)}
 			>
 				{enableVideo && (
-					<span className={clsx(!isIdle && "hidden md:block", "absolute top-2 mt-2 text-sm md:text-base")}>
+					<span
+						className={clsx(!isIdle && "hidden md:block", "absolute bottom-2/3 mt-2 text-sm md:text-base")}
+					>
 						{t("activate_camera")}
 					</span>
 				)}
