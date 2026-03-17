@@ -12,7 +12,7 @@ import { CallService } from "../calls/CallService";
 import { subscribe } from "valtio/index";
 import { backgroundStore } from "../stores/backgrounds";
 import { mediaStreams } from "../utils/MediaStreams.ts";
-import { isMobile } from "../utils/BrowserCapabilities";
+import { isMobile, isSafari } from "../utils/BrowserCapabilities";
 
 class EffectVideoTrack extends VideoTrack {
 	effect: VirtualBackground;
@@ -110,7 +110,7 @@ export class VirtualBackground {
 
 	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
 		const background = backgroundStore.background;
-		if (isMobile || isScreenSharing || background == null || background < 0) {
+		if (isMobile || isSafari || isScreenSharing || background == null || background < 0) {
 			this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
 			this.stopEffect();
 			return;
