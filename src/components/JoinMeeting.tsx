@@ -89,21 +89,21 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 				{initializing && (
 					<InitializationPanel twincodeId={twincodeId} twincode={twincode} onComplete={checkTwincode} />
 				)}
-				<div className="flex-1 w-full rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
+				<div className="flex flex-1 rounded-lg border-2 border-solid border-transparent bg-black/70 px-2 py-1 transition">
 					{isWaiting && (
 						<>
 							<span className="">{t("wait_meeting_message")}</span>
 						</>
 					)}
 					{!isWaiting && twincode.schedule && (
-						<Trans
+						<span><Trans
 							i18nKey={ContactService.getSchedule(twincode?.schedule)}
 							values={{
 								contactName: twincode?.name,
 								...ContactService.getScheduleLabels(twincode.schedule),
 							}}
 							t={t}
-						/>
+						/></span>
 					)}
 				</div>
 				{avatarUrl && (
@@ -123,16 +123,17 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 						type="text"
 						id="name"
 						value={user.name}
-						className="w-full bg-transparent border rounded px-3 py-2 landscape:px-1 landscape:py-1 landscape:lg:px-6 landscape:lg:py-3 focus:outline-none text-center focus:ring-2"
+						className="w-full bg-transparent border rounded px-1 py-1 md:px-3 md:py-2 landscape:px-1 landscape:py-1 landscape:lg:px-6 landscape:lg:py-3 focus:outline-none text-center focus:ring-2"
 						placeholder="Entrez un pseudo"
 						onChange={(e) => (profile.name = e.target.value)}
+						onKeyDown={(e) => { if (e.key == "Enter") { e.currentTarget.blur(); }}}
 					/>
 				</div>
 				<div className="flex-1 w-full rounded-lg border-2 border-solid h-18 border-transparent bg-black/70 px-2 py-1 transition">
 					{!isWaiting && !initializing && profile.name && profile.name.length > 0 && canCall && (
 						<button
 							className={
-								"flex w-full items-center justify-center px-6 py-3 landscape:px-1 landscape:py-1 landscape:lg:px-6 landscape:lg:py-3 text-white transition rounded-lg bg-blue hover:bg-blue/90 active:bg-blue/80"
+								"flex w-full items-center justify-center px-3 py-2 md:px-6 md:py-3 landscape:px-1 landscape:py-1 landscape:lg:px-6 landscape:lg:py-3 text-white transition rounded-lg bg-blue hover:bg-blue/90 active:bg-blue/80"
 							}
 							onClick={onStartClick}
 						>
@@ -142,7 +143,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 					{isWaiting && (
 						<button
 							className={
-								"flex w-full items-center justify-center px-6 py-3 landscape:px-1 landscape:py-1 text-white transition rounded-lg bg-red hover:bg-red/90 active:bg-red/80"
+								"flex w-full items-center justify-center px-3 py-2 md:px-6 md:py-3 landscape:px-1 landscape:py-1 text-white transition rounded-lg bg-red hover:bg-red/90 active:bg-red/80"
 							}
 							onClick={onCancelClick}
 						>

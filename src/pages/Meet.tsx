@@ -74,17 +74,19 @@ export class Meet extends Call {
 		console.log("status", status, "participants", participants.length, "active", isActive);
 
 		return (
-			<div className={clsx("relative flex flex-col h-full w-screen overflow-hidden bg-black", style)}>
-				<Header
+			<div className={clsx("relative flex flex-col h-screen w-screen overflow-hidden bg-black", style)}>
+				{/* Display the header on Desktop (always)
+				    but on Mobile only when we are not connected because we have a small screen */
+					(!isActive) && <Header
 					className={
 						isActive || isMobile ? "absolute z-10 top-5 left-1/2 md:top-8 md:left-8 -translate-x-1/2" : ""
 					}
-				/>
+				/>}
 				<Notifications />
 
 				{!isActive && (
 					<JoinMeeting
-						className="w-full h-screen flex flex-col md:flex-row landscape:flex-row"
+						className="w-full h-full flex flex-col md:flex-row landscape:flex-row"
 						initializing={initializing}
 						twincodeId={id}
 						twincode={twincode}
