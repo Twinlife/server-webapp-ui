@@ -75,13 +75,19 @@ export class Meet extends Call {
 
 		return (
 			<div className={clsx("relative flex flex-col h-screen w-screen overflow-hidden bg-black", style)}>
-				{/* Display the header on Desktop (always)
+				{
+					/* Display the header on Desktop (always)
 				    but on Mobile only when we are not connected because we have a small screen */
-					(!isActive) && <Header
-					className={
-						isActive || isMobile ? "absolute z-10 top-5 left-1/2 md:top-8 md:left-8 -translate-x-1/2" : ""
-					}
-				/>}
+					!isActive && (
+						<Header
+							className={
+								isActive || isMobile
+									? "absolute z-10 top-5 left-1/2 md:top-8 md:left-8 -translate-x-1/2"
+									: ""
+							}
+						/>
+					)
+				}
 				<Notifications />
 
 				{!isActive && (
