@@ -93,6 +93,7 @@ export class Call
 	protected localVideoRef: RefObject<HTMLVideoElement | null> = createRef();
 	protected callService: CallService = new CallService(peerCallService, this, this);
 	protected notificationCenter: NotificationCenter = notificationCenter;
+	private stopping: boolean = false;
 
 	state: CallState = {
 		initializing: true,
@@ -219,7 +220,9 @@ export class Call
 			alertContent: <></>,
 			isSharingScreen: false,
 			items: [],
+			participants: [],
 		});
+		this.stopping = false;
 		if (reason == "cancel") {
 			return;
 		}
@@ -258,6 +261,9 @@ export class Call
 			console.log("Remove", participants.length, "participants");
 		}
 
+		if (this.stopping) {
+			return;
+		}
 		this.notificationCenter.postMemberLeave(participants);
 		const list: Array<CallParticipant> = this.callService.getParticipants();
 		const displayMode: DisplayMode = this.state.displayMode;
@@ -358,6 +364,7 @@ export class Call
 	onTerminateClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 
+		this.stopping = true;
 		if (CallStatusOps.isActive(this.state.status)) {
 			this.callService.actionTerminateCall("success");
 		} else {
