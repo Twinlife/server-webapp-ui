@@ -172,7 +172,7 @@ export class NotificationCenter {
 	}
 
 	public postSound(type: NotificationType, volume: number) {
-		console.error("Posting sound notification " + type);
+		console.info("Posting sound notification " + type);
 		if (
 			type == NotificationType.AUDIO_CALLING ||
 			type == NotificationType.VIDEO_CALLING ||
@@ -187,7 +187,7 @@ export class NotificationCenter {
 
 	public postMemberJoined(participant: CallParticipant): void {
 		if (this.display.participantJoined && participant.getName()) {
-			toast(participant.getName() + " joined");
+			this.postToast(participant.getName() + " joined");
 		}
 		if (!isMobile && this.sound.participantJoined) {
 			this.postSound(NotificationType.MEMBER_JOINED, NOTIFY_VOLUME);
@@ -198,7 +198,7 @@ export class NotificationCenter {
 		if (this.display.participantLeft) {
 			for (const participant of participants) {
 				if (participant.getName()) {
-					toast("Member " + participant.getName() + " left");
+					this.postToast("Member " + participant.getName() + " left");
 				}
 			}
 		}
@@ -215,7 +215,7 @@ export class NotificationCenter {
 
 	public postNewMessage(): void {
 		if (this.display.messageReceived && !this.chatPanelOpened) {
-			toast("New message posted", { autoClose: 1000 });
+			this.postToast("New message posted");
 		}
 		if (!isMobile && this.sound.messageReceived) {
 			this.postSound(NotificationType.MESSAGE_RECEIVED, NOTIFY_VOLUME);
@@ -226,6 +226,10 @@ export class NotificationCenter {
 		this.sound = notificationStore.sound;
 		this.display = notificationStore.display;
 		this.chatPanelOpened = chatStore.chatPanelOpened;
+	}
+
+	private postToast(message: string) {
+		toast(message, { autoClose: 1000 });
 	}
 }
 
