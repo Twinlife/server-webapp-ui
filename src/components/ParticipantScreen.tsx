@@ -50,6 +50,7 @@ const ParticipantScreen: React.FC<ParticipantGridCellProps> = ({ participant, vi
 				playsInline={true}
 				id={"screenElement-" + participantId}
 				className="h-full w-full"
+				muted={true}
 			></video>
 		</div>
 	);
