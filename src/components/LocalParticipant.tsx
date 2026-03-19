@@ -141,13 +141,13 @@ export const LocalParticipant: React.FC<{
 				</div>
 			)}
 			{editName && !isMobile && (
-			<div
-				className={clsx(
-					"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4 border-solid border-transparent"
+				<div
+					className={clsx(
+						"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4 border-solid border-transparent",
 					)}
-			>
-				{profile.name}
-			</div>
+				>
+					{profile.name}
+				</div>
 			)}
 		</>
 	);

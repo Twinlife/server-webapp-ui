@@ -96,14 +96,16 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 						</>
 					)}
 					{!isWaiting && twincode.schedule && (
-						<span><Trans
-							i18nKey={ContactService.getSchedule(twincode?.schedule)}
-							values={{
-								contactName: twincode?.name,
-								...ContactService.getScheduleLabels(twincode.schedule),
-							}}
-							t={t}
-						/></span>
+						<span>
+							<Trans
+								i18nKey={ContactService.getSchedule(twincode?.schedule)}
+								values={{
+									contactName: twincode?.name,
+									...ContactService.getScheduleLabels(twincode.schedule),
+								}}
+								t={t}
+							/>
+						</span>
 					)}
 				</div>
 				{avatarUrl && (
@@ -126,7 +128,11 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 						className="w-full bg-transparent border rounded px-1 py-1 md:px-3 md:py-2 landscape:px-1 landscape:py-1 landscape:lg:px-6 landscape:lg:py-3 focus:outline-none text-center focus:ring-2"
 						placeholder="Entrez un pseudo"
 						onChange={(e) => (profile.name = e.target.value)}
-						onKeyDown={(e) => { if (e.key == "Enter") { e.currentTarget.blur(); }}}
+						onKeyDown={(e) => {
+							if (e.key == "Enter") {
+								e.currentTarget.blur();
+							}
+						}}
 					/>
 				</div>
 				<div className="flex-1 w-full rounded-lg border-2 border-solid h-18 border-transparent bg-black/70 px-2 py-1 transition">

@@ -70,7 +70,7 @@ export const ParticipantsGrid: React.FC<{
 		...mode,
 		mode: screenParticipantId != null ? ViewMode.VIEW_SHARE_SCREEN : mode.mode,
 	};
-	const showName : boolean = !isMobile || participants.length < 12;
+	const showName: boolean = !isMobile || participants.length < 12;
 	const divClass =
 		displayMode.mode == ViewMode.VIEW_FOCUS_PARTICIPANT || displayMode.mode == ViewMode.VIEW_FOCUS_CAMERA
 			? "relative grid flex-1 gap-4 overflow-hidden md:py-4 transition-all"
