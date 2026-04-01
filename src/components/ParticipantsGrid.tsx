@@ -202,7 +202,7 @@ function getCellClass(participantId: number, mode: DisplayMode, participantsAmou
 		return mode.participantId === participantId ? "h-full" : "hidden";
 	}
 	if (mode.mode == ViewMode.VIEW_SHARE_SCREEN) {
-		return "border-solid border-4 border-blue w-48 h-48";
+		return "border-solid border-4 border-transparent w-48 h-48";
 	}
 	switch (participantsAmount) {
 		case 1:
