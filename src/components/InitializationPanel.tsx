@@ -8,8 +8,7 @@
  */
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { AxiosError } from "axios";
-import { ContactService, TwincodeInfo } from "../services/ContactService";
+import { ContactService, TwincodeInfo, RestError } from "../services/ContactService";
 import SpinnerIcon from "./icons/SpinnerIcon";
 
 interface InitializationPanelProps {
@@ -43,13 +42,13 @@ export default function InitializationPanel({ twincodeId, onComplete }: Initiali
 				})
 				.catch((error: unknown) => {
 					let msg: string = "general_error_message";
-					if (isMounted && error instanceof AxiosError) {
-						const axiosError: AxiosError = error as AxiosError;
-						if (axiosError.response && axiosError.response.status == 404) {
+					if (isMounted && error instanceof RestError) {
+						const restError: RestError = error as RestError;
+						if (restError.status == 404) {
 							msg = "twincode_not_found";
-						} else if (axiosError.response && axiosError.response.status == 410) {
+						} else if (restError.status == 410) {
 							msg = "twincode_expired";
-						} else if (ContactService.isTransientError(axiosError)) {
+						} else if (ContactService.isTransientError(restError)) {
 							retryTimeout = setTimeout(() => fetchTwincode(), 5000);
 							msg = "service_unavailable";
 						} else {

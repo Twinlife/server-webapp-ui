@@ -6,8 +6,6 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 
-import axios from "axios";
-import { AxiosError } from "axios";
 import { fromZonedTime } from "date-fns-tz";
 import i18n from "i18next";
 
@@ -23,6 +21,25 @@ export type TwincodeInfo = {
 	conference: boolean;
 	schedule: Schedule | null;
 };
+
+export class Response<T> {
+	readonly data: T;
+	readonly status: number;
+
+	constructor(status: number, data: T) {
+		this.status = status;
+		this.data = data;
+	}
+}
+
+export class RestError extends Error {
+	readonly status: number;
+
+	constructor(status: number, message: string) {
+		super(message);
+		this.status = status;
+	}
+}
 
 export type Schedule = {
 	timeZone: string;
@@ -104,15 +121,17 @@ const timeFormat = new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" }
 //e.g. "1 Décembre 2023"
 const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" });
 
+const NETWORK_ERROR: number = 1;
+
 /**
  * Simple service to get the contact information (aka twincode attributes).
  */
 export class ContactService {
-	public static isTransientError(error: AxiosError): boolean {
-		if (error.response) {
-			return error.response.status == 503;
-		} else if (error.code) {
-			return error.code == "ERR_NETWORK";
+	public static isTransientError(error: RestError): boolean {
+		if (error.status) {
+			return error.status == 503 || error.status == NETWORK_ERROR;
+		} else if (error.message) {
+			return error.message.includes("network error");
 		} else {
 			return false;
 		}
@@ -240,7 +259,29 @@ export class ContactService {
 		}
 	}
 
-	public static getTwincode(id: string) {
-		return axios.get<TwincodeInfo>(url + "/twincodes/" + id);
+	public static getTwincode(id: string): Promise<Response<TwincodeInfo>> {
+		return new Promise((resolve, reject) => {
+			const xhr = new XMLHttpRequest();
+			xhr.open("GET", url + "/twincodes/" + id, true);
+			xhr.setRequestHeader("Accept", "application/json");
+			xhr.onreadystatechange = function () {
+				if (xhr.readyState === 4) {
+					if (xhr.status === 200) {
+						try {
+							const response = JSON.parse(xhr.responseText);
+							resolve(new Response<TwincodeInfo>(xhr.status, response));
+						} catch (ignored: unknown) {
+							reject(new RestError(xhr.status, "Failed to parse response"));
+						}
+					} else {
+						reject(new RestError(xhr.status, "Request failed"));
+					}
+				}
+			};
+			xhr.onerror = function () {
+				reject(new RestError(NETWORK_ERROR, "Network error"));
+			};
+			xhr.send();
+		});
 	}
 }
