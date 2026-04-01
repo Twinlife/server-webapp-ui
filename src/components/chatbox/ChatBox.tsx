@@ -21,30 +21,7 @@ import InvitationItem, { InvitationUI } from "./InvitationItem";
 import { chatStore } from "../../stores/chat";
 import { useSnapshot } from "valtio";
 import { isMobile } from "../../utils/BrowserCapabilities";
-
-interface AutoScrollDivProps {
-	children: React.ReactNode;
-}
-
-const AutoScrollDiv: React.FC<AutoScrollDivProps> = ({ children }) => {
-	const divRef = useRef<HTMLDivElement>(null);
-
-	// Scroll to bottom whenever children change
-	useEffect(() => {
-		const timer = setTimeout(() => {
-			if (divRef.current) {
-				divRef.current.scrollTop = divRef.current.scrollHeight;
-			}
-		}, 0);
-		return () => clearTimeout(timer);
-	}, [children]);
-
-	return (
-		<div className="h-full w-full overflow-y-scroll" ref={divRef}>
-			<div className="flex w-full flex-col items-center justify-end p-4 text-sm">{children}</div>
-		</div>
-	);
-};
+import { AutoScrollDiv } from "../AutoScrollDiv";
 
 interface ChatBoxInterface {
 	items: Item[];
@@ -57,7 +34,6 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 	const [invitationUI, setInvitationUI] = useState<InvitationUI | null>(null);
 	const [message, setMessage] = useState("");
 
-	// console.log("Chat items: ", items.length);
 	const openInvitation = (invitationUI: InvitationUI) => {
 		setInvitationUI(invitationUI);
 		setInvitationDialogOpen(true);
