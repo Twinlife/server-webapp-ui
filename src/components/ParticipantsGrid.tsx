@@ -6,6 +6,7 @@
  *   Olivier Dupont <olivier.dupont@twin.life>
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import clsx from "clsx";
 import { RefObject } from "react";
 import { CallParticipant } from "../calls/CallParticipant";
 import { CallService } from "../calls/CallService";
@@ -74,7 +75,7 @@ export const ParticipantsGrid: React.FC<{
 	const divClass =
 		displayMode.mode == ViewMode.VIEW_FOCUS_PARTICIPANT || displayMode.mode == ViewMode.VIEW_FOCUS_CAMERA
 			? "relative grid flex-1 gap-4 overflow-hidden md:py-4 transition-all"
-			: "relative grid flex-1 grid-auto-rows-fr gap-4 overflow-hidden md:py-4 landscape:py-2 lg:py-4 transition-all";
+			: "relative grid flex-1 gap-4 overflow-hidden md:py-4 grid-auto-rows-fr landscape:py-2 lg:py-4 transition-all";
 	if (DEBUG) {
 		console.log(
 			"Display grid",
@@ -148,8 +149,13 @@ export const ParticipantsGrid: React.FC<{
 						</div>
 					</div>
 				)}
-				<ChatBox pushMessage={pushMessage} items={items} />
+				{isMobile && <ChatBox pushMessage={pushMessage} items={items} />}
 			</div>
+			{!isMobile && (
+				<div className={clsx("relative h-full", chat.chatPanelOpened && "w-1/4")}>
+					<ChatBox pushMessage={pushMessage} items={items} />
+				</div>
+			)}
 		</div>
 	);
 };

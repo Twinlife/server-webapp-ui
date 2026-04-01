@@ -20,6 +20,7 @@ import InvitationDialog from "./InvitationDialog";
 import InvitationItem, { InvitationUI } from "./InvitationItem";
 import { chatStore } from "../../stores/chat";
 import { useSnapshot } from "valtio";
+import { isMobile } from "../../utils/BrowserCapabilities";
 
 interface AutoScrollDivProps {
 	children: React.ReactNode;
@@ -51,7 +52,7 @@ interface ChatBoxInterface {
 }
 
 export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
-	const [chatPanelFull, setChatPanelFull] = useState(false);
+	const [chatPanelFull, setChatPanelFull] = useState(true);
 	const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
 	const [invitationUI, setInvitationUI] = useState<InvitationUI | null>(null);
 	const [message, setMessage] = useState("");
@@ -91,14 +92,23 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 		setMessage("");
 	};
 
+	let className: string;
+	if (!chatPanelOpened) {
+		className = "h-0 py-0 md:w-0";
+	} else if (!isMobile) {
+		className = "opacity-100 h-full w-full py-4";
+	} else if (chatPanelFull) {
+		className = "opacity-100 h-[calc(100%-5em)] !w-full py-4";
+	} else {
+		className = "opacity-100 h-[300px] md:w-[300px] py-4";
+	}
 	return (
 		<div
 			className={[
 				"absolute bottom-0 right-0 z-20 overflow-hidden transition-all",
 				"h-0 w-full px-0 opacity-0 mb-20",
 				"md:h-full ",
-				chatPanelOpened ? "h-[300px] py-4 opacity-100 md:w-[300px]" : "h-0 py-0 md:w-0",
-				chatPanelFull && "h-[calc(100%-5em)] !w-full py-4",
+				className,
 			].join(" ")}
 		>
 			<div
