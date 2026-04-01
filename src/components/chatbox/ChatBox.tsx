@@ -21,6 +21,30 @@ import InvitationItem, { InvitationUI } from "./InvitationItem";
 import { chatStore } from "../../stores/chat";
 import { useSnapshot } from "valtio";
 
+interface AutoScrollDivProps {
+	children: React.ReactNode;
+}
+
+const AutoScrollDiv: React.FC<AutoScrollDivProps> = ({ children }) => {
+	const divRef = useRef<HTMLDivElement>(null);
+
+	// Scroll to bottom whenever children change
+	useEffect(() => {
+		const timer = setTimeout(() => {
+			if (divRef.current) {
+				divRef.current.scrollTop = divRef.current.scrollHeight;
+			}
+		}, 0);
+		return () => clearTimeout(timer);
+	}, [children]);
+
+	return (
+		<div className="h-full w-full overflow-y-scroll" ref={divRef}>
+			<div className="flex w-full flex-col items-center justify-end p-4 text-sm">{children}</div>
+		</div>
+	);
+};
+
 interface ChatBoxInterface {
 	items: Item[];
 	pushMessage: typeof CallService.prototype.pushMessage;
@@ -32,6 +56,7 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 	const [invitationUI, setInvitationUI] = useState<InvitationUI | null>(null);
 	const [message, setMessage] = useState("");
 
+	// console.log("Chat items: ", items.length);
 	const openInvitation = (invitationUI: InvitationUI) => {
 		setInvitationUI(invitationUI);
 		setInvitationDialogOpen(true);
@@ -93,8 +118,8 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 						<img className="w-6" src={closeImage} alt="" />
 					</button>
 				</div>
-				<div className="w-full flex-1 overflow-auto" ref={scrollBoxRef}>
-					<div className="flex min-h-full w-full flex-col items-center justify-end overflow-auto p-4 text-sm">
+				<div className="w-full h-full flex-1">
+					<AutoScrollDiv>
 						{items.map((item, index) => {
 							if (item.descriptor.type === ConversationService.Descriptor.Type.OBJECT_DESCRIPTOR) {
 								const messageDescriptor = item.descriptor as ConversationService.MessageDescriptor;
@@ -154,7 +179,7 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 							}
 							return null;
 						})}
-					</div>
+					</AutoScrollDiv>
 				</div>
 				<form
 					className="flex w-full items-center justify-center pl-4 pr-3"
