@@ -7,6 +7,7 @@
  */
 import { FC, useState, useEffect, useRef } from "react";
 import { TabPanel } from "@headlessui/react";
+import { useTranslation } from "react-i18next";
 import { Item, SelectList } from "../components/SelectList";
 import { VideoTrack } from "../utils/VideoTrack";
 import { mediaDevices } from "../utils/MediaDevices";
@@ -28,6 +29,7 @@ interface SettingsProps {
 }
 
 export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) => {
+	const { t } = useTranslation();
 	const [videoState, setVideoState] = useState<VideoState | null>(null);
 	console.info("VideoSettings render", isOpen, config);
 	const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -77,11 +79,11 @@ export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 		}) ?? [];
 	const videoDeviceId = config.videoDeviceId;
 	const videoItem = videos.find((item) => item.id === videoDeviceId);
-	const videoSelected: string = videoItem ? videoItem.label : "Choose a camera";
+	const videoSelected: string = videoItem ? videoItem.label : t("settings_video_camera_placeholder");
 	return (
 		<TabPanel className="w-full h-full">
 			<div className="p-4 flex flex-col w-full h-96">
-				<h3 className="font-semibold mb-2">Video</h3>
+				<h3 className="font-semibold mb-2">{t("settings_video_title")}</h3>
 				<SelectList items={videos} onSelect={selectInput} selected={videoSelected} />
 				<div className="w-full h-full overflow-hidden">
 					<video

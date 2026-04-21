@@ -6,6 +6,7 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { toast } from "react-toastify";
+import i18n from "i18next";
 import { chatStore } from "../stores/chat";
 import { notificationStore, NotificationState } from "../stores/notifications";
 import { CallParticipant } from "../calls/CallParticipant";
@@ -187,7 +188,7 @@ export class NotificationCenter {
 
 	public postMemberJoined(participant: CallParticipant): void {
 		if (this.display.participantJoined && participant.getName()) {
-			this.postToast(participant.getName() + " joined");
+			this.postToast(i18n.t("notification_member_joined", { name: participant.getName() }));
 		}
 		if (!isMobile && this.sound.participantJoined) {
 			this.postSound(NotificationType.MEMBER_JOINED, NOTIFY_VOLUME);
@@ -198,7 +199,7 @@ export class NotificationCenter {
 		if (this.display.participantLeft) {
 			for (const participant of participants) {
 				if (participant.getName()) {
-					this.postToast("Member " + participant.getName() + " left");
+					this.postToast(i18n.t("notification_member_left", { name: participant.getName() }));
 				}
 			}
 		}
@@ -215,7 +216,7 @@ export class NotificationCenter {
 
 	public postNewMessage(): void {
 		if (this.display.messageReceived && !this.chatPanelOpened) {
-			this.postToast("New message posted");
+			this.postToast(i18n.t("notification_new_message"));
 		}
 		if (!isMobile && this.sound.messageReceived) {
 			this.postSound(NotificationType.MESSAGE_RECEIVED, NOTIFY_VOLUME);

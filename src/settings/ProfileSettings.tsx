@@ -6,6 +6,7 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { TabPanel } from "@headlessui/react";
 import { DefaultAvatar } from "../components/DefaultAvatar";
 
@@ -18,6 +19,7 @@ interface SettingsProps {
 }
 
 export const ProfileSettings: FC<SettingsProps> = ({ config, onChange }) => {
+	const { t } = useTranslation();
 	return (
 		<TabPanel className="w-full">
 			<div className="p-4 w-full">
@@ -29,7 +31,7 @@ export const ProfileSettings: FC<SettingsProps> = ({ config, onChange }) => {
 					type="text"
 					value={config.name}
 					className=" bg-gray-700 placeholder:font-light placeholder:text-[#656565] focus:outline-none "
-					placeholder="Entrez un pseudo"
+					placeholder={t("enter_nickname_placeholder")}
 					onChange={(e) => onChange({ name: e.target.value })}
 				/>
 			</div>

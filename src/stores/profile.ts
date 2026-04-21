@@ -5,6 +5,7 @@
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import i18n from "i18next";
 import { proxy } from "valtio";
 import { subscribe } from "valtio/index";
 import { STORAGE_KEYS } from "../utils/storageKeys";
@@ -14,7 +15,7 @@ type State = {
 };
 
 const DEFAULT_STATE = {
-	name: "guest",
+	name: i18n.t("guest"),
 };
 
 function getProfile(): State {

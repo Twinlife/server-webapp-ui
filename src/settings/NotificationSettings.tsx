@@ -7,6 +7,7 @@
  */
 import { FC } from "react";
 import { Field, TabPanel, Label, Switch } from "@headlessui/react";
+import { useTranslation } from "react-i18next";
 import { NotificationState } from "../stores/notifications";
 
 export interface NotificationConfig {
@@ -21,6 +22,7 @@ interface SettingsProps {
 }
 
 export const NotificationSettings: FC<SettingsProps> = ({ config, onChange }) => {
+	const { t } = useTranslation();
 	const handleSwitchChange = (type: "sound" | "display", key: keyof NotificationState, checked: boolean) => {
 		const newConfig = { ...config };
 		newConfig[type][key] = checked;
@@ -29,15 +31,15 @@ export const NotificationSettings: FC<SettingsProps> = ({ config, onChange }) =>
 	return (
 		<TabPanel className="w-full">
 			<Field className="p-4 w-full h-full">
-				<div className="grid grid-cols-1 gap-4">
+				<div className="grid grid-cols-1 gap-4 text-white">
 					<div className="grid grid-cols-3 gap-4 items-center">
 						<div></div> {/* Placeholder for labels */}
-						<h3 className="text-center font-semibold">Sound on</h3>
-						<h3 className="text-center font-semibold">Display on</h3>
+						<h3 className="text-center font-semibold">{t("settings_notification_sound_on")}</h3>
+						<h3 className="text-center font-semibold">{t("settings_notification_display_on")}</h3>
 					</div>
 
 					<div className="grid grid-cols-3 gap-4 items-center">
-						<Label className="text-left">Message received</Label>
+						<Label className="text-left">{t("settings_notification_message_received")}</Label>
 						<Switch
 							checked={config.sound.messageReceived}
 							onChange={(checked) => handleSwitchChange("sound", "messageReceived", checked)}
@@ -55,7 +57,7 @@ export const NotificationSettings: FC<SettingsProps> = ({ config, onChange }) =>
 					</div>
 
 					<div className="grid grid-cols-3 gap-4 items-center">
-						<Label className="text-left">Member join</Label>
+						<Label className="text-left">{t("settings_notification_member_join")}</Label>
 						<Switch
 							checked={config.sound.participantJoined}
 							onChange={(checked) => handleSwitchChange("sound", "participantJoined", checked)}
@@ -73,7 +75,7 @@ export const NotificationSettings: FC<SettingsProps> = ({ config, onChange }) =>
 					</div>
 
 					<div className="grid grid-cols-3 gap-4 items-center">
-						<Label className="text-left">Member leave</Label>
+						<Label className="text-left">{t("settings_notification_member_leave")}</Label>
 						<Switch
 							checked={config.sound.participantLeft}
 							onChange={(checked) => handleSwitchChange("sound", "participantLeft", checked)}

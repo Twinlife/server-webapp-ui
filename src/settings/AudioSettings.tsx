@@ -7,6 +7,7 @@
  */
 import { FC, useState, useEffect } from "react";
 import { TabPanel } from "@headlessui/react";
+import { useTranslation } from "react-i18next";
 import { Item, SelectList } from "../components/SelectList";
 import { mediaDevices } from "../utils/MediaDevices";
 
@@ -27,6 +28,7 @@ interface SettingsProps {
 }
 
 export const AudioSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) => {
+	const { t } = useTranslation();
 	const [audioState, setAudioState] = useState<AudioState | null>(null);
 	const inputDeviceId = config.inputDeviceId;
 	const outputDeviceId = config.outputDeviceId;
@@ -91,14 +93,14 @@ export const AudioSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 		}) ?? [];
 	const inputItem = inputs.find((item) => item.id === inputDeviceId);
 	const outputItem = outputs.find((item) => item.id === outputDeviceId);
-	const inputSelected: string = inputItem ? inputItem.label : "Choose a microphone";
-	const outputSelected: string = outputItem ? outputItem.label : "Choose an output";
+	const inputSelected: string = inputItem ? inputItem.label : t("settings_audio_microphone_placeholder");
+	const outputSelected: string = outputItem ? outputItem.label : t("settings_audio_output_placeholder");
 	return (
 		<TabPanel className="w-full">
 			<div className="p-4">
-				<h3 className="font-semibold mb-2">Microphone</h3>
+				<h3 className="font-semibold mb-2">{t("settings_audio_microphone")}</h3>
 				<SelectList items={inputs} onSelect={selectInput} selected={inputSelected} />
-				<h3 className="font-semibold mb-2 mt-10">Audio output</h3>
+				<h3 className="font-semibold mb-2 mt-10">{t("settings_audio_output")}</h3>
 				<SelectList items={outputs} onSelect={selectOutput} selected={outputSelected} />
 			</div>
 		</TabPanel>

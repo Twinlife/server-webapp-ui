@@ -72,7 +72,7 @@ const InvitationItem: FC<InvitationItemProps> = ({ item, twincodeDescriptor, ope
 					/>
 				</div>
 				<div>
-					<Trans i18nKey={"accept_invitation_activity_message"} values={{ contactName }} t={t} />
+					<Trans i18nKey={"accept_invitation_view_message"} values={{ contactName }} t={t} />
 				</div>
 			</div>
 		</div>
