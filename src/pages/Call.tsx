@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021-2025 twinlife SA.
+ *  Copyright (c) 2021-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -7,16 +7,11 @@
  *   Olivier Dupont (olivier.dupont@twin.life)
  *   Romain Kolb (romain.kolb@skyrock.com)
  */
-import zonedTimeToUtc from "date-fns-tz/zonedTimeToUtc";
 import i18n, { TFunction } from "i18next";
-import { Mic, MicOff, SwitchCamera, Video, VideoOff } from "lucide-react";
-import React, { Component, ReactNode, RefObject, useEffect, useState } from "react";
+import { createRef, Component, ReactNode, RefObject } from "react";
 import "react-confirm-alert/src/react-confirm-alert.css";
 import { Trans, useTranslation } from "react-i18next";
 import { NavigateFunction, useNavigate, useParams } from "react-router-dom";
-import PhoneCallIcon from "../assets/phone-call.svg";
-import MonitorOff from "../assets/monitor-off.svg";
-import MonitorOn from "../assets/monitor.svg";
 import { CallObserver } from "../calls/CallObserver";
 import { CallParticipant } from "../calls/CallParticipant";
 import { CallParticipantEvent } from "../calls/CallParticipantEvent";
@@ -26,24 +21,28 @@ import { CallStatus, CallStatusOps } from "../calls/CallStatus";
 import { ConversationService } from "../calls/ConversationService";
 import Alert from "../components/Alert";
 import Header from "../components/Header";
-import InitializationPanel from "../components/InitializationPanel";
+import { LocalParticipant } from "../components/LocalParticipant";
+import { ViewMode } from "../utils/DisplayMode";
 import { ParticipantsGrid, DisplayMode } from "../components/ParticipantsGrid";
-import SelectDevicesButton from "../components/SelectDevicesButton";
 import StoresBadges from "../components/StoresBadges";
+import PrepareCall from "../components/PrepareCall";
 import Thanks from "../components/Thanks";
-import WhiteButton from "../components/WhiteButton";
-import { Schedule, TwincodeInfo, dateTimeToString } from "../services/ContactService";
+import { ContactService, TwincodeInfo } from "../services/ContactService";
 import { PeerCallService, TerminateReason } from "../services/PeerCallService";
-import IsMobile from "../utils/IsMobile";
+import { isMobile } from "../utils/BrowserCapabilities";
+import { CallButtons, CallButtonHandlers } from "../components/CallButtons";
+import { NotificationCenter, notificationCenter } from "../notifications/NotificationCenter";
+import { mediaStreams, MediaStreams } from "../utils/MediaStreams";
+import { AudioTrack } from "../utils/AudioTrack";
+import { VideoTrack } from "../utils/VideoTrack";
+import { Notifications } from "../notifications/Notifications";
+import { chatStore } from "../stores/chat";
+import { profile } from "../stores/profile";
+import { subscribe } from "valtio/index";
+import { audioStore } from "../stores/audio";
+import { videoStore } from "../stores/video";
 
 type FacingMode = "user" | "environment";
-
-type ScheduleLabels = {
-	startDate: string;
-	endDate: string;
-	startTime: string;
-	endTime: string;
-};
 
 export type Item = {
 	participant: CallParticipant | null;
@@ -59,13 +58,12 @@ export type Item = {
 
 interface CallProps {
 	id: string;
-	t: TFunction<"translation", undefined, "translation">;
+	t: TFunction<"translation", "translation">;
 	navigate: NavigateFunction;
 }
 
-interface CallState {
+export interface CallState {
 	initializing: boolean;
-	guestName: string;
 	guestNameError: boolean;
 	twincode: TwincodeInfo;
 	status: CallStatus;
@@ -74,43 +72,33 @@ interface CallState {
 	terminateReason: TerminateReason | null;
 	participants: Array<CallParticipant>;
 	displayThanks: boolean;
-	audioDevices: MediaDeviceInfo[];
-	videoDevices: MediaDeviceInfo[];
 	facingMode: FacingMode;
-	usedAudioDevice: string;
-	usedVideoDevice: string;
 	isSharingScreen: boolean;
-	chatPanelOpened: boolean;
 	items: Item[];
-	atLeastOneParticipantSupportsMessages: boolean;
-	messageNotificationDisplayed: boolean;
 	alertOpen: boolean;
 	alertTitle: string;
 	alertContent: ReactNode;
 	displayMode: DisplayMode;
 }
 
-//e.g. "13:30"
-const timeFormat = new Intl.DateTimeFormat(i18n.language, { timeStyle: "short" });
-//e.g. "1 Décembre 2023"
-const dateFormat = new Intl.DateTimeFormat(i18n.language, { dateStyle: "long" });
-
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
-const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
-const isMobile = IsMobile();
 
 // Create only one instance of PeerCallService.
 const peerCallService: PeerCallService = new PeerCallService();
 
-class Call extends Component<CallProps, CallState> implements CallParticipantObserver, CallObserver {
-	private localVideoRef: RefObject<HTMLVideoElement> = React.createRef();
-	private callService: CallService = new CallService(peerCallService, this, this);
+export class Call
+	extends Component<CallProps, CallState>
+	implements CallParticipantObserver, CallObserver, CallButtonHandlers
+{
+	protected localVideoRef: RefObject<HTMLVideoElement | null> = createRef();
+	protected callService: CallService = new CallService(peerCallService, this, this);
+	protected notificationCenter: NotificationCenter = notificationCenter;
+	private stopping: boolean = false;
 
 	state: CallState = {
 		initializing: true,
-		guestName: this.getGuestName(),
 		guestNameError: false,
-		status: CallStatus.IDDLE,
+		status: CallStatus.IDLE,
 		twincode: {
 			name: null,
 			description: null,
@@ -118,6 +106,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			audio: false,
 			video: false,
 			transfer: false,
+			conference: false,
 			schedule: null,
 		},
 		audioMute: false,
@@ -125,23 +114,14 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		terminateReason: null,
 		participants: [],
 		displayThanks: false,
-		audioDevices: [],
-		videoDevices: [],
 		facingMode: "user",
-		usedAudioDevice: "",
-		usedVideoDevice: "",
 		isSharingScreen: false,
-		chatPanelOpened: false,
 		items: [],
-		atLeastOneParticipantSupportsMessages: false,
-		messageNotificationDisplayed: false,
 		alertOpen: false,
 		alertTitle: "",
 		alertContent: <></>,
 		displayMode: {
-			defaultMode: true,
-			showParticipant: false,
-			showLocalThumbnail: false,
+			mode: ViewMode.VIEW_DEFAULT,
 			participantId: null,
 		},
 	};
@@ -150,12 +130,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.init();
 	};
 
-	init = () => {
+	init(): void {
+		console.error("First state video", videoStore.enable, this);
 		this.setState({
 			initializing: true,
-			videoMute: true,
+			videoMute: !videoStore.enable,
 			displayThanks: false,
-			status: CallStatus.IDDLE,
+			status: CallStatus.IDLE,
 			audioMute: false,
 			terminateReason: null,
 			participants: [],
@@ -166,7 +147,28 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		if (!this.callService) {
 			this.callService = new CallService(peerCallService, this, this);
 		}
-	};
+
+		subscribe(profile, () => {
+			this.setState({ guestNameError: profile.name === "" });
+			if (profile.name !== "") {
+				this.callService.updateIdentity(profile.name, new ArrayBuffer(0));
+			}
+		});
+		subscribe(audioStore, () => {
+			const deviceId = audioStore.inputDeviceId;
+			if (deviceId) {
+				console.error("Device", deviceId);
+				this.selectAudioDevice(deviceId);
+			}
+		});
+		subscribe(videoStore, () => {
+			const deviceId = videoStore.videoDeviceId;
+			if (deviceId) {
+				console.error("Device", deviceId);
+				this.selectVideoDevice(deviceId);
+			}
+		});
+	}
 
 	/**
 	 * The call status was changed.
@@ -174,11 +176,14 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param {CallStatus} status the new call status.
 	 */
 	onUpdateCallStatus(status: CallStatus): void {
+		const previousStatus: CallStatus = this.state.status;
+
 		if (DEBUG) {
-			console.log("New call status ", CallStatus[status]);
+			console.log("Call status ", CallStatus[previousStatus], " => ", CallStatus[status]);
 		}
 
 		this.setState({ status: status });
+		this.notificationCenter.onUpdateCallStatus(status, previousStatus);
 	}
 
 	onOverrideAudioVideo(audio: boolean, video: boolean): void {
@@ -199,8 +204,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 	 * @param reason the call termination reason.
 	 */
 	onTerminateCall(reason: TerminateReason): void {
-		console.info("Call terminated", reason);
+		const { status } = this.state;
 
+		console.info("Call terminated", reason, "in state", CallStatus[status]);
+
+		this.notificationCenter.onUpdateCallStatus(CallStatus.TERMINATED, status);
+		chatStore.chatPanelOpened = false;
+		chatStore.unreadMessages = 0;
 		this.leaveFullscreen();
 		this.setState({
 			terminateReason: reason,
@@ -208,11 +218,17 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			alertOpen: false,
 			alertTitle: "",
 			alertContent: <></>,
-			chatPanelOpened: false,
 			isSharingScreen: false,
 			items: [],
+			participants: [],
 		});
+		this.stopping = false;
+		if (reason == "cancel") {
+			return;
+		}
 
+		mediaStreams.stop();
+		// this.callService.actionCameraMute(true);
 		this.callService = new CallService(peerCallService, this, this);
 
 		setTimeout(() => {
@@ -232,7 +248,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showLocalThumbnail = participants.length === 1 && isMobile;
 		this.setState({ participants: participants, displayMode: displayMode });
 	}
 
@@ -245,15 +260,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		if (DEBUG) {
 			console.log("Remove", participants.length, "participants");
 		}
+
+		if (this.stopping) {
+			return;
+		}
+		this.notificationCenter.postMemberLeave(participants);
 		const list: Array<CallParticipant> = this.callService.getParticipants();
 		const displayMode: DisplayMode = this.state.displayMode;
 		if (displayMode.participantId !== null) {
 			displayMode.participantId = null;
-			displayMode.showParticipant = false;
+			displayMode.mode = ViewMode.VIEW_DEFAULT;
 		}
-		displayMode.showLocalThumbnail = list.length === 1 && isMobile;
 		this.setState({ participants: list, displayMode: displayMode });
-		this.checkIsMessageSupported();
 	}
 
 	/**
@@ -270,35 +288,21 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		const participants: Array<CallParticipant> = this.callService.getParticipants();
 		this.setState({ participants: participants });
 		if (event === CallParticipantEvent.EVENT_SUPPORTS_MESSAGES) {
-			this.checkIsMessageSupported();
+			// We now assume everybody supports messages.
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_ON) {
 			const displayMode: DisplayMode = this.state.displayMode;
-			displayMode.showParticipant = true;
+			displayMode.mode = ViewMode.VIEW_SHARE_SCREEN;
 			displayMode.participantId = participant.getParticipantId();
 			this.setState({ displayMode: displayMode });
 		} else if (event == CallParticipantEvent.EVENT_SCREEN_SHARING_OFF) {
 			const displayMode: DisplayMode = this.state.displayMode;
-			displayMode.showParticipant = false;
+			displayMode.mode = ViewMode.VIEW_DEFAULT;
 			displayMode.participantId = null;
 			this.setState({ displayMode: displayMode });
+		} else if (event == CallParticipantEvent.EVENT_IDENTITY) {
+			this.notificationCenter.postMemberJoined(participant);
 		}
 	}
-
-	private checkIsMessageSupported = () => {
-		if (DEBUG) {
-			console.log("Check if participants support messages");
-		}
-		const atLeastOneParticipantSupportsMessages = this.callService.getParticipants().some((participant) => {
-			if (DEBUG) {
-				console.log("isMessageSupported", participant.getCallConnection()?.isMessageSupported());
-			}
-			return participant.getCallConnection()?.isMessageSupported();
-		});
-		if (DEBUG) {
-			console.log("At least one participant supports messages: ", atLeastOneParticipantSupportsMessages);
-		}
-		this.setState({ atLeastOneParticipantSupportsMessages });
-	};
 
 	/**
 	 * A descriptor (message, invitation) was send by the participant.
@@ -330,6 +334,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		items.push(newItem);
 
 		this.updateItems(items);
+		this.notificationCenter.postNewMessage();
 	}
 
 	private updateItems = (items: Item[]) => {
@@ -343,6 +348,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				item.corners.tl = "rounded-tl";
 				previousItem.corners.bl = "rounded-bl";
 			}
+			chatStore.unreadMessages++;
 		} else {
 			// Local item
 			if (previousItem && !previousItem.participant) {
@@ -352,25 +358,13 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			}
 		}
 
-		const { chatPanelOpened } = this.state;
-		this.setState({ items, messageNotificationDisplayed: !chatPanelOpened });
+		this.setState({ items });
 	};
 
-	private setUsedDevices() {
-		const mediaStream = this.callService.getMediaStream();
-		for (const track of mediaStream.getTracks()) {
-			if (track.kind === "audio") {
-				this.setState({ usedAudioDevice: track.getSettings().deviceId ?? "" });
-			}
-			if (track.kind === "video") {
-				this.setState({ usedVideoDevice: track.getSettings().deviceId ?? "" });
-			}
-		}
-	}
-
-	handleTerminateClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onTerminateClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 
+		this.stopping = true;
 		if (CallStatusOps.isActive(this.state.status)) {
 			this.callService.actionTerminateCall("success");
 		} else {
@@ -378,7 +372,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	muteAudioClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onMuteAudioClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 		this.toggleAudio();
 	};
@@ -391,44 +385,70 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		});
 	};
 
-	muteVideoClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onMuteVideoClick: React.MouseEventHandler<HTMLElement> = (ev: React.MouseEvent<HTMLElement>) => {
 		ev.preventDefault();
 		this.toggleVideo();
 	};
 
-	videoClick = (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => {
+	onVideoClick = (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => {
 		ev.preventDefault();
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showParticipant = !displayMode.showParticipant;
-		displayMode.participantId = participantId !== undefined ? participantId : null;
+		if (participantId === undefined || displayMode.participantId == participantId) {
+			displayMode.participantId = null;
+			displayMode.mode = ViewMode.VIEW_DEFAULT;
+		} else {
+			displayMode.participantId = participantId;
+			displayMode.mode = participantId > 0 ? ViewMode.VIEW_FOCUS_PARTICIPANT : ViewMode.VIEW_FOCUS_CAMERA;
+		}
 		this.setState({ displayMode: displayMode });
 	};
 
-	private toggleVideo = () => {
+	public toggleVideo = () => {
 		if (this.state.twincode.video) {
 			const { videoMute, isSharingScreen } = this.state;
 
 			const displayMode: DisplayMode = this.state.displayMode;
 			if (isSharingScreen) {
 				this.callService.actionCameraMute(true);
-				this.setUsedDevices();
-				displayMode.showParticipant = false;
+				displayMode.mode = ViewMode.VIEW_DEFAULT;
 				displayMode.participantId = null;
 			}
 			this.setState(
 				{ videoMute: !videoMute && !isSharingScreen, isSharingScreen: false, displayMode: displayMode },
 				async () => {
 					const { videoMute } = this.state;
+					videoStore.enable = !videoMute;
 					if (!videoMute && !this.callService.hasVideoTrack()) {
 						await this.askForMediaPermission("video");
 					}
 
 					if (this.callService.hasVideoTrack()) {
-						this.callService.actionCameraMute(videoMute);
+						this.muteCamera(videoMute);
 					}
 				},
 			);
 		}
+	};
+
+	muteCamera = (videoMute: boolean) => {
+		this.callService.actionCameraMute(videoMute);
+	};
+
+	pushMessage = (message: string, copyAllowed: boolean) => {
+		const descriptor = this.callService.pushMessage(message, copyAllowed);
+		if (descriptor) {
+			this.updateItems([
+				...this.state.items,
+				{
+					participant: null,
+					descriptor,
+					displayName: false,
+					corners: {},
+				},
+			]);
+			this.notificationCenter.postMessageSent();
+		}
+		return descriptor;
 	};
 
 	/**
@@ -468,7 +488,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	switchCameraClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onSwitchCameraClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 		if (this.state.twincode.video && !this.state.videoMute) {
 			if (isMobile) {
@@ -479,7 +499,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 					async () => {
 						const fMode = this.state.facingMode;
 
-						this.callService.stopVideoTrack();
+						this.callService.getMediaStream().setVideoTrack(null, false);
 						const constraints = {
 							audio: false,
 							video: {
@@ -488,15 +508,16 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 						};
 						const mediaStream = await this.getUserMedia(constraints);
 						if (mediaStream) {
-							this.callService.addOrReplaceVideoTrack(mediaStream, false);
+							this.setVideoTrack(mediaStream.getVideoTracks()[0], false);
 						}
 					},
 				);
-			} else {
-				console.log(this.state.audioDevices);
-				console.log(this.state.videoDevices);
 			}
 		}
+	};
+
+	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
+		this.callService.setVideoTrack(new VideoTrack(mediaStream, null), isScreenSharing);
 	};
 
 	selectAudioDevice = async (deviceId: string) => {
@@ -507,8 +528,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		const audioStream: MediaStream | null = await this.getUserMedia(constraints);
 		if (audioStream) {
-			this.callService.addOrReplaceAudioTrack(audioStream.getAudioTracks()[0]);
-			this.setUsedDevices();
+			this.callService.setAudioTrack(new AudioTrack(audioStream.getAudioTracks()[0]));
 		}
 	};
 
@@ -520,19 +540,23 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				video: { deviceId },
 			});
 			if (mediaStream) {
-				this.callService.addOrReplaceVideoTrack(mediaStream, false);
-				this.setUsedDevices();
+				this.setVideoTrack(mediaStream.getVideoTracks()[0], false);
 			}
 		}
 	};
 
-	sharingScreenClick: React.MouseEventHandler<HTMLDivElement> = (ev: React.MouseEvent<HTMLDivElement>) => {
+	onSharingScreenClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
 		ev.preventDefault();
 		if (!this.state.isSharingScreen) {
 			this.startScreenSharing();
 		} else {
 			this.stopScreenSharing();
 		}
+	};
+
+	onChatClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
+		ev.preventDefault();
+		chatStore.chatPanelOpened = !chatStore.chatPanelOpened;
 	};
 
 	private startScreenSharing = async () => {
@@ -548,17 +572,18 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 				});
 				if (mediaStream) {
 					console.info("Selecting display stream", mediaStream.id);
-					this.callService.stopVideoTrack();
-					this.callService.addOrReplaceVideoTrack(mediaStream, true).onended = (_event: Event) => {
-						// onended is called if the user stops screen sharing from its browser
-						if (this.state.isSharingScreen) {
-							this.stopScreenSharing();
-						}
-					};
+					this.setVideoTrack(mediaStream.getVideoTracks()[0], true);
+					const callStream: MediaStreams = this.callService.getMediaStream();
+					if (callStream.video) {
+						callStream.video.track.onended = (_event: Event) => {
+							// onended is called if the user stops screen sharing from its browser
+							if (this.state.isSharingScreen) {
+								this.stopScreenSharing();
+							}
+						};
+					}
 					const displayMode: DisplayMode = this.state.displayMode;
-					displayMode.showParticipant = true;
 					displayMode.participantId = 0;
-					this.setUsedDevices();
 					this.setState({ isSharingScreen: true, displayMode: displayMode });
 				}
 			} catch (error: unknown) {
@@ -576,7 +601,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 
 		const displayMode: DisplayMode = this.state.displayMode;
-		displayMode.showParticipant = false;
+		displayMode.mode = ViewMode.VIEW_DEFAULT;
 		displayMode.participantId = null;
 		this.setState({ isSharingScreen: false, displayMode: displayMode }, async () => {
 			const { videoMute, twincode } = this.state;
@@ -585,11 +610,11 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			}
 		});
 		this.callService.actionCameraMute(true);
-		this.setUsedDevices();
 	};
 
-	handleCallClick: React.MouseEventHandler<HTMLButtonElement> = async (ev: React.MouseEvent<HTMLButtonElement>) => {
-		const { twincode, guestName } = this.state;
+	onCallClick: React.MouseEventHandler<HTMLButtonElement> = async (ev: React.MouseEvent<HTMLButtonElement>) => {
+		const { twincode } = this.state;
+		const guestName = profile.name;
 		if (guestName === "") {
 			this.setState({ guestNameError: true });
 			console.error("Identity name needed");
@@ -605,7 +630,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		this.callService.setIdentity(guestName, new ArrayBuffer(0));
 
 		const name: string = twincode.name ? twincode.name : "Unknown";
-		const video: boolean = !this.state.videoMute || this.state.isSharingScreen;
+		const video: boolean = twincode.video && (!this.state.videoMute || this.state.isSharingScreen);
 		const transfer: boolean = twincode.transfer;
 		const avatarUrl: string = import.meta.env.VITE_REST_URL + "/images/" + twincode.avatarId;
 		this.callService.actionOutgoingCall(this.props.id, video, transfer, name, avatarUrl);
@@ -615,7 +640,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	private askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
+	public askForMediaPermission = async (kind: "audio" | "video"): Promise<boolean> => {
 		const fMode = this.state.facingMode;
 
 		// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
@@ -625,19 +650,19 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			video: kind === "video" ? { facingMode: fMode === "user" ? "user" : { exact: "environment" } } : false,
 		};
 
+		console.log("asking media permissions", constraints);
 		const mediaStream = await this.getUserMedia(constraints);
 		if (mediaStream == null) {
 			return false;
 		}
+		console.log("Got media stream", mediaStream);
 
 		for (const track of mediaStream.getTracks()) {
 			if (track.kind === "audio" && kind === "audio") {
-				this.callService.addOrReplaceAudioTrack(track);
-				this.setUsedDevices();
+				this.callService.setAudioTrack(new AudioTrack(track));
 			}
 			if (track.kind === "video" && kind === "video") {
-				this.callService.addOrReplaceVideoTrack(track, false);
-				this.setUsedDevices();
+				this.setVideoTrack(track, false);
 			}
 			mediaStream.removeTrack(track);
 		}
@@ -650,13 +675,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			// We need to ask for devices access this way first to be able to fetch devices labels with enumerateDevices
 			// (https://developer.mozilla.org/en-US/docs/Web/API/MediaDeviceInfo/label)
 			const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
-
-			const devices = await navigator.mediaDevices.enumerateDevices();
-			const enumeratedDevices = {
-				audioDevices: devices.filter((device) => device.kind === "audioinput").slice(),
-				videoDevices: devices.filter((device) => device.kind === "videoinput").slice(),
-			};
-			this.setState(enumeratedDevices);
 
 			return mediaStream;
 		} catch (error: unknown) {
@@ -710,8 +728,8 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		}
 	};
 
-	handleTransferClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
-		const { twincode, guestName, status } = this.state;
+	onTransferClick: React.MouseEventHandler<HTMLButtonElement> = (ev: React.MouseEvent<HTMLButtonElement>) => {
+		const { twincode, status } = this.state;
 
 		if (!CallStatusOps.isActive(status) || !twincode.transfer) {
 			console.error(
@@ -723,7 +741,7 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			return;
 		}
 
-		this.callService.setIdentity(guestName, new ArrayBuffer(0));
+		this.callService.setIdentity(profile.name, new ArrayBuffer(0));
 
 		const name: string = twincode.name ? twincode.name : "Unknown";
 		const transfer: boolean = twincode.transfer;
@@ -782,53 +800,32 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 
 		//special case for schedule, as it has different messages according to the schedule's settings.
 		if (terminateReason === "schedule" && this.state.twincode.schedule) {
-			//for now, we only handle schedules with a single time range of type DateTimeRange
-			const timeRange = this.state.twincode.schedule.timeRanges[0];
-
-			const start = timeRange.start.date;
-			const end = timeRange.end.date;
-
-			if (start.day === end.day && start.month === end.month && start.year === end.year) {
-				return "audio_call_activity_terminate_schedule_single_day";
-			} else {
-				return "audio_call_activity_terminate_schedule_multiple_days";
-			}
+			return ContactService.getSchedule(this.state.twincode.schedule);
 		}
 
 		return this.terminateMessages[terminateReason];
 	};
 
-	/**
-	 * Returns values for the schedule error messages, localized in i18next's current langage
-	 */
-	getScheduleLabels(schedule: Schedule | null): ScheduleLabels | null {
-		if (!schedule?.timeRanges[0]) {
-			return null;
+	onGetTwincode(twincode: TwincodeInfo): string | null {
+		if (!twincode.name || !twincode.audio) {
+			return "twincode_error";
 		}
-
-		const range = schedule.timeRanges[0];
-		const timeZone = schedule.timeZone;
-
-		const startDate = zonedTimeToUtc(dateTimeToString(range.start), timeZone);
-		const endDate = zonedTimeToUtc(dateTimeToString(range.end), timeZone);
-
-		return {
-			startDate: dateFormat.format(startDate),
-			endDate: dateFormat.format(endDate),
-			startTime: timeFormat.format(startDate),
-			endTime: timeFormat.format(endDate),
-		};
+		this.setState({ twincode, initializing: false }, () => {
+			this.onReadyCall();
+		});
+		return null;
 	}
 
-	getGuestName(): string {
-		return window.localStorage.getItem("guestName") ?? this.props.t("guest");
+	onReadyCall(): void {
+		if (!this.state.videoMute && !this.callService.hasVideoTrack()) {
+			this.askForMediaPermission("video");
+		}
 	}
 
 	render() {
 		const { id, t } = this.props;
 		const {
 			initializing,
-			guestName,
 			guestNameError,
 			twincode,
 			videoMute,
@@ -838,141 +835,120 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 			displayMode,
 			terminateReason,
 			displayThanks,
-			audioDevices,
-			videoDevices,
-			usedAudioDevice,
-			usedVideoDevice,
 			isSharingScreen,
-			chatPanelOpened,
 			items,
-			atLeastOneParticipantSupportsMessages,
-			messageNotificationDisplayed,
 			alertOpen,
 			alertTitle,
 			alertContent,
 		} = this.state;
 
 		if (displayThanks) {
-			return <Thanks onCallBackClick={this.init} />;
+			const callAgain = () => {
+				this.init();
+			};
+			return <Thanks onCallBackClick={callAgain} />;
 		}
-
-		const callType = twincode.transfer ? i18n.t("transfer") : i18n.t("call");
 
 		document.title = i18n.t("title", {
 			appName: import.meta.env.VITE_APP_NAME,
-			callType: callType,
+			callType: i18n.t("call"),
 			linkName: twincode.name,
 		});
+		const isActive = CallStatusOps.isActive(status);
+		const isTerminated = CallStatusOps.isTerminated(status);
 
+		if (DEBUG) {
+			if (initializing) {
+				console.log("Render initializing", status, "mode", displayMode.mode);
+			} else if (isActive) {
+				console.log("Render active", status, "mode", displayMode.mode);
+			} else if (isTerminated) {
+				console.log("Render terminated", status, "mode", displayMode.mode, terminateReason);
+			} else {
+				console.log("Render", status, "mode", displayMode.mode);
+			}
+		}
 		return (
-			<div className=" flex h-full w-screen flex-col bg-black portrait:p-4 landscape:p-2 landscape:lg:p-4">
-				<Header
-					messageNotificationDisplayed={messageNotificationDisplayed}
-					openChatButtonDisplayed={
-						!initializing && CallStatusOps.isActive(status) && atLeastOneParticipantSupportsMessages
-					}
-					openChatPanel={() =>
-						this.setState({ chatPanelOpened: !chatPanelOpened, messageNotificationDisplayed: false })
-					}
-				/>
+			<div className="relative flex h-full w-screen flex-col bg-black portrait:p-1 portrait:md:p-4 landscape:p-1 md:landscape:p-2 landscape:lg:p-4">
+				<Header className={isActive ? "absolute z-10 top-5 left-5 md:top-8 md:left-8" : ""} />
+				<Notifications />
 
-				{initializing && (
-					<InitializationPanel
+				{!isActive && (
+					<PrepareCall
+						className="flex h-full w-screen flex flex-col"
+						initializing={initializing}
 						twincodeId={id}
 						twincode={twincode}
-						onComplete={(twincode) => {
-							this.setState({ twincode, initializing: false });
-						}}
-					/>
-				)}
-
-				{!initializing && !CallStatusOps.isTerminated(status) && (
-					<ParticipantsGrid
-						chatPanelOpened={chatPanelOpened}
-						closeChatPanel={() => this.setState({ chatPanelOpened: false })}
-						localVideoRef={this.localVideoRef}
-						localMediaStream={this.callService.getMediaStream()}
+						status={status}
+						title={twincode.name ? twincode.name : "?"}
+						callbacks={this}
+						audioMute={audioMute}
 						videoMute={videoMute}
 						isSharingScreen={isSharingScreen}
-						isLocalAudioMute={audioMute}
-						twincode={twincode}
-						participants={participants}
-						isIdle={CallStatusOps.isIdle(status)}
-						guestName={guestName}
-						guestNameError={guestNameError}
-						setGuestName={(guestName: string) => {
-							this.setState({ guestName, guestNameError: guestName === "" });
-							window.localStorage.setItem("guestName", guestName);
+						onGetTwincode={(twincode: TwincodeInfo) => {
+							this.onGetTwincode(twincode);
 						}}
-						updateGuestName={(guestName: string) => {
-							this.setState({ guestName, guestNameError: guestName === "" });
-							window.localStorage.setItem("guestName", guestName);
-							if (guestName !== "") {
-								this.callService.updateIdentity(guestName, new ArrayBuffer(0));
-							}
-						}}
-						muteVideoClick={this.muteVideoClick}
-						videoClick={this.videoClick}
-						mode={displayMode}
-						pushMessage={(message, copyAllowed) => {
-							const descriptor = this.callService.pushMessage(message, copyAllowed);
-							if (descriptor) {
-								this.updateItems([
-									...this.state.items,
-									{
-										participant: null,
-										descriptor,
-										displayName: false,
-										corners: {},
-									},
-								]);
-							}
-							return descriptor;
-						}}
-						items={items}
-					/>
+					>
+						<div className="flex-1 relative h-full w-full rounded-lg overflow-hidden max-h-[80vh] ">
+							<LocalParticipant
+								localVideoRef={this.localVideoRef}
+								localAbsolute={false}
+								videoMute={videoMute}
+								isLocalAudioMute={false}
+								isIdle={true}
+								isScreenSharing={isSharingScreen}
+								enableVideo={true}
+								guestNameError={guestNameError}
+								muteVideoClick={this.onMuteVideoClick}
+							></LocalParticipant>
+						</div>
+					</PrepareCall>
+				)}
+				{isActive && (
+					<>
+						<ParticipantsGrid
+							localVideoRef={this.localVideoRef}
+							videoMute={videoMute}
+							isSharingScreen={isSharingScreen}
+							isLocalAudioMute={audioMute}
+							twincode={twincode}
+							participants={participants}
+							isIdle={CallStatusOps.isIdle(status)}
+							guestNameError={guestNameError}
+							muteVideoClick={this.onMuteVideoClick}
+							videoClick={this.onVideoClick}
+							mode={displayMode}
+							pushMessage={this.pushMessage}
+							items={items}
+						/>
+						<CallButtons
+							className={"absolute-button-list"}
+							status={status}
+							callbacks={this}
+							allowCall={true}
+							audioMute={audioMute}
+							hasVideo={twincode.video}
+							videoMute={videoMute}
+							isSharingScreen={isSharingScreen}
+						/>
+					</>
 				)}
 
-				{!initializing && CallStatusOps.isTerminated(status) && terminateReason && (
+				{isTerminated && terminateReason && (
 					<div className="flex w-full flex-1 items-center justify-center text-center">
 						<span>
 							<Trans
 								i18nKey={this.getTerminateReasonMessage(terminateReason)}
 								values={{
 									contactName: twincode?.name,
-									...this.getScheduleLabels(twincode?.schedule),
+									...ContactService.getScheduleLabels(twincode?.schedule),
 								}}
 								t={t}
 							/>
 						</span>
 					</div>
 				)}
-
-				{!initializing && !CallStatusOps.isTerminated(status) && (
-					<CallButtons
-						status={status}
-						handleCallClick={this.handleCallClick}
-						handleHangUpClick={this.handleTerminateClick}
-						handleTransferClick={this.handleTransferClick}
-						audioMute={audioMute}
-						muteAudioClick={this.muteAudioClick}
-						hasVideo={twincode.video}
-						videoMute={videoMute}
-						muteVideoClick={this.muteVideoClick}
-						switchCameraClick={this.switchCameraClick}
-						sharingScreenClick={this.sharingScreenClick}
-						audioDevices={audioDevices}
-						videoDevices={videoDevices}
-						usedAudioDevice={usedAudioDevice}
-						usedVideoDevice={usedVideoDevice}
-						isSharingScreen={isSharingScreen}
-						selectAudioDevice={this.selectAudioDevice}
-						selectVideoDevice={this.selectVideoDevice}
-						transfer={TRANSFER || twincode.transfer}
-					/>
-				)}
-
-				{!TRANSFER && !isMobile && CallStatusOps.isIdle(status) && (
+				{!isMobile && CallStatusOps.isIdle(status) && (
 					<>
 						<div className="py-6 text-center font-light">{t("next_time_app")}</div>
 						<div className="mx-auto">
@@ -991,164 +967,6 @@ class Call extends Component<CallProps, CallState> implements CallParticipantObs
 		);
 	}
 }
-
-const CallButtons = ({
-	status,
-	handleCallClick,
-	handleHangUpClick: hangUpClick,
-	handleTransferClick,
-	audioMute,
-	muteAudioClick,
-	hasVideo,
-	videoMute,
-	muteVideoClick,
-	switchCameraClick,
-	sharingScreenClick,
-	audioDevices,
-	videoDevices,
-	usedAudioDevice,
-	usedVideoDevice,
-	isSharingScreen,
-	selectAudioDevice,
-	selectVideoDevice,
-	transfer,
-}: {
-	status: CallStatus;
-	handleCallClick: React.MouseEventHandler;
-	handleHangUpClick: React.MouseEventHandler;
-	handleTransferClick: React.MouseEventHandler;
-	audioMute: boolean;
-	muteAudioClick: React.MouseEventHandler;
-	hasVideo: boolean;
-	videoMute: boolean;
-	muteVideoClick: React.MouseEventHandler;
-	switchCameraClick: React.MouseEventHandler;
-	sharingScreenClick: React.MouseEventHandler;
-	audioDevices: MediaDeviceInfo[];
-	videoDevices: MediaDeviceInfo[];
-	usedAudioDevice: string;
-	usedVideoDevice: string;
-	isSharingScreen: boolean;
-	selectAudioDevice: (deviceId: string) => void;
-	selectVideoDevice: (deviceId: string) => void;
-	transfer: boolean;
-}) => {
-	const { t } = useTranslation();
-	const inCall = CallStatusOps.isActive(status);
-	const isIdle = CallStatusOps.isIdle(status);
-	const inTransfer = transfer && inCall;
-	const callLabel = transfer ? t("transfer") : t("call");
-
-	return (
-		<div className="mx-auto flex w-auto items-center justify-between md:rounded-lg md:bg-zinc-800 md:px-4 md:py-2">
-			<div>
-				<button
-					className={[
-						"flex items-center justify-center rounded-full px-6 py-3 text-white transition ",
-						isIdle
-							? "bg-blue hover:bg-blue/90 active:bg-blue/80"
-							: "bg-red hover:bg-red/90 active:bg-red/80",
-					].join(" ")}
-					onClick={isIdle ? handleCallClick : hangUpClick}
-				>
-					<span className="mr-3">
-						<PhoneCallIcon />
-					</span>
-					{inCall ? (
-						<Timer />
-					) : (
-						<span className="font-light">{isIdle ? callLabel : t("audio_call_activity_calling")}</span>
-					)}
-				</button>
-			</div>
-			{inTransfer && (
-				<div>
-					<button
-						className="ml-3 flex items-center justify-center rounded-full bg-blue px-6 py-3 text-white transition hover:bg-blue/90 active:bg-blue/80"
-						onClick={handleTransferClick}
-					>
-						<span className="mr-3">
-							<PhoneCallIcon />
-						</span>
-						<span className="font-light">{t("transfer")}</span>
-					</button>
-				</div>
-			)}
-
-			<div className="flex items-center justify-end">
-				{isMobile && hasVideo && (
-					<WhiteButton
-						onClick={switchCameraClick}
-						className={["ml-3 !p-[10px]", videoMute ? "btn-white-disabled" : ""].join(" ")}
-					>
-						<SwitchCamera color="black" />
-					</WhiteButton>
-				)}
-				{
-					<WhiteButton onClick={muteAudioClick} className="ml-3 !p-[10px] ">
-						{audioMute ? <MicOff color="black" /> : <Mic color="black" />}
-					</WhiteButton>
-				}
-				{hasVideo && (
-					<WhiteButton onClick={muteVideoClick} className="ml-3 !p-[10px]">
-						{videoMute || isSharingScreen ? <VideoOff color="black" /> : <Video color="black" />}
-					</WhiteButton>
-				)}
-				{hasVideo && !isMobile && (
-					<WhiteButton onClick={sharingScreenClick} className="ml-3 !p-[10px]">
-						{isSharingScreen ? <MonitorOn /> : <MonitorOff />}
-					</WhiteButton>
-				)}
-				{!isMobile && (
-					<SelectDevicesButton
-						audioDevices={audioDevices}
-						videoDevices={videoDevices}
-						usedAudioDevice={usedAudioDevice}
-						usedVideoDevice={usedVideoDevice}
-						selectAudioDevice={selectAudioDevice}
-						selectVideoDevice={selectVideoDevice}
-					/>
-				)}
-			</div>
-		</div>
-	);
-};
-
-const Timer = () => {
-	const [time, setTime] = useState("00:00");
-	const [seconds, setSeconds] = useState(0);
-
-	useEffect(() => {
-		const interval = setInterval(incrementTime, 1000);
-		return () => clearInterval(interval);
-	}, []);
-
-	useEffect(() => {
-		let difference = seconds * 1000;
-
-		const daysDifference = Math.floor(difference / 1000 / 60 / 60 / 24);
-		difference -= daysDifference * 1000 * 60 * 60 * 24;
-
-		const hoursDifference = Math.floor(difference / 1000 / 60 / 60);
-		difference -= hoursDifference * 1000 * 60 * 60;
-		const h = hoursDifference >= 10 ? hoursDifference : "0" + hoursDifference;
-
-		const minutesDifference = Math.floor(difference / 1000 / 60);
-		difference -= minutesDifference * 1000 * 60;
-		const m = minutesDifference >= 10 ? minutesDifference : "0" + minutesDifference;
-
-		const secondsDifference = Math.floor(difference / 1000);
-		const s = secondsDifference >= 10 ? secondsDifference : "0" + secondsDifference;
-
-		setTime(h != "00" ? h + ":" : "" + m + ":" + s);
-	}, [seconds]);
-
-	const incrementTime = () => {
-		setSeconds((seconds) => seconds + 1);
-	};
-
-	return <span className="font-light">{time}</span>;
-};
 
 const CallWithParams = () => {
 	const { t } = useTranslation();

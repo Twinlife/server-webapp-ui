@@ -1,61 +1,64 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import clsx from "clsx";
+import React from "react";
 import { RefObject, useRef } from "react";
 import DraggableCore from "react-draggable";
 import { LocalParticipant } from "./LocalParticipant";
 
+export type Position = {
+	x: number;
+	y: number;
+};
+
 export const DraggableParticipant: React.FC<{
 	className: string;
-	localVideoRef: RefObject<HTMLVideoElement>;
-	localMediaStream: MediaStream;
+	localVideoRef: RefObject<HTMLVideoElement | null>;
 	localAbsolute: boolean;
 	videoMute: boolean;
 	isSharingScreen: boolean;
 	isLocalAudioMute: boolean;
 	enableVideo: boolean;
 	isIdle: boolean;
-	guestName: string;
 	guestNameError: boolean;
-	setGuestName: (value: string) => void;
-	updateGuestName: (value: string) => void;
-	muteVideoClick: (ev: React.MouseEvent<HTMLDivElement>) => void;
+	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 }> = ({
 	className,
 	localVideoRef,
-	localMediaStream,
 	localAbsolute,
 	videoMute,
 	isSharingScreen,
 	isLocalAudioMute,
 	enableVideo,
 	isIdle,
-	guestName,
 	guestNameError,
-	setGuestName,
-	updateGuestName,
 	muteVideoClick,
 	videoClick,
 }) => {
-	const dragStartPositionXYRef = useRef<{ x: number; y: number }>();
-	const cl = [
-		localAbsolute ? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16" : isIdle ? "relative" : "relative",
+	const nodeRef = useRef<HTMLDivElement>(null);
+	const dragStartPositionXYRef = useRef<Position>({ x: 0, y: 0 });
+	const cl = clsx(
+		localAbsolute
+			? "absolute left-10 top-10 z-30 ring-2 ring-black w-16 h-16 md:w-32 md:h-32 lg:w-48 lg:h-48"
+			: isIdle
+				? "relative"
+				: "relative",
 		"overflow-hidden rounded-md",
 		videoMute && !isSharingScreen && localAbsolute ? "hidden" : "",
-		className,
-	].join(" ");
-	if (!localAbsolute) {
-		// 				"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
-		const cl = [
-			"relative flex h-full w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
+		!localAbsolute && className,
+	);
+	if (!localAbsolute || isSharingScreen) {
+		const cl = clsx(
+			"relative flex w-full items-center justify-center overflow-hidden rounded-lg bg-[#202020]",
 			className,
-		].join(" ");
+		);
 		return (
 			<div
 				className={cl}
@@ -67,17 +70,13 @@ export const DraggableParticipant: React.FC<{
 			>
 				<LocalParticipant
 					localVideoRef={localVideoRef}
-					localMediaStream={localMediaStream}
 					localAbsolute={localAbsolute}
 					videoMute={videoMute && !isSharingScreen}
 					isLocalAudioMute={isLocalAudioMute}
 					isIdle={isIdle}
 					isScreenSharing={isSharingScreen}
 					enableVideo={enableVideo}
-					guestName={guestName}
 					guestNameError={guestNameError}
-					setGuestName={setGuestName}
-					updateGuestName={updateGuestName}
 					muteVideoClick={muteVideoClick}
 				></LocalParticipant>
 			</div>
@@ -85,6 +84,7 @@ export const DraggableParticipant: React.FC<{
 	}
 	return (
 		<DraggableCore
+			nodeRef={nodeRef}
 			grid={[1, 1]}
 			bounds="parent"
 			axis="both"
@@ -106,6 +106,7 @@ export const DraggableParticipant: React.FC<{
 			}}
 		>
 			<div
+				ref={nodeRef}
 				className={cl}
 				onClick={(e) => {
 					videoClick(e, 0);
@@ -113,17 +114,13 @@ export const DraggableParticipant: React.FC<{
 			>
 				<LocalParticipant
 					localVideoRef={localVideoRef}
-					localMediaStream={localMediaStream}
 					localAbsolute={true}
 					videoMute={videoMute || isSharingScreen}
 					isLocalAudioMute={isLocalAudioMute}
 					isIdle={isIdle}
 					isScreenSharing={isSharingScreen}
 					enableVideo={enableVideo}
-					guestName={guestName}
 					guestNameError={guestNameError}
-					setGuestName={setGuestName}
-					updateGuestName={updateGuestName}
 					muteVideoClick={muteVideoClick}
 				></LocalParticipant>
 			</div>

@@ -1,9 +1,10 @@
 /*
- *  Copyright (c) 2024 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { FC, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -36,7 +37,7 @@ const ChatBoxInput: FC<ChatBoxInputProps> = ({ value, onChange, onSubmit }) => {
 			ref={textAreaRef}
 			className="flex-1 resize-none rounded-2xl bg-white px-4  py-1 text-black focus:outline-none"
 			value={value}
-			placeholder={t<string>("conversation_activity_message")}
+			placeholder={t("conversation_activity_message")}
 			onChange={onChange}
 			onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 				if (e.keyCode == 13 && !e.shiftKey) {

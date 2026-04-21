@@ -1,11 +1,12 @@
 /*
- *  Copyright (c) 2024-2025 twinlife SA.
+ *  Copyright (c) 2024-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import Linkify from "react-linkify";
 import { useEffect, useRef, useState } from "react";
 import closeImage from "../../assets/close.png";
 import CollapseIcon from "../../assets/collapse.svg";
@@ -17,15 +18,15 @@ import { Item } from "../../pages/Call";
 import ChatBoxInput from "./ChatBoxInput";
 import InvitationDialog from "./InvitationDialog";
 import InvitationItem, { InvitationUI } from "./InvitationItem";
+import { chatStore } from "../../stores/chat";
+import { useSnapshot } from "valtio";
 
 interface ChatBoxInterface {
-	chatPanelOpened: boolean;
 	items: Item[];
-	closeChatPanel: () => void;
 	pushMessage: typeof CallService.prototype.pushMessage;
 }
 
-export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMessage }: ChatBoxInterface) {
+export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 	const [chatPanelFull, setChatPanelFull] = useState(false);
 	const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
 	const [invitationUI, setInvitationUI] = useState<InvitationUI | null>(null);
@@ -41,8 +42,15 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 		setInvitationDialogOpen(false);
 	};
 
-	const scrollBoxRef = useRef<HTMLDivElement>(null);
+	const chat = useSnapshot(chatStore);
+	useEffect(() => {
+		if (chat.chatPanelOpened && chat.unreadMessages > 0) {
+			chatStore.unreadMessages = 0;
+		}
+	}, [chat.chatPanelOpened, chat.unreadMessages]);
 
+	const scrollBoxRef = useRef<HTMLDivElement>(null);
+	const chatPanelOpened = chat.chatPanelOpened;
 	useEffect(() => {
 		if (scrollBoxRef.current) {
 			scrollBoxRef.current.scroll({
@@ -62,10 +70,10 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 		<div
 			className={[
 				"absolute bottom-0 right-0 z-20 overflow-hidden transition-all",
-				"h-0 w-full px-0 opacity-0",
+				"h-0 w-full px-0 opacity-0 mb-20",
 				"md:h-full ",
 				chatPanelOpened ? "h-[300px] py-4 opacity-100 md:w-[300px]" : "h-0 py-0 md:w-0",
-				chatPanelFull && "!h-full !w-full py-4",
+				chatPanelFull && "h-[calc(100%-5em)] !w-full py-4",
 			].join(" ")}
 		>
 			<div
@@ -77,7 +85,11 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 					<button onClick={() => setChatPanelFull(!chatPanelFull)}>
 						{chatPanelFull ? <CollapseIcon /> : <ExpandIcon />}
 					</button>
-					<button onClick={closeChatPanel}>
+					<button
+						onClick={() => {
+							chatStore.chatPanelOpened = false;
+						}}
+					>
 						<img className="w-6" src={closeImage} alt="" />
 					</button>
 				</div>
@@ -111,7 +123,20 @@ export default function ChatBox({ chatPanelOpened, items, closeChatPanel, pushMe
 												item.corners.br,
 											].join(" ")}
 										>
-											{messageDescriptor.message}
+											<Linkify
+												componentDecorator={(decoratedHref, decoratedText, key) => (
+													<a
+														href={decoratedHref}
+														key={key}
+														target="_blank"
+														rel="noopener noreferrer"
+													>
+														{decoratedText}
+													</a>
+												)}
+											>
+												{messageDescriptor.message}
+											</Linkify>
 										</div>
 									</div>
 								);

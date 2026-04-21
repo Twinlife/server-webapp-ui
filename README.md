@@ -117,4 +117,11 @@ and also commit the files located in `src/i18n`.
 
 ## Dev notes:
 
-* https://tailwindcss.com/docs/responsive-design
+* [Tailwindcss](https://tailwindcss.com/docs/responsive-design)
+* [React toastify](https://fkhadra.github.io/react-toastify/introduction)
+* [Virtual background with Image Segmenter](https://ai.google.dev/edge/mediapipe/solutions/vision/image_segmenter)
+* [State management with Valtio](https://valtio.dev/docs/introduction/getting-started)
+
+Firefox advanced configuration:
+
+* security.fileuri.strict_origin_policy

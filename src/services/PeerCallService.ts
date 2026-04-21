@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2021-2025 twinlife SA.
+ *  Copyright (c) 2021-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -53,6 +53,7 @@ export type CallConfigMessage = {
 	maxSendFrameRate: number;
 	maxReceivedFrameSize: number;
 	maxReceivedFrameRate: number;
+	wait: boolean;
 };
 
 export type Offer = {
@@ -126,6 +127,11 @@ export type InviteCallRoomMessage = {
 	maxMemberCount: 0;
 };
 
+export type LeaveMeeting = {
+	msg: "leave";
+	callRoomId: string;
+};
+
 export type MemberStatus = "member-new" | "member-need-session" | "member-delete";
 
 export type MemberInfo = {
@@ -184,8 +190,9 @@ export interface PeerCallServiceObserver {
 }
 
 type Timer = ReturnType<typeof setTimeout>;
-type ReadyCallback = () => void;
-const PING_TIMER: number = 15000; // 15s, must be at least 2 times faster than server websocket idle timeout
+type ReadyCallback = (config: CallConfigMessage) => void;
+const PING_TIMER: number = 7500; // 7.5s, must be at least 2 times faster than server websocket idle timeout
+const PING_TIMEOUT: number = 30000; // 30s, above this we consider the websocket connection as dead.
 const CONNECT_TIMER: number = 15000; // 15s to connect for the websocket.
 const RETRY_DELAY: number = 3000; // 3s pause between reconnection.
 const MAX_RETRIES: number = 5;
@@ -205,6 +212,8 @@ export const DEFAULT_OFFER_TO_RECEIVE: Offer = {
 	version: "1.0.0",
 };
 
+const MEETING = import.meta.env.VITE_APP_MEETING === "true";
+
 /**
  * WebRTC session management to send/receive SDPs.
  */
@@ -218,6 +227,7 @@ export class PeerCallService {
 	private readyCallback: ReadyCallback | null = null;
 	private readonly sessionId: string;
 	private retryCount: number = 0;
+	private twincodeId: string | null = null;
 
 	constructor() {
 		// Generates a random secure string that identifies this web-socket client
@@ -238,13 +248,15 @@ export class PeerCallService {
 	 * Once we are ready, execute the readyCallback lambda which can now create the WebRTC peer connection
 	 * and start a session-initiate.
 	 *
+	 * @param twincodeId the twincode being called
 	 * @param readyCallback callback execute when we are ready to create WebRTC peer connection.
 	 */
-	onReady(readyCallback: () => void): void {
+	onStartCall(twincodeId: string, readyCallback: (config: CallConfigMessage) => void): void {
+		this.readyCallback = readyCallback;
+		this.twincodeId = twincodeId;
 		if (this.socket && this.callConfig) {
-			readyCallback();
+			this.requestCall();
 		} else {
-			this.readyCallback = readyCallback;
 			this.setupWebsocket();
 		}
 	}
@@ -257,11 +269,7 @@ export class PeerCallService {
 				console.log("Websocket is opened");
 			}
 			this.retryCount = 0;
-			this.socket?.send('{"msg":"session-request","session-id":"' + this.sessionId + '"}');
-			if (this.connectTimer) {
-				clearTimeout(this.connectTimer);
-				this.connectTimer = null;
-			}
+			this.requestCall();
 		};
 
 		this.socket.onmessage = (msg: MessageEvent) => {
@@ -281,7 +289,7 @@ export class PeerCallService {
 					if (DEBUG) {
 						console.log("Now ready to start WebRTC connections");
 					}
-					this.readyCallback();
+					this.readyCallback(this.callConfig);
 					this.readyCallback = null;
 				}
 			} else if (req.msg === "session-accept") {
@@ -324,7 +332,7 @@ export class PeerCallService {
 							initResponse.status,
 						);
 					} else {
-						this.callObserver.onSessionTerminate(null, initResponse.status);
+						this.callObserver.onSessionTerminate(initResponse.sessionId, initResponse.status);
 					}
 				}
 			} else if (req.msg === "session-initiate") {
@@ -395,7 +403,7 @@ export class PeerCallService {
 
 		this.pingTimer = setInterval(() => {
 			const now = performance.now();
-			if (now - this.lastRecvTime > 2 * PING_TIMER) {
+			if (now - this.lastRecvTime > PING_TIMEOUT) {
 				this.close(CLOSE_PING_ERROR, "ping timeout");
 			} else if (now - this.lastRecvTime > PING_TIMER) {
 				// If we have an active call, proceed with ping/pong
@@ -418,6 +426,22 @@ export class PeerCallService {
 
 	setObserver(observer: PeerCallServiceObserver): void {
 		this.callObserver = observer;
+	}
+
+	private requestCall() {
+		this.socket?.send(
+			'{"msg":"session-request","session-id":"' +
+				this.sessionId +
+				'","twincode-id":"' +
+				this.twincodeId +
+				'","meeting":' +
+				MEETING +
+				"}",
+		);
+		if (this.connectTimer) {
+			clearTimeout(this.connectTimer);
+			this.connectTimer = null;
+		}
 	}
 
 	private close(code: number, reason: string): void {
@@ -544,6 +568,15 @@ export class PeerCallService {
 			twincodeOutboundId: twincodeOutboundId,
 			mode: 0,
 			maxMemberCount: 0,
+		};
+
+		this.sendMessage(msg);
+	}
+
+	leaveMeeting(callRoomId: string) {
+		const msg: LeaveMeeting = {
+			msg: "leave",
+			callRoomId: callRoomId,
 		};
 
 		this.sendMessage(msg);

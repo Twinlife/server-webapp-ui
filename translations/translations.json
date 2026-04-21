@@ -486,7 +486,7 @@
 		"uk": "Спільний доступ до екрана"
 	},
 	{
-		"key": "twincode_error",
+		"key": "twincode_not_found",
 		"en": "The Click-to-Call link you entered seems invalid.",
 		"fr": "Le lien Click-to-Call que vous avez entré semble invalide.",
 		"ar": "يبدو أن رابط \"Click-to-Call\" الذي أدخلته غير صالح.",
@@ -565,5 +565,65 @@
 		"su": "Förlåt, något gick fel.",
 		"tu": "Üzgünüm, bir şeyler ters gitti.",
 		"uk": "Вибач, щось пішло не так."
+	},
+	{
+		"key": "join_meeting_title",
+		"en": "Join meeting",
+		"fr": "Joindre la conférence"
+	},
+	{
+		"key": "join_meeting_button",
+		"en": "Join meeting",
+		"fr": "Joindre la conférence"
+	},
+	{
+		"key": "leave_meeting_button",
+		"en": "Leave meeting",
+		"fr": "Quitter la conférence"
+	},
+	{
+		"key": "service_unavailable",
+		"en": "Service is not available",
+		"fr": "Le service n'est pas disponible"
+	},
+	{
+		"key": "network_or_other_error",
+		"en": "Network or other error",
+		"fr": "Erreur réseau ou autre erreur"
+	},
+	{
+		"key": "call_start_in_minutes",
+		"en": "The call starts in <strong>{{delay}}</strong> minutes",
+		"fr": "L'appel démarre dans <strong>{{delay}}</strong> minutes"
+	},
+	{
+		"key": "call_start_in_seconds",
+		"en": "The call starts in <strong>{{delay}}</strong> seconds",
+		"fr": "L'appel démarre dans <strong>{{delay}}</strong> seconds"
+	},
+	{
+		"key": "call_periodic_schedule",
+		"en": "Call allowed on <strong>{{days}}</strong> from <strong>{{fromTime}}</strong> to <strong>{{toTime}}</strong>",
+		"fr": "Appel autorisé les <strong>{{days}}</strong> de <strong>{{fromTime}}</strong> à <strong>{{toTime}}</strong>"
+	},
+	{
+		"key": "twincode_invalid",
+		"en": "The link you entered cannot be used to make the conference call",
+		"fr": "Le lien que vous avez entré ne peut pas etre utilisé pour la conférence"
+	},
+	{
+		"key": "twincode_invalid_for_transfer",
+		"en": "The link you entered cannot be used to make a transfer",
+		"fr": "Le lien que vous avez entré ne peut pas etre utilisé pour un transfert"
+	},
+	{
+		"key": "twincode_expired",
+		"en": "The link you entered has expired and cannot be used",
+		"fr": "Le lien que vous avez entré a expiré et ne peut plus etre utilisé"
+	},
+	{
+		"key": "wait_meeting_message",
+		"en": "The conference has not yet started, waiting for participants.",
+		"fr": "La conférence n'a pas démarré, veuillez patienter."
 	}
 ]

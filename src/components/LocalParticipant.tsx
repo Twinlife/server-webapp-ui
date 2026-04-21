@@ -1,41 +1,41 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
+import clsx from "clsx";
 import { RefObject, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import GuestNameForms from "./GuestNameForms";
+import { DefaultAvatar } from "./DefaultAvatar";
+import { mediaStreams } from "../utils/MediaStreams";
+import { profile } from "../stores/profile";
+import { isMobile } from "../utils/BrowserCapabilities";
+
+const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
 
 export const LocalParticipant: React.FC<{
-	localVideoRef: RefObject<HTMLVideoElement>;
-	localMediaStream: MediaStream;
+	localVideoRef: RefObject<HTMLVideoElement | null>;
 	localAbsolute: boolean;
 	videoMute: boolean;
 	isLocalAudioMute: boolean;
 	enableVideo: boolean;
 	isIdle: boolean;
 	isScreenSharing: boolean;
-	guestName: string;
 	guestNameError: boolean;
-	setGuestName: (value: string) => void;
-	updateGuestName: (value: string) => void;
-	muteVideoClick: (ev: React.MouseEvent<HTMLDivElement>) => void;
+	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 }> = ({
 	localVideoRef,
-	localMediaStream,
 	localAbsolute,
 	videoMute,
 	isLocalAudioMute,
 	enableVideo,
 	isIdle,
 	isScreenSharing,
-	guestName,
 	guestNameError,
-	setGuestName,
-	updateGuestName,
 	muteVideoClick,
 }) => {
 	const { t } = useTranslation();
@@ -43,21 +43,22 @@ export const LocalParticipant: React.FC<{
 	useEffect(() => {
 		console.log(
 			"Update local ref " + localVideoRef.current + " with stream",
-			localMediaStream.id,
+			mediaStreams.stream.id,
 			" mute ",
 			videoMute,
 		);
 		if (localVideoRef.current) {
-			localVideoRef.current.srcObject = localMediaStream;
+			localVideoRef.current.srcObject = mediaStreams.stream;
 		} else {
 			console.log("There is no local video element");
 		}
-	}, [localMediaStream, localVideoRef, videoMute, localAbsolute]);
+	}, [localVideoRef, videoMute, localAbsolute]);
 
 	const muteSize: string = localAbsolute ? "0.5em" : "1em";
 	const muteClass: string = localAbsolute
 		? "absolute right-1 top-1 z-20 text-2xl md:left-auto md:right-2"
 		: "absolute right-2 top-2 z-20 text-2xl md:left-auto md:right-2";
+	const editName: boolean = !localAbsolute && (!TRANSFER || !isIdle);
 	return (
 		<>
 			{isLocalAudioMute && (
@@ -74,39 +75,34 @@ export const LocalParticipant: React.FC<{
 				</div>
 			)}
 
+			{isScreenSharing && <DefaultAvatar name={profile.name} className="md:h-48 md:w-48" />}
 			<video
 				ref={localVideoRef}
-				className={[
-					"h-full w-full",
-					isScreenSharing ? "object-contains" : "object-cover",
-					videoMute ? "hidden" : "",
-				].join(" ")}
+				className={clsx("h-full w-full object-cover video-mirror", (videoMute || isScreenSharing) && "hidden")}
 				autoPlay={true}
 				playsInline={true}
 				muted={true}
 			></video>
 
 			<div
-				className={[
+				className={clsx(
 					"flex h-full w-full flex-col items-center justify-center bg-[#202020] p-1",
-					videoMute ? "" : "hidden",
-				].join(" ")}
+					!videoMute && "hidden",
+				)}
 			>
 				{enableVideo && (
 					<span
-						className={[isIdle ? "" : "hidden md:block", "absolute top-2 mt-2 text-sm md:text-base"].join(
-							" ",
-						)}
+						className={clsx(!isIdle && "hidden md:block", "absolute bottom-2/3 mt-2 text-sm md:text-base")}
 					>
 						{t("activate_camera")}
 					</span>
 				)}
 				<div
-					className={[
+					className={clsx(
 						"flex items-center justify-center rounded-full bg-[#2f2f2f] text-5xl ring-slate-600 transition duration-200 ease-in-out w-24 h-24 landscape:lg:w-48 landscape:lg:h-48",
-						videoMute ? "" : "hidden",
-						enableVideo ? "cursor-pointer hover:ring" : "",
-					].join(" ")}
+						!videoMute && "hidden",
+						enableVideo && "cursor-pointer hover:ring",
+					)}
 					onClick={(e) => {
 						if (enableVideo) {
 							muteVideoClick(e);
@@ -139,15 +135,18 @@ export const LocalParticipant: React.FC<{
 					)}
 				</div>
 			</div>
-			{!localAbsolute && (
-				<div className={["absolute bottom-2 right-2 text-sm"].join(" ")}>
-					<GuestNameForms
-						update={!isIdle}
-						guestName={guestName}
-						guestNameError={guestNameError}
-						setGuestName={setGuestName}
-						updateGuestName={updateGuestName}
-					/>
+			{editName && isMobile && (
+				<div className="absolute bottom-2 right-2 text-sm">
+					<GuestNameForms update={!isIdle} guestNameError={guestNameError} />
+				</div>
+			)}
+			{editName && !isMobile && (
+				<div
+					className={clsx(
+						"absolute bottom-2 right-2 z-20 rounded-lg bg-black/70 px-2 py-1 text-sm border-4 border-solid border-transparent",
+					)}
+				>
+					{profile.name}
 				</div>
 			)}
 		</>

@@ -26,7 +26,7 @@ export default defineConfig({
             // e.g. use TypeScript check
         //    typescript: true,
         // }),
-        // basicSsl(),
+        //basicSsl(),
     ],
     build: {
         minify: 'esbuild'

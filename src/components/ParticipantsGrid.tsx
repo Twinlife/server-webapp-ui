@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -12,200 +12,221 @@ import { CallService } from "../calls/CallService";
 import { Item } from "../pages/Call";
 import { TwincodeInfo } from "../services/ContactService";
 import GuestNameForms from "./GuestNameForms";
-import ParticipantGridCell from "./ParticipantGridCell";
+import { ViewMode } from "../utils/DisplayMode";
+import { ParticipantGridCell } from "./ParticipantGridCell";
+import ParticipantScreen from "./ParticipantScreen";
 import ChatBox from "./chatbox/ChatBox";
 import { DraggableParticipant } from "./DraggableParticipant";
+import { chatStore } from "../stores/chat";
+import { useSnapshot } from "valtio";
+import { isMobile } from "../utils/BrowserCapabilities";
 
 const DEBUG = import.meta.env.VITE_APP_DEBUG === "true";
 
 export type DisplayMode = {
-	defaultMode: boolean;
-	showParticipant: boolean;
-	showLocalThumbnail: boolean;
+	mode: ViewMode;
 	participantId: number | null;
 };
 
 export const ParticipantsGrid: React.FC<{
-	chatPanelOpened: boolean;
-	closeChatPanel: () => void;
-	localVideoRef: RefObject<HTMLVideoElement>;
-	localMediaStream: MediaStream;
+	localVideoRef: RefObject<HTMLVideoElement | null>;
 	videoMute: boolean;
 	isSharingScreen: boolean;
 	isLocalAudioMute: boolean;
 	twincode: TwincodeInfo;
 	participants: CallParticipant[];
 	isIdle: boolean;
-	guestName: string;
 	guestNameError: boolean;
 	items: Item[];
-	setGuestName: (value: string) => void;
-	updateGuestName: (value: string) => void;
 	mode: DisplayMode;
-	muteVideoClick: (ev: React.MouseEvent<HTMLDivElement>) => void;
+	muteVideoClick: (ev: React.MouseEvent<HTMLElement>) => void;
 	videoClick: (ev: React.MouseEvent<HTMLDivElement>, participantId: number | undefined) => void;
 	pushMessage: typeof CallService.prototype.pushMessage;
 }> = ({
-	chatPanelOpened,
-	closeChatPanel,
 	localVideoRef,
-	localMediaStream,
 	videoMute,
 	isSharingScreen,
 	isLocalAudioMute,
 	twincode,
 	participants,
 	isIdle,
-	guestName,
 	guestNameError,
 	items,
-	setGuestName,
-	updateGuestName,
 	mode,
 	muteVideoClick,
 	videoClick,
 	pushMessage,
 }) => {
-	const localAbsolute = mode.showLocalThumbnail && !mode.showParticipant;
+	const chat = useSnapshot(chatStore);
+	const localAbsolute = mode.mode == ViewMode.VIEW_DEFAULT && participants.length <= 1;
 	const nbParticipants = participants.length === 0 ? 2 : participants.length + (localAbsolute ? 0 : 1);
-	const divClass = mode.showParticipant
-		? "relative grid flex-1 gap-4 overflow-hidden py-4 transition-all"
-		: "relative grid flex-1 gap-4 overflow-hidden py-4 landscape:py-2 lg:py-4 transition-all";
+	const screens: Array<CallParticipant> = participants.filter((participant) => participant.isScreenSharing());
+	const screenParticipantId: number | null = isSharingScreen
+		? 0
+		: screens.length > 0
+			? screens[0].getParticipantId()
+			: null;
+	const displayMode: DisplayMode = {
+		...mode,
+		mode: screenParticipantId != null ? ViewMode.VIEW_SHARE_SCREEN : mode.mode,
+	};
+	const showName: boolean = !isMobile || participants.length < 12;
+	const divClass =
+		displayMode.mode == ViewMode.VIEW_FOCUS_PARTICIPANT || displayMode.mode == ViewMode.VIEW_FOCUS_CAMERA
+			? "relative grid flex-1 gap-4 overflow-hidden md:py-4 transition-all"
+			: "relative grid flex-1 grid-auto-rows-fr gap-4 overflow-hidden md:py-4 landscape:py-2 lg:py-4 transition-all";
 	if (DEBUG) {
-		console.log("Local absolute=" + localAbsolute + " nbParticipants=" + nbParticipants);
+		console.log(
+			"Display grid",
+			nbParticipants,
+			"participants absolute: ",
+			localAbsolute,
+			"mode",
+			mode,
+			"screenParticipant",
+			screenParticipantId,
+		);
 	}
+
 	return (
-		<div
-			className={[
-				divClass,
-				chatPanelOpened ? "pb-[300px] md:pb-4 md:pr-[316px]" : "pb-4 pr-0",
-				getGridClass(mode, nbParticipants),
-			].join(" ")}
-		>
-			{participants.map((participant) => (
-				<ParticipantGridCell
-					key={participant.getParticipantId()}
-					cellClassName={getCellClass(participant.getParticipantId(), mode, participants.length + 1)}
-					setRemoteRenderer={(videoRef, audioRef) => participant.setRemoteRenderer(videoRef, audioRef)}
-					isAudioMute={participant.isAudioMute()}
-					isCameraMute={participant.isCameraMute()}
-					isScreenSharing={participant.isScreenSharing()}
-					name={participant.getName() ?? ""}
-					participantId={participant.getParticipantId()}
+		<div className="flex flex-row w-full h-full p-1">
+			{screenParticipantId != null && (
+				<ParticipantScreen
+					key={screenParticipantId}
+					participant={screens.length > 0 ? screens[0] : null}
 					videoClick={videoClick}
-					avatarUrl={participant.getAvatarUrl() ?? ""}
-				/>
-			))}
-
-			{/* Display Contact before call (participants.length === 0) */}
-			{participants.length === 0 && (
-				<ParticipantGridCell
-					cellClassName={getCellClass(0, mode, nbParticipants)}
-					isAudioMute={false}
-					isCameraMute={true}
-					isScreenSharing={false}
-					name={twincode.name ?? ""}
-					videoClick={videoClick}
-					avatarUrl={`${import.meta.env.VITE_REST_URL}/images/${twincode.avatarId}`}
 				/>
 			)}
-			<DraggableParticipant
-				className={getCellClass(0, mode, nbParticipants)}
-				localVideoRef={localVideoRef}
-				localMediaStream={localMediaStream}
-				localAbsolute={localAbsolute}
-				videoMute={videoMute}
-				isSharingScreen={isSharingScreen}
-				isLocalAudioMute={isLocalAudioMute}
-				isIdle={isIdle}
-				enableVideo={twincode.video}
-				guestName={guestName}
-				guestNameError={guestNameError}
-				setGuestName={setGuestName}
-				updateGuestName={updateGuestName}
-				muteVideoClick={muteVideoClick}
-				videoClick={videoClick}
-			></DraggableParticipant>
+			<div
+				className={[
+					divClass,
+					chat.chatPanelOpened ? "pb-[300px] md:pb-4 md:pr-[316px]" : "pb-4 pr-0",
+					getGridClass(displayMode, nbParticipants),
+				].join(" ")}
+			>
+				{participants.map((participant) => (
+					<ParticipantGridCell
+						key={participant.getParticipantId()}
+						mode={displayMode.mode}
+						cellClassName={getCellClass(
+							participant.getParticipantId(),
+							displayMode,
+							participants.length + 1,
+						)}
+						participant={participant}
+						videoClick={videoClick}
+						showName={showName}
+						avatarUrl={participant.getAvatarUrl() ?? ""}
+					/>
+				))}
+				{twincode.video && (
+					<DraggableParticipant
+						className={getCellClass(0, displayMode, nbParticipants)}
+						localVideoRef={localVideoRef}
+						localAbsolute={localAbsolute && !screenParticipantId}
+						videoMute={videoMute}
+						isSharingScreen={isSharingScreen}
+						isLocalAudioMute={isLocalAudioMute}
+						isIdle={isIdle}
+						enableVideo={twincode.video}
+						guestNameError={guestNameError}
+						muteVideoClick={muteVideoClick}
+						videoClick={videoClick}
+					></DraggableParticipant>
+				)}
 
-			{localAbsolute && (
-				<div
-					className={[
-						isIdle ? "relative" : "relative ring-2 ring-black",
-						"overflow-hidden rounded-md",
-						getCellClass(0, mode, participants.length + 1),
-					].join(" ")}
-				>
-					<div className={["relative bottom-2 right-2 text-sm"].join(" ")}>
-						<GuestNameForms
-							update={!isIdle}
-							guestName={guestName}
-							guestNameError={guestNameError}
-							setGuestName={setGuestName}
-							updateGuestName={updateGuestName}
-						/>
+				{localAbsolute && isMobile && (
+					<div
+						className={[
+							isIdle ? "relative" : "relative ring-2 ring-black",
+							"overflow-hidden rounded-md",
+							getCellClass(0, displayMode, participants.length + 1),
+						].join(" ")}
+					>
+						<div className={["relative bottom-2 right-2 text-sm"].join(" ")}>
+							<GuestNameForms update={!isIdle} guestNameError={guestNameError} />
+						</div>
 					</div>
-				</div>
-			)}
-			<ChatBox
-				chatPanelOpened={chatPanelOpened}
-				closeChatPanel={closeChatPanel}
-				pushMessage={pushMessage}
-				items={items}
-			/>
+				)}
+				<ChatBox pushMessage={pushMessage} items={items} />
+			</div>
 		</div>
 	);
 };
 
 function getGridClass(mode: DisplayMode, participantsAmount: number) {
-	if (mode.showParticipant) {
-		return "grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
+	if (mode.mode == ViewMode.VIEW_FOCUS_PARTICIPANT || mode.mode == ViewMode.VIEW_FOCUS_CAMERA) {
+		return "h-full grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
+	}
+	if (mode.mode == ViewMode.VIEW_SHARE_SCREEN) {
+		return "pl-2 border-l-2 border-black grid grid-cols-1 gap-1 w-48 h-full overflow-scroll";
 	}
 	switch (participantsAmount) {
 		case 0:
 		case 1:
-			return "grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
+			return "h-full grid-cols-1 grid-rows-1 md:grid-cols-1 md:grid-rows-1 landscape:grid-cols-1 landscape:grid-rows-1";
 		case 2:
-			return "grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1 landscape:grid-cols-2 landscape:grid-rows-1";
+			return "h-full grid-cols-1 grid-rows-2 md:grid-cols-2 md:grid-rows-1 landscape:grid-cols-2 landscape:grid-rows-1";
 		case 3:
-			return "grid-cols-2 grid-rows-2 md:grid-cols-3 md:grid-rows-1 landscape:grid-cols-3 landscape:grid-rows-1";
-		case 4:
-			return "grid-cols-2 grid-rows-2 md:grid-cols-4 md:grid-rows-1 landscape:grid-cols-4 landscape:grid-rows-1";
-		case 5:
-			return "grid-cols-2 grid-rows-3 md:grid-cols-3 md:grid-rows-2 landscape:grid-cols-3 landscape:grid-rows-2";
+			return "h-full grid-cols-2 grid-rows-2 md:grid-cols-3 md:grid-rows-1 landscape:grid-cols-3 landscape:grid-rows-1";
+		case 4 /* 2x2 grid */:
+			return "h-full grid-cols-2 grid-rows-2 md:grid-cols-4 md:grid-rows-1 landscape:grid-cols-2 landscape:grid-rows-2";
+		case 5 /* 2x3 grid */:
+			return "h-full grid-cols-2 grid-rows-3 md:grid-cols-3 md:grid-rows-2 landscape:grid-cols-3 landscape:grid-rows-2";
 		case 6:
-			return "grid-cols-2 md:grid-cols-3 landscape:grid-cols-3";
+			return "h-full grid-cols-2 md:grid-cols-3 landscape:grid-cols-3";
 		case 7:
-			return "grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
-		case 8:
-			return "grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
+			return "h-full grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
+		case 8 /* 2x4 grid */:
+			return "h-full grid-cols-2 grid-rows-4 md:grid-cols-4 md:grid-rows-2 landscape:grid-cols-4 landscape:grid-rows-2";
+		case 9 /* 3x3 grid */:
+			return "h-full grid-cols-3 grid-rows-3 md:grid-cols-3 md:grid-rows-3 landscape:grid-cols-3 landscape:grid-rows-3";
+		case 10:
+		case 11:
+		case 12 /* 3x4 grid */:
+			return "h-full grid-cols-3 grid-rows-4 md:grid-cols-3 md:grid-rows-4 landscape:grid-cols-4 landscape:grid-rows-3";
 
-		default:
-			return "";
+		default: /* 4x4 grid */
+			return "h-full grid-cols-4 grid-rows-4 md:grid-cols-4 md:grid-rows-4 landscape:grid-cols-4 landscape:grid-rows-4";
 	}
 }
 
 function getCellClass(participantId: number, mode: DisplayMode, participantsAmount: number) {
-	if (mode.showParticipant) {
-		return mode.participantId === participantId ? "" : "hidden";
+	if (mode.mode == ViewMode.VIEW_FOCUS_PARTICIPANT || mode.mode == ViewMode.VIEW_FOCUS_CAMERA) {
+		return mode.participantId === participantId ? "h-full" : "hidden";
+	}
+	if (mode.mode == ViewMode.VIEW_SHARE_SCREEN) {
+		return "border-solid border-4 border-blue w-48 h-48";
 	}
 	switch (participantsAmount) {
 		case 1:
 		case 2:
-			return "";
+			return "h-full";
 		case 3:
-			return "first:col-span-2 md:first:col-span-1 landscape:first:col-span-1";
+			return "h-full first:col-span-2 md:first:col-span-1 landscape:first:col-span-1";
 		case 4:
-			return "";
+			return "h-full";
 		case 5:
-			return "portrait:first:col-span-2 landscape:first:row-span-2";
+			return "h-full portrait:first:col-span-2 landscape:first:row-span-2";
 		case 6:
-			return "";
+			return "h-full";
 		case 7:
-			return "first:row-span-2 md:first:col-span-1 md:first:row-span-2 landscape:first:col-span-1 landscape:first-row-span-2";
+			return "h-full first:row-span-2 md:first:col-span-1 md:first:row-span-2 landscape:first:col-span-1 landscape:first-row-span-2";
+		case 10:
+			return "h-full portrait:first:col-span-3 landscape:first:row-span-4";
+		case 11:
+			return "h-full portrait:first:col-span-2 landscape:first:row-span-2";
+		case 13:
+			return "h-full portrait:first:col-span-3 landscape:first:row-span-4 landscape:last-child:row-span-4";
+		case 14:
+			return "h-full portrait:first:col-span-3 landscape:first:row-span-3 landscape:last-child:row-span-3";
+		case 15:
+			return "h-full portrait:first:col-span-2 landscape:first:row-span-2 landscape:last-child:row-span-2";
 		case 8:
-			return "";
-
+		case 9:
+		case 12:
+		case 16:
 		default:
-			return "";
+			return "h-full";
 	}
 }

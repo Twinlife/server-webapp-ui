@@ -1,5 +1,5 @@
 /*
- *  Copyright (c) 2022-2025 twinlife SA.
+ *  Copyright (c) 2022-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
@@ -32,6 +32,7 @@ import { ParticipantInfoIQ } from "./ParticipantInfoIQ";
 import { ParticipantTransferIQ } from "./ParticipantTransferIQ.ts";
 import { PushObjectIQ } from "./PushObjectIQ.ts";
 import { PushTwincodeIQ } from "./PushTwincodeIQ.ts";
+import { MediaStreams } from "../utils/MediaStreams";
 
 type PacketHandler = {
 	serializer: Serializer;
@@ -152,8 +153,6 @@ export class CallConnection {
 
 	private readonly mMainParticipant: CallParticipant;
 
-	private mVideoTrackId: string | null = null;
-	private mAudioTrackId: string | null = null;
 	private mConnectionStartTime: number = 0;
 
 	private mTimer: Timer | null = null;
@@ -251,7 +250,7 @@ export class CallConnection {
 		call: CallState,
 		peerConnectionId: string | null,
 		callStatus: CallStatus,
-		mediaStream: MediaStream | null,
+		mediaStream: MediaStreams | null,
 		memberId: string | null,
 		sdp: string | null,
 		audioDirection: RTCRtpTransceiverDirection,
@@ -477,7 +476,7 @@ export class CallConnection {
 		// Handle the audio/video track.
 		pc.ontrack = (event: RTCTrackEvent) => {
 			if (DEBUG) {
-				console.log(this.mPeerConnectionId, ": received on track event");
+				console.log(this.mPeerConnectionId, ": received on track event", event);
 			}
 
 			// Legacy streams (does nothing on modern WebRTC)
@@ -570,22 +569,14 @@ export class CallConnection {
 		};
 
 		if (mediaStream) {
-			mediaStream.getTracks().forEach((track) => {
-				if (DEBUG) {
-					if (this.mPeerConnectionId) {
-						console.log(this.mPeerConnectionId, ": found", track.kind, "track", track.id);
-					} else {
-						console.log("Found", track.kind, "track", track.id);
-					}
-				}
-				if (track.kind === "audio") {
-					this.mAudioTrack = track;
-					pc.addTrack(track, mediaStream);
-				} else if (track.kind === "video") {
-					this.mVideoTrack = track;
-					pc.addTrack(track, mediaStream);
-				}
-			});
+			if (mediaStream.audio) {
+				this.mAudioTrack = mediaStream.audio.track;
+				pc.addTrack(mediaStream.audio.track);
+			}
+			if (mediaStream.video) {
+				this.mVideoTrack = mediaStream.video.track;
+				pc.addTrack(mediaStream.video.track);
+			}
 		}
 
 		this.mAudioDirection = audioDirection;
@@ -807,7 +798,7 @@ export class CallConnection {
 
 		// WebRTC accepts ICE candidates only when it has both the local description
 		// and the remote description.  If we call addIceCandidates too early, they are dropped.
-		if (!this.mInitialized) {
+		if (!this.mInitialized || this.mIceRemoteCandidates) {
 			if (!this.mIceRemoteCandidates) {
 				this.mIceRemoteCandidates = candidates;
 			} else {
@@ -904,8 +895,12 @@ export class CallConnection {
 			this.setAudioDirection(this.mAudioDirection);
 			this.setVideoDirection(this.mVideoDirection);
 		}
+		const status = this.mStatus;
 		this.mPeerConnected = true;
 		this.mStatus = CallStatusOps.toActive(this.mStatus);
+		if (DEBUG) {
+			console.log(this.mPeerConnectionId, "update status", status, "->", this.mStatus);
+		}
 		return true;
 	}
 
@@ -1013,7 +1008,6 @@ export class CallConnection {
 
 		if (this.mPeerConnection != null && this.mVideoTrack) {
 			this.mVideoTrack = null;
-			this.mVideoTrackId = null;
 
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
 			for (const transceiver of transceivers) {
@@ -1151,18 +1145,20 @@ export class CallConnection {
 				const trackId: string = track.id;
 				if (track.kind === "video") {
 					participant.addVideoTrack(track);
-					this.mVideoTrackId = trackId;
-					participant.setCameraMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_VIDEO_ON);
 					track.onmute = () => {
+						if (DEBUG) {
+							console.log(this.mPeerConnectionId, "mute video track", trackId);
+						}
 						this.removeRemoteTrack(trackId);
 					};
 				} else if (track.kind === "audio") {
 					participant.addAudioTrack(track);
-					this.mAudioTrackId = trackId;
-					participant.setMicrophoneMute(false);
 					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_ON);
 					track.onmute = () => {
+						if (DEBUG) {
+							console.log(this.mPeerConnectionId, "mute audio track", trackId);
+						}
 						this.removeRemoteTrack(trackId);
 					};
 				}
@@ -1179,17 +1175,10 @@ export class CallConnection {
 	 */
 	removeRemoteTrack(trackId: string): void {
 		const participant: CallParticipant | null = this.getMainParticipant();
-		if (trackId === this.mVideoTrackId) {
-			this.mVideoTrackId = null;
-			if (participant) {
-				participant.setCameraMute(true);
+		if (participant) {
+			const event = participant.removeTrack(trackId);
+			if (event) {
 				this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_VIDEO_OFF);
-			}
-		} else if (trackId === this.mAudioTrackId) {
-			this.mAudioTrackId = null;
-			if (participant) {
-				participant.setMicrophoneMute(true);
-				this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_AUDIO_OFF);
 			}
 		}
 	}
@@ -1270,6 +1259,42 @@ export class CallConnection {
 		}
 	}
 
+	getStats(): void {
+		if (!this.mPeerConnection) {
+			return;
+		}
+		this.mPeerConnection
+			.getStats()
+			.then((report) => {
+				let speaking: boolean = false;
+				report.forEach((stat) => {
+					if (stat.type == "local-candidate" || stat.type == "candidate-pair") {
+						// Ignore
+					} else if (stat.type == "inbound-rtp") {
+						if (stat.kind == "audio") {
+							if (stat.audioLevel > 0.01) {
+								speaking = true;
+							}
+							// console.error("Audio level=", stat.audioLevel, speaking);
+						}
+						// console.info(stat);
+					} else if (stat.type == "outbound-rtp") {
+						// console.info(stat);
+					} else {
+						// console.info(stat);
+					}
+				});
+				const participant: CallParticipant | null = this.getMainParticipant();
+				if (participant && speaking != participant.isSpeaking()) {
+					participant.setSpeaking(speaking);
+					this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_SPEAKING);
+				}
+			})
+			.catch((error) => {
+				console.warn(this.mPeerConnectionId, ": getStats failed", error);
+			});
+	}
+
 	public sendParticipantInfoIQ(): void {
 		const name: string = this.mCall.getIdentityName();
 		if (DEBUG) {
@@ -1312,13 +1337,13 @@ export class CallConnection {
 		const buffer: ArrayBuffer | null = iq.thumbnailData;
 		if (buffer && buffer.byteLength > 0) {
 			const data: Uint8Array = new Uint8Array(buffer, 0, buffer.byteLength);
-			const blob = new Blob([data], { type: "image/jpeg" });
+			const blob = new Blob([data as BlobPart], { type: "image/jpeg" });
 			const urlCreator = window.URL || window.webkitURL;
 			imageUrl = urlCreator.createObjectURL(blob);
 		}
 
-		this.mMainParticipant.setInformation(iq.name, iq.description, imageUrl);
-		this.mCall.onEventParticipant(this.mMainParticipant, CallParticipantEvent.EVENT_IDENTITY);
+		const event = this.mMainParticipant.setInformation(iq.name, iq.description, imageUrl);
+		this.mCall.onEventParticipant(this.mMainParticipant, event);
 	}
 
 	public sendTransferDoneIQ(): void {

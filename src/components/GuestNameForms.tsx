@@ -1,32 +1,35 @@
 /*
- *  Copyright (c) 2023-2025 twinlife SA.
+ *  Copyright (c) 2023-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Olivier Dupont <olivier.dupont@twin.life>
+ *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import clsx from "clsx";
 import { X } from "lucide-react";
 import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSnapshot } from "valtio";
+import { profile } from "../stores/profile";
 
 interface GuestNameFormsProps {
 	update: boolean;
-	guestName: string;
 	guestNameError: boolean;
-	setGuestName: (newGuestName: string) => void;
-	updateGuestName: (newGuestName: string) => void;
 }
 
-export default function GuestNameForms({
-	update,
-	guestName,
-	guestNameError,
-	setGuestName,
-	updateGuestName,
-}: GuestNameFormsProps) {
+export default function GuestNameForms({ update, guestNameError }: GuestNameFormsProps) {
 	const { t } = useTranslation();
+	const user = useSnapshot(profile);
 
+	const updateNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		profile.name = event.target.value;
+	};
+	const closeKeyboard = (event: React.KeyboardEvent<HTMLInputElement>) => {
+		if (event.key == "Enter") {
+			event.currentTarget.blur();
+		}
+	};
 	return (
 		<>
 			{guestNameError && <div className="animate-skaheX py-1 text-orange-600">{t("nickname_empty_error")}</div>}
@@ -40,14 +43,15 @@ export default function GuestNameForms({
 					<>
 						<input
 							type="text"
-							value={guestName}
+							value={user.name}
 							className=" bg-transparent placeholder:font-light placeholder:text-[#656565] focus:outline-none "
 							placeholder="Entrez un pseudo"
-							onChange={(e) => setGuestName(e.target.value)}
+							onChange={updateNameChange}
+							onKeyDown={closeKeyboard}
 						/>
 					</>
 				)}
-				{update && <UpdateGuestNameForm defaultValue={guestName} updateGuestName={updateGuestName} />}
+				{update && <UpdateGuestNameForm defaultValue={user.name} />}
 			</div>
 		</>
 	);
@@ -55,10 +59,9 @@ export default function GuestNameForms({
 
 interface UpdateGuestNameFormProps {
 	defaultValue: string;
-	updateGuestName: (newGuestName: string) => void;
 }
 
-function UpdateGuestNameForm({ defaultValue, updateGuestName }: UpdateGuestNameFormProps) {
+function UpdateGuestNameForm({ defaultValue }: UpdateGuestNameFormProps) {
 	const [localGuestName, setLocalGuestName] = useState(defaultValue);
 
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -72,7 +75,7 @@ function UpdateGuestNameForm({ defaultValue, updateGuestName }: UpdateGuestNameF
 			onSubmit={(e) => {
 				e.preventDefault();
 				if (localGuestName !== defaultValue) {
-					updateGuestName(localGuestName);
+					profile.name = localGuestName;
 					inputRef.current?.blur();
 				}
 			}}

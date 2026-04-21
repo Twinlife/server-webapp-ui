@@ -1,36 +1,86 @@
 /*
- *  Copyright (c) 2021-2022 twinlife SA.
+ *  Copyright (c) 2021-2026 twinlife SA.
  *  SPDX-License-Identifier: AGPL-3.0-only
  *
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 
-import React from "react";
+import React, { lazy } from "react";
 import ReactDOM from "react-dom/client";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import "./i18n/i18n.ts";
 import "./index.css";
-import Call from "./pages/Call.tsx";
-import ErrorPage from "./pages/ErrorPage.tsx";
 
-const router = createBrowserRouter([
-	{
-		path: "/call",
-		element: <Call />,
-		errorElement: <ErrorPage />,
-	},
-	{
-		path: "/call/:id",
-		element: <Call />,
-		errorElement: <ErrorPage />,
-	},
-	{
-		path: "/",
-		element: <></>,
-		errorElement: <ErrorPage />,
-	},
-]);
+const MEETING = import.meta.env.VITE_APP_MEETING === "true";
+const TRANSFER = import.meta.env.VITE_APP_TRANSFER === "true";
+
+const ErrorPage = lazy(() => import("./pages/ErrorPage.tsx"));
+
+function createRouter() {
+	if (MEETING) {
+		const Meet = lazy(() => import("./pages/Meet.tsx"));
+
+		return createBrowserRouter([
+			{
+				path: "/call",
+				element: <Meet />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/call/:id",
+				element: <Meet />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/",
+				element: <></>,
+				errorElement: <ErrorPage />,
+			},
+		]);
+	} else if (TRANSFER) {
+		const Transfer = lazy(() => import("./pages/Transfer.tsx"));
+
+		return createBrowserRouter([
+			{
+				path: "/call",
+				element: <Transfer />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/call/:id",
+				element: <Transfer />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/",
+				element: <></>,
+				errorElement: <ErrorPage />,
+			},
+		]);
+	} else {
+		const Call = lazy(() => import("./pages/Call.tsx"));
+		return createBrowserRouter([
+			{
+				path: "/call",
+				element: <Call />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/call/:id",
+				element: <Call />,
+				errorElement: <ErrorPage />,
+			},
+			{
+				path: "/",
+				element: <></>,
+				errorElement: <ErrorPage />,
+			},
+		]);
+	}
+}
+
+const router = createRouter();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
 	<React.StrictMode>

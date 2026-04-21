@@ -9,6 +9,7 @@ interface ImportMetaEnv {
 	readonly VITE_APP_LOGO_BIG: string;
 	readonly VITE_APP_THANKS_IMAGE: string;
 	readonly VITE_APP_TRANSFER: string;
+	readonly VITE_APP_MEETING: string;
 	readonly VITE_APP_DEBUG: string;
 
 	readonly VITE_REST_URL: string;
