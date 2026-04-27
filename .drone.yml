@@ -49,6 +49,9 @@ steps:
 trigger:
   event:
   - tag
+  ref:
+      include:
+        - refs/tags/webapp-*
 
 ---
 kind: pipeline
@@ -116,3 +119,6 @@ image_pull_secrets:
 trigger:
   event:
   - tag
+  ref:
+      include:
+        - refs/tags/meet-*
