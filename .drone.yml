@@ -112,3 +112,7 @@ steps:
 
 image_pull_secrets:
 - harborsecret
+
+trigger:
+  event:
+  - tag
