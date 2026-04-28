@@ -56,7 +56,7 @@ trigger:
 ---
 kind: pipeline
 type: docker
-name:  MEP twin/skred webapp UI
+name: MEET - MEP twin/skred webapp UI
 
 workspace:
   path: /opt/usine
@@ -65,7 +65,7 @@ clone:
   disable: true
   
 steps:
-     - name: clone
+     - name: MEET - clone
        image: harbor.prodin.orbus.fr/usine-mep/usine-nodejs:latest
        environment:
           GIT_USERNAME:
@@ -79,39 +79,39 @@ steps:
        - git clone https://$GIT_USERNAME:$GIT_PASSWORD@gogs.skyrock.net/TwinMe/server-webapp-ui.git .
        - git checkout $DRONE_COMMIT
 
-     - name: Npm install typescript and npm audit
+     - name: MEET - NPM install typescript and npm audit
        image: harbor.prodin.orbus.fr/usine-mep/usine-nodejs:latest
        user: drone-ci
        commands:
        - cd /opt/usine
        - npm install typescript && npm audit --audit-level=critical
 
-     - name: Build web UI
-       image: harbor.prodin.orbus.fr/usine-mep/usine-nodejs:latest
-       user: drone-ci
-       commands:
-       - cd /opt/usine
-       - npm run build:skred && npm run build:twinme
-
-     - name: Build web transfer UI
-       image: harbor.prodin.orbus.fr/usine-mep/usine-nodejs:latest
-       user: drone-ci
-       commands:
-       - cd /opt/usine
-       - npm run build:skred:transfer && npm run build:twinme:transfer
+     #- name: Build web UI
+     #  image: harbor.prodin.orbus.fr/usine-mep/usine-nodejs:latest
+     #  user: drone-ci
+     #  commands:
+     #  - cd /opt/usine
+     #  - npm run build:skred && npm run build:twinme
+#
+     #- name: Build web transfer UI
+     #  image: harbor.prodin.orbus.fr/usine-mep/usine-nodejs:latest
+     #  user: drone-ci
+     #  commands:
+     #  - cd /opt/usine
+     #  - npm run build:skred:transfer && npm run build:twinme:transfer
        
-     - name: Build web meet UI
+     - name: MEET - Build web UI
        image: harbor.prodin.orbus.fr/usine-mep/usine-nodejs:latest
        user: drone-ci
        commands:
        - cd /opt/usine
        - npm run build:skred:meet && npm run build:twinme:meet
 
-     - name: MEP web UI
+     - name: MEET - MEP web UI
        image: harbor.prodin.orbus.fr/skyrock/drone-mep:latest
        user: drone-ci
        commands:
-       - /bin/bash /home/drone-ci/mep-twinlife-webapp-ui.sh webapp24.skred.mobi
+       - /bin/bash /home/drone-ci/mep-twinlife-webapp-ui-meet.sh webapp24.skred.mobi
 
 image_pull_secrets:
 - harborsecret
