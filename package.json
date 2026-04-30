@@ -17,7 +17,6 @@
 		"build:skred:meet": "node scripts/publicAssets.js skred && npm run build -- --mode skred-meet --outDir skred-webapp-meet",
 		"lint": "eslint src --report-unused-disable-directives",
 		"preview": "vite preview",
-		"translate": "node ./translations/translations.js",
 		"prettier": "prettier --config ./.prettierrc --write \"src/**/*.{ts,tsx,json}\""
 	},
 	"dependencies": {
