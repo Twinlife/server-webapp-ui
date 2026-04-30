@@ -50,6 +50,15 @@
 		"open_invitation": "Einladung öffnen",
 		"streaming_audio_activity_error_message": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.",
 		"application_no_network_connectivity": "Keine Netzwerkverbindung",
-		"call_activity_transfert_call_message": "Der laufende Anruf wurde übertragen."
+		"call_activity_transfert_call_message": "Der laufende Anruf wurde übertragen.",
+		"calls_view_call_again_title": "Zurückrufen",
+		"audio_call_view_cannot_call": "Sprachanruf kann nicht getätigt werden",
+		"audio_call_view_connecting": "Verbindung wird hergestellt…",
+		"audio_call_view_hangup": "Auflegen",
+		"audio_call_view_hangup_confirmation": "Möchten Sie den Anruf beenden?",
+		"audio_call_view_terminate_not_authorized": "Ihre Kontaktperson hat die für einen Anruf erforderlichen Berechtigungen nicht erteilt (z. B. Mikrofon, Kamera).",
+		"fullscreen_qrcode_view_save_message": "Importieren oder scannen Sie diesen Einladungs-QR-Code mit Twinme, um diese Kontaktperson hinzuzufügen.",
+		"conversation_view_message": "Nachricht eingeben",
+		"call_view_transfer_call_message": "Der laufende Anruf wurde übertragen."
 	}
 }

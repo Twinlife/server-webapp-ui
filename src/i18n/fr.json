@@ -88,6 +88,16 @@
 		"settings_notification_member_join": "Membre a rejoint",
 		"settings_notification_member_leave": "Membre est parti",
 		"settings_profile_name": "Nom",
-		"enter_nickname_placeholder": "Entrez un pseudo"
+		"enter_nickname_placeholder": "Entrez un pseudo",
+		"calls_view_call_again_title": "Rappeler",
+		"audio_call_view_cannot_call": "Impossible de passer un appel vocal",
+		"audio_call_view_connecting": "Connexion…",
+		"audio_call_view_hangup": "Raccrocher",
+		"audio_call_view_hangup_confirmation": "Voulez-vous terminer l’appel ?",
+		"audio_call_view_terminate_not_authorized": "Votre contact n’a pas accordé les autorisations nécessaires à un appel (par exemple, microphone, caméra).",
+		"accept_invitation_view_message": "{{contactName}} souhaite se connecter avec vous",
+		"fullscreen_qrcode_view_save_message": "Importez ou scannez ce QR-Code d’invitation avec twinme pour ajouter ce contact.",
+		"conversation_view_message": "Entrez un message",
+		"call_view_transfer_call_message": "L’appel en cours a été transféré."
 	}
 }
