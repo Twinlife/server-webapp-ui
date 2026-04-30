@@ -773,19 +773,19 @@ export class Call
 	};
 
 	private terminateMessages: { [key in TerminateReason]: string } = {
-		success: "audio_call_activity_terminate",
-		busy: "audio_call_activity_terminate_busy",
-		cancel: "audio_call_activity_terminate_cancel",
-		"connectivity-error": "audio_call_activity_terminate_connectivity_error",
-		decline: "audio_call_activity_terminate_decline",
+		success: "audio_call_view_terminate",
+		busy: "audio_call_view_terminate_busy",
+		cancel: "audio_call_view_terminate_cancel",
+		"connectivity-error": "audio_call_view_terminate_connectivity_error",
+		decline: "audio_call_view_terminate_decline",
 		disconnected: "application_no_network_connectivity",
-		gone: "audio_call_activity_terminate_gone",
-		revoked: "audio_call_activity_terminate_revoked",
-		expired: "audio_call_activity_terminate_timeout",
-		"not-authorized": "audio_call_activity_terminate_timeout",
-		"transfer-done": "call_activity_transfert_call_message",
+		gone: "audio_call_view_terminate_gone",
+		revoked: "audio_call_view_terminate_revoked",
+		expired: "audio_call_view_terminate_timeout",
+		"not-authorized": "audio_call_view_terminate_timeout",
+		"transfer-done": "call_view_transfert_call_message",
 		unknown: "general_error_message",
-		schedule: "audio_call_activity_terminate_schedule_unknown",
+		schedule: "audio_call_view_terminate_schedule_unknown",
 		"general-error": "general_error_message",
 	};
 

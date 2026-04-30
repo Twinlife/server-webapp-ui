@@ -183,7 +183,7 @@ export const CallButtons = ({
 						{inCall ? (
 							<Timer />
 						) : (
-							<span className="font-light">{isIdle ? callLabel : t("audio_call_activity_calling")}</span>
+							<span className="font-light">{isIdle ? callLabel : t("audio_call_view_calling")}</span>
 						)}
 					</button>
 				)}

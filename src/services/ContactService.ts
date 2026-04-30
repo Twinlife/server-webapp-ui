@@ -253,9 +253,9 @@ export class ContactService {
 		if ((start as DateTime).date === undefined || (end as DateTime).date === undefined) {
 			return "call_periodic_schedule";
 		} else if (this.isSameDay(start as DateTime, end as DateTime)) {
-			return "audio_call_activity_terminate_schedule_single_day";
+			return "audio_call_view_terminate_schedule_single_day";
 		} else {
-			return "audio_call_activity_terminate_schedule_multiple_days";
+			return "audio_call_view_terminate_schedule_multiple_days";
 		}
 	}
 
