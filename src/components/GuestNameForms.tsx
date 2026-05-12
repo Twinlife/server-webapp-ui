@@ -45,7 +45,7 @@ export default function GuestNameForms({ update, guestNameError }: GuestNameForm
 							type="text"
 							value={user.name}
 							className=" bg-transparent placeholder:font-light placeholder:text-[#656565] focus:outline-none "
-							placeholder="Entrez un pseudo"
+							placeholder={t("enter_nickname_placeholder")}
 							onChange={updateNameChange}
 							onKeyDown={closeKeyboard}
 						/>
@@ -62,8 +62,8 @@ interface UpdateGuestNameFormProps {
 }
 
 function UpdateGuestNameForm({ defaultValue }: UpdateGuestNameFormProps) {
+	const { t } = useTranslation();
 	const [localGuestName, setLocalGuestName] = useState(defaultValue);
-
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	return (
@@ -85,7 +85,7 @@ function UpdateGuestNameForm({ defaultValue }: UpdateGuestNameFormProps) {
 				type="text"
 				value={localGuestName}
 				className="bg-transparent placeholder:font-light placeholder:text-[#656565] hover:cursor-pointer focus:outline-none"
-				placeholder="Entrez un pseudo"
+				placeholder={t("enter_nickname_placeholder")}
 				onChange={(e) => setLocalGuestName(e.target.value)}
 			/>
 			{localGuestName !== defaultValue && (

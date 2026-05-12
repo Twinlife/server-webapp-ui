@@ -8,6 +8,7 @@
 import { FC, useState } from "react";
 import { Dialog, DialogTitle } from "@headlessui/react";
 import { Tab, TabGroup, TabPanels, TabList } from "@headlessui/react";
+import { useTranslation } from "react-i18next";
 import { AudioSettings, AudioConfig } from "./AudioSettings";
 import { NotificationSettings, NotificationConfig } from "./NotificationSettings";
 import { BackgroundSettings, BackgroundConfig } from "./BackgroundSettings";
@@ -35,7 +36,6 @@ interface DialogConfig {
 }
 
 interface SettingsProps {
-	title: string;
 	isOpen: boolean;
 	hasVideo: boolean;
 	onClose: () => void;
@@ -60,6 +60,7 @@ function getSettings(): DialogConfig {
 }
 
 export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose }) => {
+	const { t } = useTranslation();
 	const [selectedIndex, setSelectedIndex] = useState(0);
 	const [config, setConfig] = useState<DialogConfig>(getSettings());
 
@@ -92,8 +93,8 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose })
 	return (
 		<Dialog open={isOpen} onClose={() => {}} className="fixed inset-0 z-50 overflow-y-auto">
 			<div className="min-h-screen flex items-center justify-center p-4">
-				<div className="bg-gray-800 rounded-lg p-4 w-full max-w-2xl shadow-xl border-2 border-white">
-					<DialogTitle className="text-xl font-bold mb-2">Configuration Settings</DialogTitle>
+				<div className="bg-gray-800 rounded-lg p-4 w-full max-w-2xl shadow-xl border-2 border-white text-white">
+					<DialogTitle className="text-xl font-bold mb-2">{t("settings_title")}</DialogTitle>
 
 					{/* Tabs */}
 					<TabGroup
@@ -112,7 +113,7 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose })
 									}`
 								}
 							>
-								Audio
+								{t("settings_tab_audio")}
 							</Tab>
 							{hasVideo && (
 								<Tab
@@ -124,7 +125,7 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose })
 										}`
 									}
 								>
-									Video
+									{t("settings_tab_video")}
 								</Tab>
 							)}
 							{hasVideo && hasVideoBackground && (
@@ -137,7 +138,7 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose })
 										}`
 									}
 								>
-									Backgrounds
+									{t("settings_tab_backgrounds")}
 								</Tab>
 							)}
 							<Tab
@@ -149,7 +150,7 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose })
 									}`
 								}
 							>
-								Notifications
+								{t("settings_tab_notifications")}
 							</Tab>
 							<Tab
 								className={({ selected }) =>
@@ -160,7 +161,7 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose })
 									}`
 								}
 							>
-								Profile
+								{t("settings_tab_profile")}
 							</Tab>
 						</TabList>
 
@@ -198,13 +199,13 @@ export const SettingsDialog: FC<SettingsProps> = ({ isOpen, hasVideo, onClose })
 							}}
 							className="px-4 py-2 mr-2 text-white"
 						>
-							Cancel
+							{t("settings_submit_cancel")}
 						</button>
 						<button
 							onClick={handleSubmit}
 							className="px-4 py-2 bg-blue text-white rounded hover:bg-blue-700"
 						>
-							Validate
+							{t("settings_submit_validate")}
 						</button>
 					</div>
 				</div>

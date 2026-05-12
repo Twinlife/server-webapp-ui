@@ -66,7 +66,7 @@ export default function Thanks({ onCallBackClick }: ThanksProps) {
 							<PhoneCallIcon />
 						</span>
 
-						<span className="font-light">{t("calls_fragment_call_again_title")}</span>
+						<span className="font-light">{t("calls_view_call_again_title")}</span>
 					</button>
 
 					<div className="py-2 lg:py-6 text-center font-light">{t("call_back")}</div>

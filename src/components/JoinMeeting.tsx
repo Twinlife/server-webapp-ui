@@ -126,7 +126,7 @@ const JoinMeeting: React.FC<JoinMeetingProps> = ({
 						id="name"
 						value={user.name}
 						className="w-full bg-transparent border rounded px-1 py-1 md:px-3 md:py-2 landscape:px-1 landscape:py-1 landscape:lg:px-6 landscape:lg:py-3 focus:outline-none text-center focus:ring-2"
-						placeholder="Entrez un pseudo"
+						placeholder={t("enter_nickname_placeholder")}
 						onChange={(e) => (profile.name = e.target.value)}
 						onKeyDown={(e) => {
 							if (e.key == "Enter") {
