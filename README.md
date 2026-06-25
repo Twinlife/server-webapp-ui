@@ -5,6 +5,15 @@
 
 # twinme Click to Call webapp
 
+This is the front-end of our [Click to call](https://www.twin.me/click-to-call-the-ultimate-way-to-receive-calls-without-sharing-your-number/)
+and [Click to meet](https://www.skred.app/click-to-call-the-ultimate-way-to-receive-calls-without-sharing-your-number/) functionalities available
+in our [twinme](https://www.twin.me) and [Skred](https://www.skred.app) applications.
+You may find some technical details on [Click to call and Click to meet](https://dev.twin.life/technology/click-to-call) page.
+
+This front-end establishes a websocket connection to the [Click-to-call signaling server](https://github.com/Twinlife/server-webapp)
+which acts as a proxy to the signaling server used by the [twinme](https://www.twin.me)
+and [Skred](https://www.skred.app) applications.
+
 ## Setup and local run
 
 ```
