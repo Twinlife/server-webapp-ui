@@ -20,6 +20,8 @@ import InvitationDialog from "./InvitationDialog";
 import InvitationItem, { InvitationUI } from "./InvitationItem";
 import { chatStore } from "../../stores/chat";
 import { useSnapshot } from "valtio";
+import { isMobile } from "../../utils/BrowserCapabilities";
+import { AutoScrollDiv } from "../AutoScrollDiv";
 
 interface ChatBoxInterface {
 	items: Item[];
@@ -27,7 +29,7 @@ interface ChatBoxInterface {
 }
 
 export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
-	const [chatPanelFull, setChatPanelFull] = useState(false);
+	const [chatPanelFull, setChatPanelFull] = useState(true);
 	const [invitationDialogOpen, setInvitationDialogOpen] = useState(false);
 	const [invitationUI, setInvitationUI] = useState<InvitationUI | null>(null);
 	const [message, setMessage] = useState("");
@@ -66,14 +68,23 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 		setMessage("");
 	};
 
+	let className: string;
+	if (!chatPanelOpened) {
+		className = "h-0 py-0 md:w-0";
+	} else if (!isMobile) {
+		className = "opacity-100 h-full w-full py-4";
+	} else if (chatPanelFull) {
+		className = "opacity-100 h-[calc(100%-5em)] !w-full py-4";
+	} else {
+		className = "opacity-100 h-[300px] md:w-[300px] py-4";
+	}
 	return (
 		<div
 			className={[
 				"absolute bottom-0 right-0 z-20 overflow-hidden transition-all",
 				"h-0 w-full px-0 opacity-0 mb-20",
 				"md:h-full ",
-				chatPanelOpened ? "h-[300px] py-4 opacity-100 md:w-[300px]" : "h-0 py-0 md:w-0",
-				chatPanelFull && "h-[calc(100%-5em)] !w-full py-4",
+				className,
 			].join(" ")}
 		>
 			<div
@@ -93,8 +104,8 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 						<img className="w-6" src={closeImage} alt="" />
 					</button>
 				</div>
-				<div className="w-full flex-1 overflow-auto" ref={scrollBoxRef}>
-					<div className="flex min-h-full w-full flex-col items-center justify-end overflow-auto p-4 text-sm">
+				<div className="w-full h-full flex-1">
+					<AutoScrollDiv>
 						{items.map((item, index) => {
 							if (item.descriptor.type === ConversationService.Descriptor.Type.OBJECT_DESCRIPTOR) {
 								const messageDescriptor = item.descriptor as ConversationService.MessageDescriptor;
@@ -154,7 +165,7 @@ export default function ChatBox({ items, pushMessage }: ChatBoxInterface) {
 							}
 							return null;
 						})}
-					</div>
+					</AutoScrollDiv>
 				</div>
 				<form
 					className="flex w-full items-center justify-center pl-4 pr-3"

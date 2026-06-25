@@ -35,9 +35,9 @@ const ChatBoxInput: FC<ChatBoxInputProps> = ({ value, onChange, onSubmit }) => {
 		<textarea
 			rows={1}
 			ref={textAreaRef}
-			className="flex-1 resize-none rounded-2xl bg-white px-4  py-1 text-black focus:outline-none"
+			className="flex-1 resize-none rounded-2xl bg-white px-4 w-full py-1 text-black focus:outline-none"
 			value={value}
-			placeholder={t("conversation_activity_message")}
+			placeholder={t("conversation_view_message")}
 			onChange={onChange}
 			onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
 				if (e.keyCode == 13 && !e.shiftKey) {

@@ -69,7 +69,7 @@ const InvitationDialog: React.FC<InvitationDialogProps> = ({ open, invitationUI,
 						<p className=" mt-2 text-center">{invitationUI?.name}</p>
 						<p className=" mt-2 text-center font-light md:mt-6">
 							<Trans
-								i18nKey={"accept_invitation_activity_message"}
+								i18nKey={"accept_invitation_view_message"}
 								values={{
 									contactName: invitationUI?.name,
 								}}
@@ -83,7 +83,7 @@ const InvitationDialog: React.FC<InvitationDialogProps> = ({ open, invitationUI,
 							alt=""
 						/>
 						<p className=" mt-2 hidden max-w-[200px] text-center text-xs font-light md:block">
-							{t("fullscreen_qrcode_activity_save_message")}
+							{t("fullscreen_qrcode_view_save_message")}
 						</p>
 					</div>
 					<div className="flex w-full items-center justify-between gap-x-4 px-4 text-sm font-light">

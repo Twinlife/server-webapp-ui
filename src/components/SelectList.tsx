@@ -39,7 +39,7 @@ export const SelectList: React.FC<SelectOptions> = (options) => {
 				{label}
 			</button>
 			{isOpen && (
-				<ul className="absolute border mt-1 rounded shadow-lg bg-black/90 w-full z-100">
+				<ul className="absolute border mt-1 rounded shadow-lg bg-black/90 w-full z-50">
 					{options.items.map((item) => (
 						<li
 							key={item.id}

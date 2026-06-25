@@ -183,7 +183,7 @@ export const CallButtons = ({
 						{inCall ? (
 							<Timer />
 						) : (
-							<span className="font-light">{isIdle ? callLabel : t("audio_call_activity_calling")}</span>
+							<span className="font-light">{isIdle ? callLabel : t("audio_call_view_calling")}</span>
 						)}
 					</button>
 				)}
@@ -238,12 +238,7 @@ export const CallButtons = ({
 						<WhiteButton onClick={openSettings}>
 							<Cog6ToothIcon className="m-auto w-[24px] text-black" aria-hidden="true" />
 						</WhiteButton>
-						<SettingsDialog
-							isOpen={isSettingsOpen}
-							hasVideo={hasVideo}
-							onClose={closeSettings}
-							title="test"
-						/>
+						<SettingsDialog isOpen={isSettingsOpen} hasVideo={hasVideo} onClose={closeSettings} />
 					</>
 				)}
 			</div>

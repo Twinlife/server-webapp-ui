@@ -6,6 +6,7 @@
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
 import { FC } from "react";
+import { useTranslation } from "react-i18next";
 import { TabPanel } from "@headlessui/react";
 
 export interface BackgroundConfig {
@@ -19,6 +20,7 @@ export interface SettingsProps {
 }
 
 export const BackgroundSettings: FC<SettingsProps> = ({ config, onChange }) => {
+	const { t } = useTranslation();
 	const selectBackground = (idx: number) => {
 		console.error("Item ", idx, "selected");
 		onChange({ background: idx });
@@ -26,7 +28,7 @@ export const BackgroundSettings: FC<SettingsProps> = ({ config, onChange }) => {
 	return (
 		<TabPanel className="w-full">
 			<div className="p-4">
-				<h3 className="font-semibold mb-2">Virtual background</h3>
+				<h3 className="font-semibold mb-2">{t("settings_background_title")}</h3>
 				<div className="w-full h-full grid grid-rows-3 grid-cols-3 gap-4">
 					<div
 						className="cursor-pointer p-1"
@@ -38,7 +40,7 @@ export const BackgroundSettings: FC<SettingsProps> = ({ config, onChange }) => {
 							<div
 								className={`w-[107px] h-[60px] border-2 border-solid ${config.background == null || config.background < 0 ? "border-white" : "border-transparent"} text-center`}
 							>
-								None
+								{t("settings_background_none")}
 							</div>
 						</div>
 					</div>
@@ -52,7 +54,7 @@ export const BackgroundSettings: FC<SettingsProps> = ({ config, onChange }) => {
 							<div
 								className={`w-[107px] h-[60px] border-2 border-solid ${config.background === 0 ? "border-white" : "border-transparent"} text-center`}
 							>
-								Blur
+								{t("settings_background_blur")}
 							</div>
 						</div>
 					</div>

@@ -189,6 +189,10 @@ export interface PeerCallServiceObserver {
 	needConnection(): boolean;
 }
 
+interface RTCConfigurationWithSemantics extends RTCConfiguration {
+    sdpSemantics?: "plan-b" | "unified-plan";
+}
+
 type Timer = ReturnType<typeof setTimeout>;
 type ReadyCallback = (config: CallConfigMessage) => void;
 const PING_TIMER: number = 7500; // 7.5s, must be at least 2 times faster than server websocket idle timeout
@@ -483,12 +487,12 @@ export class PeerCallService {
 			}
 		}
 
-		const result: RTCConfiguration = {
+		const result: RTCConfigurationWithSemantics = {
 			iceServers: iceServers,
 			bundlePolicy: "max-bundle",
-			// sdpSemantics: "unified-plan",
+			sdpSemantics: "unified-plan",
 			// rtcpMuxPolicy: 'require',
-			// iceTransportPolicy: 'all'
+			iceTransportPolicy: 'all'
 		};
 		return result;
 	}
