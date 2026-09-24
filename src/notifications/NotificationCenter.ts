@@ -65,6 +65,11 @@ class SoundPlayer {
 	private readonly audioContext: AudioContext | null;
 	private readonly gainNode: GainNode | null;
 	private audioSource: AudioBufferSourceNode | null;
+	// Cache of decoded sounds so that a ringtone is fetched and decoded only once.
+	private readonly buffers: Map<string, Promise<AudioBuffer>> = new Map<string, Promise<AudioBuffer>>();
+	// Generation counter used to cancel a play request that is still loading when a stop or another
+	// play arrives: the async fetch/decode chain must not start a sound that was stopped meanwhile.
+	private generation: number = 0;
 
 	constructor() {
 		this.audioContext = new window.AudioContext();
@@ -79,40 +84,67 @@ class SoundPlayer {
 		if (!this.audioContext || !soundFile) {
 			return;
 		}
+		const generation = this.generation;
+		const gain = volume === undefined || volume == null ? 0 : volume;
 		if (this.audioContext.state === "suspended") {
 			this.audioContext.resume().then(() => {
-				this.doPlaySound(soundFile, loop, volume === undefined || volume == null ? 0 : volume);
+				this.doPlaySound(soundFile, loop, gain, generation);
 			});
 		} else {
-			this.doPlaySound(soundFile, loop, volume === undefined || volume == null ? 0 : volume);
+			this.doPlaySound(soundFile, loop, gain, generation);
 		}
 	}
 
 	public stopSound() {
+		// Invalidate any play request that is still loading.
+		this.generation++;
 		if (this.audioSource) {
 			this.audioSource.stop();
 		}
 		this.audioSource = null;
 	}
 
-	private doPlaySound(soundFile: string, loop: boolean, volume: number): void {
-		fetch(soundFile)
-			.then((response) => response.arrayBuffer())
-			.then((arrayBuffer) => this.audioContext?.decodeAudioData(arrayBuffer))
-			.then((audioBuffer) => {
-				const source = this.audioContext?.createBufferSource();
-				if (source != null && audioBuffer && this.audioContext) {
-					this.audioSource = source;
-					source.buffer = audioBuffer;
-					source.loop = loop;
-					if (volume != null && this.gainNode) {
-						this.gainNode.gain.value = volume;
-						source.connect(this.gainNode);
-					} else {
-						source.connect(this.audioContext.destination);
+	private loadSound(soundFile: string): Promise<AudioBuffer> {
+		let promise = this.buffers.get(soundFile);
+		if (!promise) {
+			promise = fetch(soundFile)
+				.then((response) => response.arrayBuffer())
+				.then((arrayBuffer) => {
+					if (!this.audioContext) {
+						throw new Error("no audio context");
 					}
-					source.start(0);
+					return this.audioContext.decodeAudioData(arrayBuffer);
+				});
+			this.buffers.set(soundFile, promise);
+			promise.catch(() => {
+				// Allow a retry on the next play if the fetch or decode failed.
+				this.buffers.delete(soundFile);
+			});
+		}
+		return promise;
+	}
+
+	private doPlaySound(soundFile: string, loop: boolean, volume: number, generation: number): void {
+		this.loadSound(soundFile)
+			.then((audioBuffer) => {
+				// A stopSound() or another playSound() occurred while we were loading: do not start.
+				if (generation !== this.generation || !this.audioContext) {
+					return;
 				}
+				const source = this.audioContext.createBufferSource();
+				this.audioSource = source;
+				source.buffer = audioBuffer;
+				source.loop = loop;
+				if (this.gainNode) {
+					this.gainNode.gain.value = volume;
+					source.connect(this.gainNode);
+				} else {
+					source.connect(this.audioContext.destination);
+				}
+				source.start(0);
+			})
+			.catch((error) => {
+				console.error("Cannot play sound", soundFile, error);
 			});
 	}
 }
@@ -143,6 +175,11 @@ export class NotificationCenter {
 	 * @param {CallStatus} status the new call status.
 	 */
 	public onUpdateCallStatus(newStatus: CallStatus, oldStatus: CallStatus): void {
+		if (newStatus == oldStatus && CallStatusOps.isOutgoing(newStatus)) {
+			// The call status is reported for every ICE state change: do not restart the
+			// connecting/ringing tone when the status did not change.
+			return;
+		}
 		if (newStatus == CallStatus.OUTGOING_CALL) {
 			if (!MEETING) {
 				this.postSound(NotificationType.AUDIO_CALLING, RINGTONE_VOLUME);

@@ -190,7 +190,7 @@ export interface PeerCallServiceObserver {
 }
 
 interface RTCConfigurationWithSemantics extends RTCConfiguration {
-    sdpSemantics?: "plan-b" | "unified-plan";
+	sdpSemantics?: "plan-b" | "unified-plan";
 }
 
 type Timer = ReturnType<typeof setTimeout>;
@@ -492,7 +492,7 @@ export class PeerCallService {
 			bundlePolicy: "max-bundle",
 			sdpSemantics: "unified-plan",
 			// rtcpMuxPolicy: 'require',
-			iceTransportPolicy: 'all'
+			iceTransportPolicy: "all",
 		};
 		return result;
 	}

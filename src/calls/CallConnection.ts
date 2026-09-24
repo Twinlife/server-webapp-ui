@@ -559,7 +559,7 @@ export class CallConnection {
 
 		// Setup the output data channel.
 		this.mOutDataChannel = pc.createDataChannel(CallConnection.DATA_VERSION, {
-			ordered: true
+			ordered: true,
 		});
 		this.mOutDataChannel.onopen = (_event: Event): void => {
 			if (DEBUG) {

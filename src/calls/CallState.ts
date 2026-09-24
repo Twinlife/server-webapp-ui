@@ -124,6 +124,15 @@ export class CallState {
 				if ((this.mState & CallState.RINGING) !== 0) {
 					return CallStatus.OUTGOING_RINGING;
 				}
+				// The call is started but not yet connected nor ringing: report the outgoing status
+				// of the connection instead of falling through to IN_CALL.
+				const connection: CallConnection | null = this.getCurrentConnection();
+				if (connection) {
+					const status: CallStatus = connection.getStatus();
+					if (CallStatusOps.isOutgoing(status)) {
+						return status;
+					}
+				}
 			} else if (this.mState & CallState.WAIT_MEETING && (this.mState & CallState.WAIT_MEETING_DONE) == 0) {
 				return CallStatus.WAIT_MEETING;
 			} else {
