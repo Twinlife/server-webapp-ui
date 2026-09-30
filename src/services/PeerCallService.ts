@@ -536,21 +536,13 @@ export class PeerCallService {
 		this.sendMessage(msg);
 	}
 
-	transportInfo(sessionId: string, candidate: string, label: string, index: number) {
+	transportInfo(sessionId: string, candidates: TransportCandidate[]) {
 		const msg: TransportInfoMessage = {
 			msg: "transport-info",
 			sessionId: sessionId,
-			candidates: [
-				{
-					sdpMid: label,
-					sdpMLineIndex: index,
-					candidate: candidate,
-					removed: false,
-				},
-			],
+			candidates: candidates,
 		};
 
-		// console.log("send transport info to " + sessionId + " candidate " + candidate);
 		this.sendMessage(msg);
 	}
 

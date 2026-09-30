@@ -60,6 +60,11 @@ export class CallConnection {
 	static readonly CAP_MESSAGE: string = "message";
 
 	static readonly CONNECT_TIMEOUT: number = 15000; // 15 second timeout between accept and connection.
+	static readonly RESTART_ICE_DELAY: number = 2500; // Delay before the ICE restart after a disconnect.
+	static readonly RESTART_ICE_TIMEOUT: number = 5000; // Delay to recover after the ICE restart.
+	static readonly RESTART_ICE_INTERVAL: number = 15000; // Minimum delay between two ICE restarts.
+	static readonly FAILED_ICE_TIMEOUT: number = 15000; // Delay to receive more ICE from the peer after a failure.
+	static readonly FLUSH_CANDIDATES_DELAY: number = 300; // Delay to collect the local ICE before sending them.
 
 	static readonly DEVICE_STATE: number = 2;
 
@@ -135,10 +140,17 @@ export class CallConnection {
 	private mPeerConnection: RTCPeerConnection | null;
 	private mInDataChannel: RTCDataChannel | null;
 	private mOutDataChannel: RTCDataChannel | null;
-	private mIcePending: Array<RTCIceCandidate> | null = null;
-	private mIceRemoteCandidates: Array<TransportCandidate> | null = null;
+	// Local ICE candidates which are not yet sent to the peer.
+	private mPendingCandidates: Array<TransportCandidate> = [];
+	// Remote ICE candidates put on hold until we have both the local and remote descriptions.
+	private mIceRemoteCandidates: Array<TransportCandidate> | null = [];
 	private mRenegotiationNeeded: boolean = false;
+	// Set when the first offer or answer was sent (session-initiate or session-accept).
 	private mInitialized: boolean = false;
+	private mTerminated: boolean = false;
+	private mTerminateReason: TerminateReason | null = null;
+	// Set when the session-initiate was sent and we are waiting for the session id.
+	private mWaitingSessionId: boolean = false;
 	private mMakingOffer: boolean = false;
 	private mRemoteAnswerPending: boolean = false;
 	private mIgnoreOffer: boolean = false;
@@ -156,6 +168,10 @@ export class CallConnection {
 	private mConnectionStartTime: number = 0;
 
 	private mTimer: Timer | null = null;
+	private mFlushCandidates: Timer | null = null;
+	private mRestartIce: Timer | null = null;
+	private mFailedIce: Timer | null = null;
+	private mRestartIceTimestamp: number = 0;
 
 	private mPeerConnected: boolean = false;
 	private mPeerVersion: Version | null = null;
@@ -264,7 +280,6 @@ export class CallConnection {
 		this.mStatus = callStatus;
 		this.mPeerConnectionId = peerConnectionId;
 		this.mPeerConnected = false;
-		this.mIcePending = [];
 		this.mConnectionState = "closed";
 		this.mConnectionStartTime = 0;
 		this.mPeerVersion = null;
@@ -365,66 +380,32 @@ export class CallConnection {
 
 		// Handle ICE connection state.
 		pc.oniceconnectionstatechange = (_event: Event) => {
-			if (this.mPeerConnection) {
-				const state = this.mPeerConnection.iceConnectionState;
-				console.info(this.mPeerConnectionId, ": IceConnectionState ", state);
-				if (state === "connected" || state === "completed") {
-					if (this.mAudioTrack) {
-						this.mAudioTrack.enabled = this.mAudioDirection === "sendrecv";
-					}
-					if (this.mVideoTrack) {
-						this.mVideoTrack.enabled = this.mVideoDirection === "sendrecv";
-					}
-				} else if (state === "failed") {
-					this.terminateInternal("connectivity-error", true);
-					return;
-				} else if (state === "closed") {
-					this.terminateInternal("disconnected", true);
-					return;
-				} else if (state === "disconnected") {
-					// Trigger the ICE restart in 2 seconds in case it was a transient disconnect.
-					// We must be careful that the P2P connection could have been terminated and released.
-					if (this.mConnectionStartTime > 0 && !this.mTimer) {
-						this.mTimer = setTimeout(() => {
-							const state = pc.iceConnectionState;
-							if (this.mPeerConnection && state === "disconnected") {
-								this.mRenegotiationNeeded = true;
-								this.mPeerConnection.restartIce();
-							}
-							if (this.mTimer) {
-								clearTimeout(this.mTimer);
-								this.mTimer = null;
-							}
-						}, 2000);
-						return;
-					}
-					this.terminateInternal("disconnected", true);
-					return;
-				}
-
-				// Forward to CallService
-				callService.onChangeConnectionState(this, state);
+			if (this.isTerminated()) {
+				return;
 			}
+			this.onIceConnectionChange(pc.iceConnectionState);
 		};
 
-		// Handle ICE candidates and propagates to the peer.
+		// Handle ICE candidates and propagates to the peer: they are collected and sent by onFlushCandidates().
 		pc.onicecandidate = (event: RTCPeerConnectionIceEvent) => {
 			const candidate: RTCIceCandidate | null = event.candidate;
-			if (!candidate || !this.mPeerConnection || !candidate.candidate) {
+			if (!candidate || this.isTerminated() || !candidate.candidate) {
 				return;
 			}
-			if (!this.mPeerConnectionId) {
-				this.mIcePending?.push(candidate);
+			if (candidate.sdpMid == null || candidate.sdpMLineIndex == null) {
 				return;
 			}
 
-			if (candidate.candidate && candidate.sdpMid != null && candidate.sdpMLineIndex != null) {
-				this.mPeerCallService.transportInfo(
-					this.mPeerConnectionId,
-					candidate.candidate,
-					candidate.sdpMid,
-					candidate.sdpMLineIndex,
-				);
+			this.mPendingCandidates.push({
+				candidate: candidate.candidate,
+				sdpMid: candidate.sdpMid,
+				sdpMLineIndex: candidate.sdpMLineIndex,
+				removed: false,
+			});
+			if (this.mPeerConnectionId && !this.mFlushCandidates) {
+				this.mFlushCandidates = setTimeout(() => {
+					this.onFlushCandidates();
+				}, CallConnection.FLUSH_CANDIDATES_DELAY);
 			}
 		};
 
@@ -434,18 +415,22 @@ export class CallConnection {
 
 		// Handle signaling state errors.
 		pc.onsignalingstatechange = (_event: Event) => {
-			if (this.mPeerConnection) {
-				const signalingState = this.mPeerConnection.signalingState;
-				console.info(this.mPeerConnectionId, "signalingstate", signalingState);
-				if (signalingState === "closed" && this.mPeerConnectionId) {
-					this.mPeerCallService.sessionTerminate(this.mPeerConnectionId, "connectivity-error");
-				}
+			if (this.isTerminated()) {
+				return;
+			}
+			const signalingState = pc.signalingState;
+			console.info(this.mPeerConnectionId, "signalingstate", signalingState);
+			if (signalingState === "closed") {
+				this.terminateInternal("connectivity-error", true);
 			}
 		};
 
 		// Handle WebRTC renegotiation to send a new offer.
 		pc.onnegotiationneeded = (_event: Event) => {
-			if (!this.mRenegotiationNeeded || !this.mPeerConnection) {
+			// Handle the renegotiation only when we have sent the session-initiate or session-accept:
+			// the request is kept and the browser fires the event again when the signaling state
+			// is back to stable and a negotiation is still needed.
+			if (!this.mRenegotiationNeeded || this.isTerminated() || !this.mInitialized || !this.mPeerConnectionId) {
 				return;
 			}
 			if (DEBUG) {
@@ -453,15 +438,15 @@ export class CallConnection {
 			}
 			this.mRenegotiationNeeded = false;
 			this.mMakingOffer = true;
-			this.mPeerConnection
-				.setLocalDescription()
+			pc.setLocalDescription()
 				.then(() => {
 					this.mMakingOffer = false;
-					if (this.mPeerConnection && this.mPeerConnectionId) {
-						const description: RTCSessionDescription | null = this.mPeerConnection.localDescription;
-						if (description) {
-							this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "offer");
-						}
+					if (this.isTerminated() || !this.mPeerConnectionId) {
+						return;
+					}
+					const description: RTCSessionDescription | null = pc.localDescription;
+					if (description) {
+						this.mPeerCallService.sessionUpdate(this.mPeerConnectionId, description.sdp, "offer");
 					}
 				})
 				.catch((reason: unknown) => {
@@ -470,6 +455,11 @@ export class CallConnection {
 						"setLocalDescription failed after onnegotiationneeded:",
 						reason,
 					);
+
+					// Keep the renegotiation request: it is retried when the state is back to stable.
+					this.mMakingOffer = false;
+					this.mRenegotiationNeeded = true;
+					this.onSdpFailure();
 				});
 		};
 
@@ -493,7 +483,11 @@ export class CallConnection {
 		// Setup the input data channel to handle incoming data messages.
 		this.mInDataChannel = null;
 		pc.ondatachannel = (event: RTCDataChannelEvent): void => {
+			if (this.isTerminated()) {
+				return;
+			}
 			const channel: RTCDataChannel = event.channel;
+			this.mInDataChannel = channel;
 			// Firefox defaults to "blob", but it's not supported by Chromium
 			channel.binaryType = "arraybuffer";
 			channel.onopen = (_event: Event): void => {
@@ -616,6 +610,7 @@ export class CallConnection {
 				.catch((error: unknown) => {
 					console.error(this.mPeerConnectionId, ": set remote failed:", error);
 					this.mRemoteAnswerPending = false;
+					this.onSdpFailure();
 				});
 		} else {
 			this.mMakingOffer = true;
@@ -631,6 +626,9 @@ export class CallConnection {
 					pc.setLocalDescription(description)
 						.then(() => {
 							this.mMakingOffer = false;
+							if (this.isTerminated()) {
+								return;
+							}
 							if (this.mTo && description.sdp && description.type === "offer") {
 								if (DEBUG) {
 									if (this.mPeerConnectionId) {
@@ -644,46 +642,51 @@ export class CallConnection {
 									}
 								}
 								this.mInitialized = true;
+								this.mWaitingSessionId = true;
 								this.mPeerCallService.sessionInitiate(this.mTo, description.sdp, offer);
 							}
 						})
 						.catch((reason: unknown) => {
 							console.error(this.mPeerConnectionId, ": setLocalDescription failed:", reason);
+							this.mMakingOffer = false;
+							this.onSdpFailure();
 						});
 				})
 				.catch((reason: unknown) => {
 					console.error(this.mPeerConnectionId, ": createOffer failed:", reason);
+					this.mMakingOffer = false;
+					this.onSdpFailure();
 				});
 		}
 	}
 
-	onSessionInitiate(sessionId: string): void {
+	/**
+	 * The server has created the session for our session-initiate.
+	 *
+	 * @param sessionId the session id allocated by the server.
+	 * @returns true if the session is used and false if the connection was terminated
+	 * (in that case the session is terminated on the server and the peer).
+	 */
+	onSessionInitiate(sessionId: string): boolean {
 		if (DEBUG) {
 			console.log(sessionId, ": session-initiate created");
 		}
+		this.mWaitingSessionId = false;
+		if (this.mTerminated) {
+			// We were terminated before knowing the session id: the peer was not notified.
+			this.mPeerCallService.sessionTerminate(sessionId, this.mTerminateReason ?? "cancel");
+			return false;
+		}
+
 		this.mPeerConnectionId = sessionId;
 		this.mParticipants.set(sessionId, this.mMainParticipant);
 		this.mCall.onAddParticipant(this.mMainParticipant);
-		if (this.mIcePending && this.mIcePending.length > 0) {
-			if (DEBUG) {
-				console.log(sessionId, ": flush ", this.mIcePending.length, " candidates");
-			}
-			for (const candidate of this.mIcePending) {
-				if (candidate.candidate && candidate.sdpMid != null && candidate.sdpMLineIndex != null) {
-					this.mPeerCallService.transportInfo(
-						sessionId,
-						candidate.candidate,
-						candidate.sdpMid,
-						candidate.sdpMLineIndex,
-					);
-				}
-			}
-		}
-		this.mIcePending = null;
+		this.onFlushCandidates();
+		return true;
 	}
 
 	onSessionAccept(sdp: string, offer: Offer, _offerToReceive: Offer): boolean {
-		if (!this.mPeerConnection) {
+		if (this.isTerminated() || !this.mPeerConnection) {
 			return false;
 		}
 		this.setPeerVersion(new Version(offer.version));
@@ -708,6 +711,7 @@ export class CallConnection {
 			.catch((error: unknown) => {
 				this.mRemoteAnswerPending = false;
 				console.error(this.mPeerConnectionId, ": set remote failed:", error);
+				this.onSdpFailure();
 			});
 		if (this.mTimer) {
 			clearTimeout(this.mTimer);
@@ -720,7 +724,7 @@ export class CallConnection {
 
 	async onSessionUpdate(updateType: string, sdp: string): Promise<boolean> {
 		return await new Promise<boolean>((resolve) => {
-			if (!this.mPeerConnection) {
+			if (this.isTerminated() || !this.mPeerConnection) {
 				resolve(false);
 				return; // Return because we have no P2P connection.
 			}
@@ -733,6 +737,12 @@ export class CallConnection {
 				console.info(this.mPeerConnectionId, "onSessionUpdate ignore offer due to answer/offer collision");
 				resolve(true);
 				return; // Return now because we must not proceed and we must ignore the remote description.
+			}
+
+			// Offer collision and we accept the peer's offer: our offer is rolled back,
+			// keep the renegotiation request so that it is retried when the state is back to stable.
+			if (offerCollision) {
+				this.mRenegotiationNeeded = true;
 			}
 
 			const type: RTCSdpType = isOffer ? "offer" : "answer";
@@ -750,9 +760,14 @@ export class CallConnection {
 					resolve(true);
 				})
 				.catch((reason: unknown) => {
+					// Create the answer even if this failed: if the signaling state is not correct,
+					// the P2P connection is terminated by createAnswer().
 					this.mRemoteAnswerPending = false;
 					console.error(this.mPeerConnectionId, "setRemoteDescription failed:", reason);
-					resolve(false);
+					if (isOffer) {
+						this.createAnswer(null);
+					}
+					resolve(true);
 				});
 		});
 	}
@@ -760,15 +775,21 @@ export class CallConnection {
 	createAnswer(offer: Offer | null): void {
 		const pc: RTCPeerConnection | null = this.mPeerConnection;
 
-		if (!pc) {
+		if (!pc || this.mTerminated) {
 			return;
 		}
 
 		this.mMakingOffer = false;
 		pc.createAnswer()
 			.then((description: RTCSessionDescriptionInit) => {
+				if (this.isTerminated()) {
+					return;
+				}
 				pc.setLocalDescription(description)
 					.then(() => {
+						if (this.isTerminated()) {
+							return;
+						}
 						if (this.mTo && description.sdp && this.mPeerConnectionId) {
 							if (offer) {
 								this.mPeerCallService.sessionAccept(
@@ -786,27 +807,31 @@ export class CallConnection {
 					})
 					.catch((reason: unknown) => {
 						console.error(this.mPeerConnectionId, "setLocalDescription failed:", reason);
+						this.onSdpFailure();
 					});
 			})
 			.catch((reason: unknown) => {
 				console.error(this.mPeerConnectionId, "createAnswer failed:", reason);
+				this.onSdpFailure();
 			});
 	}
 
 	onTransportInfo(candidates: TransportCandidate[]): boolean {
-		if (!this.mPeerConnection) {
+		if (this.isTerminated() || !this.mPeerConnection) {
 			return false;
 		}
 
 		// WebRTC accepts ICE candidates only when it has both the local description
 		// and the remote description.  If we call addIceCandidates too early, they are dropped.
-		if (!this.mInitialized || this.mIceRemoteCandidates) {
-			if (!this.mIceRemoteCandidates) {
-				this.mIceRemoteCandidates = candidates;
-			} else {
-				this.mIceRemoteCandidates.push(...candidates);
-			}
+		if (this.mIceRemoteCandidates) {
+			this.mIceRemoteCandidates.push(...candidates);
 			return true;
+		}
+
+		// We have some new ICE to check and we can clear the failed ICE timer if it is set.
+		if (this.mFailedIce) {
+			clearTimeout(this.mFailedIce);
+			this.mFailedIce = null;
 		}
 
 		for (const candidate of candidates) {
@@ -838,7 +863,9 @@ export class CallConnection {
 						}
 					},
 					(err) => {
-						console.error(this.mPeerConnectionId, ": add ice candidate error for %o : ", ice, err);
+						if (!this.mIgnoreOffer) {
+							console.error(this.mPeerConnectionId, ": add ice candidate error for %o : ", ice, err);
+						}
 					},
 				);
 			}
@@ -940,11 +967,7 @@ export class CallConnection {
 						this.mRenegotiationNeeded = true;
 						transceiver.direction = direction;
 					}
-					if (direction !== "sendrecv") {
-						sender.replaceTrack(null);
-					} else {
-						sender.replaceTrack(this.mAudioTrack);
-					}
+					this.replaceTrack(sender, direction !== "sendrecv" ? null : this.mAudioTrack);
 					break;
 				}
 			}
@@ -992,11 +1015,8 @@ export class CallConnection {
 						this.mRenegotiationNeeded = true;
 						transceiver.direction = direction;
 					}
-					if (direction !== "sendrecv" && direction !== "sendonly") {
-						sender.replaceTrack(null);
-					} else {
-						sender.replaceTrack(this.mVideoTrack);
-					}
+					const sending: boolean = direction === "sendrecv" || direction === "sendonly";
+					this.replaceTrack(sender, sending ? this.mVideoTrack : null);
 					break;
 				}
 			}
@@ -1010,6 +1030,7 @@ export class CallConnection {
 
 		if (this.mPeerConnection != null && this.mVideoTrack) {
 			this.mVideoTrack = null;
+			this.mVideoDirection = "recvonly";
 
 			const transceivers: RTCRtpTransceiver[] = this.mPeerConnection.getTransceivers();
 			for (const transceiver of transceivers) {
@@ -1020,7 +1041,7 @@ export class CallConnection {
 				) {
 					const sender: RTCRtpSender = transceiver.sender;
 					this.mRenegotiationNeeded = true;
-					sender.replaceTrack(null);
+					this.replaceTrack(sender, null);
 					transceiver.direction = "recvonly";
 					break;
 				}
@@ -1040,7 +1061,7 @@ export class CallConnection {
 				if (transceiver.currentDirection !== "stopped" && transceiver.receiver.track.kind === "audio") {
 					const sender: RTCRtpSender = transceiver.sender;
 					// Replace the audio track (no renegociation needed).
-					sender.replaceTrack(this.mAudioTrack);
+					this.replaceTrack(sender, this.mAudioTrack);
 					break;
 				}
 			}
@@ -1058,6 +1079,10 @@ export class CallConnection {
 
 	replaceVideoTrack(track: MediaStreamTrack, scaleDown: number | null): void {
 		this.mVideoTrack = track;
+
+		// The video is now sent to the peer: keep the direction up to date because it is
+		// used to enable the video track when the P2P connection is connected again.
+		this.mVideoDirection = "sendrecv";
 		if (this.mPeerConnection != null) {
 			if (DEBUG) {
 				console.log(this.mPeerConnectionId, ": replace Video Track to", track.label);
@@ -1085,7 +1110,7 @@ export class CallConnection {
 						this.mRenegotiationNeeded = true;
 						transceiver.direction = "sendrecv";
 					}
-					sender.replaceTrack(this.mVideoTrack);
+					this.replaceTrack(sender, this.mVideoTrack);
 					break;
 				}
 			}
@@ -1110,10 +1135,18 @@ export class CallConnection {
 				) {
 					console.info("Scale down to ", scaleDown, "on", sender, "with", parameters);
 					parameters.encodings[0].scaleResolutionDownBy = scaleDown;
-					sender.setParameters(parameters);
+					sender.setParameters(parameters).catch((reason: unknown) => {
+						console.warn(this.mPeerConnectionId, ": setParameters failed:", reason);
+					});
 				}
 			}
 		}
+	}
+
+	private replaceTrack(sender: RTCRtpSender, track: MediaStreamTrack | null): void {
+		sender.replaceTrack(track).catch((reason: unknown) => {
+			console.warn(this.mPeerConnectionId, ": replaceTrack failed:", reason);
+		});
 	}
 
 	/**
@@ -1125,13 +1158,18 @@ export class CallConnection {
 	 */
 	terminate(terminateReason: TerminateReason): string | null {
 		const sessionId: string | null = this.mPeerConnectionId;
-		if (sessionId != null) {
-			if (DEBUG) {
-				console.log(sessionId, ": session-terminate with ", terminateReason);
+		if (!this.mTerminated) {
+			this.mTerminated = true;
+			this.mTerminateReason = terminateReason;
+			if (sessionId != null) {
+				if (DEBUG) {
+					console.log(sessionId, ": session-terminate with ", terminateReason);
+				}
+				this.mPeerCallService.sessionTerminate(sessionId, terminateReason);
 			}
-			this.mPeerCallService.sessionTerminate(sessionId, terminateReason);
-			this.mPeerConnectionId = null;
 		}
+		this.mPeerConnectionId = null;
+		this.cancelTimers();
 
 		if (this.mPeerConnection) {
 			this.mPeerConnection.close();
@@ -1180,7 +1218,7 @@ export class CallConnection {
 		if (participant) {
 			const event = participant.removeTrack(trackId);
 			if (event) {
-				this.mCall.onEventParticipant(participant, CallParticipantEvent.EVENT_VIDEO_OFF);
+				this.mCall.onEventParticipant(participant, event);
 			}
 		}
 	}
@@ -1200,6 +1238,10 @@ export class CallConnection {
 	 * @return {CallParticipant[]} the list of participants that have been released.
 	 */
 	release(): Array<CallParticipant> {
+		this.mTerminated = true;
+		this.cancelTimers();
+		this.mPendingCandidates = [];
+		this.mIceRemoteCandidates = null;
 		if (this.mInDataChannel) {
 			this.mInDataChannel.close();
 			this.mInDataChannel = null;
@@ -1215,11 +1257,7 @@ export class CallConnection {
 		}
 
 		this.mStatus = CallStatus.TERMINATED;
-		if (this.mTimer) {
-			clearTimeout(this.mTimer);
-			this.mTimer = null;
-		}
-		const participants: Array<CallParticipant> = Object.values(this.mParticipants);
+		const participants: Array<CallParticipant> = Array.from(this.mParticipants.values());
 		if (participants.length === 0 && this.mMainParticipant) {
 			participants.push(this.mMainParticipant);
 		}
@@ -1248,6 +1286,13 @@ export class CallConnection {
 	 * @param notifyPeer true if we must notify the peer.
 	 */
 	private terminateInternal(terminateReason: TerminateReason, notifyPeer: boolean): void {
+		if (this.mTerminated) {
+			return;
+		}
+		this.mTerminated = true;
+		this.mTerminateReason = terminateReason;
+		this.cancelTimers();
+
 		const sessionId: string | null = this.mPeerConnectionId;
 		if (notifyPeer && sessionId) {
 			this.mPeerCallService.sessionTerminate(sessionId, terminateReason);
@@ -1259,6 +1304,193 @@ export class CallConnection {
 			this.mPeerConnection = null;
 			this.mPeerConnectionId = null;
 		}
+	}
+
+	/**
+	 * Check if this P2P connection is terminated.
+	 *
+	 * @returns true when the P2P connection is terminated.
+	 */
+	isTerminated(): boolean {
+		return this.mTerminated || this.mPeerConnection == null;
+	}
+
+	/**
+	 * Check if the session-initiate was sent and we are still waiting for the session id.
+	 *
+	 * @returns true if we are waiting for the session id.
+	 */
+	isWaitingSessionId(): boolean {
+		return this.mWaitingSessionId;
+	}
+
+	private isIceConnected(): boolean {
+		const state: RTCIceConnectionState | undefined = this.mPeerConnection?.iceConnectionState;
+		return state === "connected" || state === "completed";
+	}
+
+	private cancelTimers(): void {
+		if (this.mTimer) {
+			clearTimeout(this.mTimer);
+			this.mTimer = null;
+		}
+		if (this.mFlushCandidates) {
+			clearTimeout(this.mFlushCandidates);
+			this.mFlushCandidates = null;
+		}
+		if (this.mRestartIce) {
+			clearTimeout(this.mRestartIce);
+			this.mRestartIce = null;
+		}
+		if (this.mFailedIce) {
+			clearTimeout(this.mFailedIce);
+			this.mFailedIce = null;
+		}
+	}
+
+	/**
+	 * Handle a failure to create or set the SDP: the P2P connection cannot proceed and it is terminated.
+	 * After the first offer/answer, the error is ignored if we are in stable state.
+	 */
+	private onSdpFailure(): void {
+		const pc: RTCPeerConnection | null = this.mPeerConnection;
+		if (this.isTerminated() || !pc) {
+			return;
+		}
+		if (this.mInitialized && pc.signalingState === "stable") {
+			return;
+		}
+		this.terminateInternal("general-error", true);
+	}
+
+	/**
+	 * Send the local ICE candidates which are pending to the peer.
+	 */
+	private onFlushCandidates(): void {
+		if (this.mFlushCandidates) {
+			clearTimeout(this.mFlushCandidates);
+			this.mFlushCandidates = null;
+		}
+
+		const sessionId: string | null = this.mPeerConnectionId;
+		if (this.isTerminated() || !sessionId || this.mPendingCandidates.length === 0) {
+			return;
+		}
+		if (DEBUG) {
+			console.log(sessionId, ": flush ", this.mPendingCandidates.length, " candidates");
+		}
+
+		const candidates: TransportCandidate[] = this.mPendingCandidates;
+		this.mPendingCandidates = [];
+		this.mPeerCallService.transportInfo(sessionId, candidates);
+	}
+
+	private onIceConnectionChange(state: RTCIceConnectionState): void {
+		console.info(this.mPeerConnectionId, ": IceConnectionState ", state);
+
+		switch (state) {
+			case "connected":
+			case "completed":
+				// Now that we are connected, enable the audio and video tracks unless they are muted.
+				if (this.mAudioTrack) {
+					this.mAudioTrack.enabled = this.mAudioDirection === "sendrecv";
+				}
+				if (this.mVideoTrack) {
+					this.mVideoTrack.enabled = this.mVideoDirection === "sendrecv";
+				}
+				if (this.mRestartIce) {
+					clearTimeout(this.mRestartIce);
+					this.mRestartIce = null;
+				}
+				if (this.mFailedIce) {
+					clearTimeout(this.mFailedIce);
+					this.mFailedIce = null;
+				}
+				break;
+
+			case "disconnected":
+			case "failed":
+				if (this.mConnectionStartTime > 0) {
+					const now: number = performance.now();
+					if (
+						this.mRestartIceTimestamp === 0 ||
+						this.mRestartIceTimestamp + CallConnection.RESTART_ICE_INTERVAL < now
+					) {
+						// Trigger the ICE restart in 2.5 seconds in case it was a transient disconnect.
+						// We must be careful that the P2P connection could have been terminated and released.
+						if (this.mRestartIce) {
+							clearTimeout(this.mRestartIce);
+						}
+						if (this.mFailedIce) {
+							clearTimeout(this.mFailedIce);
+							this.mFailedIce = null;
+						}
+						this.mRestartIce = setTimeout(() => {
+							this.restartIce();
+						}, CallConnection.RESTART_ICE_DELAY);
+						return;
+					}
+				}
+				if (state === "disconnected") {
+					this.terminateInternal("disconnected", true);
+					return;
+				}
+				if (this.mConnectionStartTime > 0) {
+					this.terminateInternal("connectivity-error", true);
+					return;
+				}
+
+				// Setup the failed ICE timer to give some time for the peer to give us more ICEs.
+				if (this.mFailedIce) {
+					clearTimeout(this.mFailedIce);
+				}
+				this.mFailedIce = setTimeout(() => {
+					this.mFailedIce = null;
+					this.terminateInternal("connectivity-error", true);
+				}, CallConnection.FAILED_ICE_TIMEOUT);
+				return;
+
+			case "closed":
+				// The ICE agent has shut down and is no longer handling requests.
+				this.terminateInternal("disconnected", true);
+				return;
+
+			default:
+				break;
+		}
+
+		// Forward to CallService
+		this.mCallService.onChangeConnectionState(this, state);
+	}
+
+	private restartIce(): void {
+		this.mRestartIce = null;
+
+		const pc: RTCPeerConnection | null = this.mPeerConnection;
+		if (this.isTerminated() || !pc) {
+			return;
+		}
+
+		const state: RTCIceConnectionState = pc.iceConnectionState;
+		if (state !== "disconnected" && state !== "failed") {
+			return;
+		}
+		console.info(this.mPeerConnectionId, ": restart ICE in state", state);
+
+		// The ICE restart triggers onnegotiationneeded which creates the offer with the new ICE credentials
+		// (or defers it if the signaling state is not stable).
+		this.mRestartIceTimestamp = performance.now();
+		this.mRenegotiationNeeded = true;
+		pc.restartIce();
+
+		// Give 5s to recover or fail: the timer is cancelled when we are connected again.
+		this.mRestartIce = setTimeout(() => {
+			this.mRestartIce = null;
+			if (this.isIceConnected()) {
+				return;
+			}
+			this.terminateInternal("disconnected", true);
+		}, CallConnection.RESTART_ICE_TIMEOUT);
 	}
 
 	getStats(): void {

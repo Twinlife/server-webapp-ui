@@ -546,9 +546,11 @@ export class CallState {
 	 */
 	remove(callConnection: CallConnection): boolean {
 		const index = this.mPeers.indexOf(callConnection);
-		if (index >= 0) {
-			this.mPeers.splice(index, 1);
+		if (index < 0) {
+			// Already removed and released: the call termination was already handled.
+			return false;
 		}
+		this.mPeers.splice(index, 1);
 		const empty: boolean = this.mPeers.length === 0;
 		this.onRemoveParticipants(callConnection.release());
 		this.mState &= ~CallState.CONNECTED;

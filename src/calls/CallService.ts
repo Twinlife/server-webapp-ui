@@ -408,7 +408,11 @@ export class CallService implements PeerCallServiceObserver {
 
 		const callConnection: CallConnection | undefined = this.mPeerTo.get(to);
 		if (callConnection) {
-			callConnection.onSessionInitiate(sessionId);
+			if (!callConnection.onSessionInitiate(sessionId)) {
+				// The connection was terminated before we know the session id.
+				this.mPeerTo.delete(to);
+				return;
+			}
 			this.mPeers.set(sessionId, callConnection);
 			if (DEBUG) {
 				console.log(sessionId, ": peer added, mPeers items: ", this.mPeers.size);
@@ -634,6 +638,17 @@ export class CallService implements PeerCallServiceObserver {
 				console.log(sessionId, ": remove peer session");
 			}
 			this.mPeers.delete(sessionId);
+		}
+
+		// Keep the connection if we are waiting for the session id: we must terminate
+		// the session when we receive it because the peer was not notified.
+		if (!callConnection.isWaitingSessionId()) {
+			for (const [to, connection] of this.mPeerTo) {
+				if (connection === callConnection) {
+					this.mPeerTo.delete(to);
+					break;
+				}
+			}
 		}
 		if (!call.remove(callConnection)) {
 			return;
