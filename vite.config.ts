@@ -31,6 +31,10 @@ export default defineConfig({
     build: {
         minify: 'esbuild'
     },
+    worker: {
+        // The video background worker is a module worker (the MediaPipe wasm is loaded with import()).
+        format: 'es'
+    },
 	define: {
 		__APP_VERSION__: JSON.stringify(process.env.npm_package_version),
 	},

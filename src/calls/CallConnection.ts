@@ -497,7 +497,7 @@ export class CallConnection {
 				const items = label.split(/[:,]/);
 				this.mMessageSupported = false;
 				if (items.length >= 3) {
-					for (let i = items.length; --i >= 1; ) {
+					for (let i = items.length; --i >= 1;) {
 						if (items[i] == CallConnection.CAP_MESSAGE) {
 							this.mMessageSupported = true;
 						}

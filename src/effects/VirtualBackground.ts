@@ -5,7 +5,6 @@
  *  Contributors:
  *   Stephane Carrez (Stephane.Carrez@twin.life)
  */
-import { ImageSegmenter, FilesetResolver, ImageSegmenterResult } from "@mediapipe/tasks-vision";
 import { CLEAR_TIMEOUT, SET_TIMEOUT, TIMEOUT_TICK, timerWorkerScript } from "../utils/TimerWorker";
 import { VideoTrack } from "../utils/VideoTrack";
 import { CallService } from "../calls/CallService";
@@ -13,6 +12,11 @@ import { subscribe } from "valtio/index";
 import { backgroundStore } from "../stores/backgrounds";
 import { mediaStreams } from "../utils/MediaStreams.ts";
 import { isMobile, isSafari } from "../utils/BrowserCapabilities";
+import { BackgroundRenderer } from "./BackgroundRenderer";
+import { MASK_HEIGHT, MASK_WIDTH, SegmentationEngine } from "./SegmentationEngine";
+import type { WorkerRequest, WorkerResponse } from "./segmentation.worker";
+
+const DEFAULT_FRAME_RATE = 30;
 
 class EffectVideoTrack extends VideoTrack {
 	effect: VirtualBackground;
@@ -29,40 +33,192 @@ class EffectVideoTrack extends VideoTrack {
 	stop(): void {
 		console.log("EffectVideoTrack.stop");
 		super.stop();
-		this.effect.stopEffect(true);
+		this.effect.onEffectTrackStopped(this);
 	}
+}
+
+/**
+ * A processing pipeline that reads the camera track and produces the output track with the effect.
+ */
+interface Pipeline {
+	readonly output: MediaStreamTrack;
+
+	setBackground(image: ImageBitmap | null): void;
+
+	stop(): void;
+}
+
+/**
+ * Pipeline running in a worker with the insertable streams API (Chromium):
+ * the camera frames never touch the main thread.
+ */
+class WorkerPipeline implements Pipeline {
+	readonly output: MediaStreamTrack;
+	private readonly worker: Worker;
+
+	constructor(source: MediaStreamTrack, onError: (message: string) => void) {
+		const processor = new MediaStreamTrackProcessor({ track: source });
+		const generator = new MediaStreamTrackGenerator({ kind: "video" });
+		this.output = generator;
+		this.worker = new Worker(new URL("./segmentation.worker.ts", import.meta.url), {
+			type: "module",
+			name: "Video background",
+		});
+		this.worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+			const message = event.data;
+			if (message.type === "ready") {
+				console.info("Video background worker ready with the", message.delegate, "delegate");
+			} else if (message.type === "error") {
+				onError(message.message);
+			}
+		};
+		this.worker.onerror = (event: ErrorEvent) => {
+			onError(event.message);
+		};
+		const request: WorkerRequest = {
+			type: "start",
+			readable: processor.readable,
+			writable: generator.writable,
+			background: null,
+		};
+		this.worker.postMessage(request, [processor.readable, generator.writable]);
+	}
+
+	setBackground(image: ImageBitmap | null): void {
+		const request: WorkerRequest = { type: "background", image: image };
+		this.worker.postMessage(request, image ? [image] : []);
+	}
+
+	stop(): void {
+		const request: WorkerRequest = { type: "stop" };
+		this.worker.postMessage(request);
+		this.worker.terminate();
+		this.output.stop();
+	}
+}
+
+/**
+ * Pipeline running on the main thread (used when the insertable streams are not available):
+ * the camera track is played in a video element, segmented and composited in a canvas
+ * at the camera frame rate and the canvas is captured as the output track.
+ */
+class MainThreadPipeline implements Pipeline {
+	readonly output: MediaStreamTrack;
+	private readonly video: HTMLVideoElement;
+	private readonly inputCanvas: HTMLCanvasElement;
+	private readonly inputContext: CanvasRenderingContext2D | null;
+	private readonly timer: Worker;
+	private readonly interval: number;
+	private renderer: BackgroundRenderer | null;
+	private engine: SegmentationEngine | null = null;
+	private stopped: boolean = false;
+
+	constructor(
+		source: MediaStreamTrack,
+		width: number,
+		height: number,
+		frameRate: number,
+		enginePromise: Promise<SegmentationEngine>,
+	) {
+		const canvas = document.createElement("canvas");
+		this.renderer = new BackgroundRenderer(canvas, width, height, MASK_WIDTH, MASK_HEIGHT);
+		this.inputCanvas = document.createElement("canvas");
+		this.inputCanvas.width = MASK_WIDTH;
+		this.inputCanvas.height = MASK_HEIGHT;
+		this.inputContext = this.inputCanvas.getContext("2d");
+
+		this.video = document.createElement("video");
+		this.video.width = width;
+		this.video.height = height;
+		this.video.muted = true;
+		this.video.playsInline = true;
+		this.video.autoplay = true;
+		this.video.srcObject = new MediaStream([source]);
+		this.video.play().catch(() => {});
+
+		this.output = canvas.captureStream(frameRate).getVideoTracks()[0];
+		this.interval = 1000 / frameRate;
+		this.timer = new Worker(timerWorkerScript, { name: "Video background timer" });
+		this.timer.onmessage = (event: MessageEvent<{ id: number }>) => {
+			if (event.data.id === TIMEOUT_TICK) {
+				this.tick();
+			}
+		};
+		this.schedule(this.interval);
+
+		// Frames are passed through until the segmenter is ready.
+		enginePromise
+			.then((engine) => {
+				if (!this.stopped) {
+					engine.reset();
+					this.engine = engine;
+				}
+			})
+			.catch((error) => {
+				console.error("Cannot load the image segmenter:", error);
+			});
+	}
+
+	setBackground(image: ImageBitmap | null): void {
+		this.renderer?.setBackground(image);
+	}
+
+	stop(): void {
+		this.stopped = true;
+		this.timer.postMessage({ id: CLEAR_TIMEOUT });
+		this.timer.terminate();
+		this.video.srcObject = null;
+		this.renderer?.dispose();
+		this.renderer = null;
+		this.engine = null;
+		this.output.stop();
+	}
+
+	private schedule(timeMs: number): void {
+		if (!this.stopped) {
+			this.timer.postMessage({ id: SET_TIMEOUT, timeMs: timeMs });
+		}
+	}
+
+	private tick(): void {
+		if (this.stopped) {
+			return;
+		}
+		const start = performance.now();
+		try {
+			if (this.renderer && this.video.readyState >= this.video.HAVE_CURRENT_DATA) {
+				let mask: Uint8Array | null = null;
+				if (this.engine && this.inputContext) {
+					this.inputContext.drawImage(this.video, 0, 0, MASK_WIDTH, MASK_HEIGHT);
+					mask = this.engine.segment(this.inputCanvas, start);
+				}
+				this.renderer.render(this.video, mask);
+			}
+		} catch (error) {
+			console.error("Video background processing failed:", error);
+		} finally {
+			// Always re-arm the timer so that an error never stops the video.
+			this.schedule(Math.max(1, this.interval - (performance.now() - start)));
+		}
+	}
+}
+
+function hasInsertableStreams(): boolean {
+	return typeof MediaStreamTrackProcessor === "function" && typeof MediaStreamTrackGenerator === "function";
 }
 
 export class VirtualBackground {
 	private readonly callService: CallService;
-	private isInitialized: boolean;
-	private imageSegmenter?: ImageSegmenter | null;
-	private canvas: HTMLCanvasElement;
-	private ctx?: CanvasRenderingContext2D;
-	private video?: HTMLVideoElement;
-	private imageData?: ImageData;
-	private mask?: ImageData;
-	private maskCanvas: HTMLCanvasElement;
-	private maskCtx?: CanvasRenderingContext2D | null;
-	private track: MediaStreamTrack | null;
-	private maskWidth: number = 0;
-	private maskHeight: number = 0;
-	private videoWidth: number = 0;
-	private videoHeight: number = 0;
-	private backgroundImage: HTMLImageElement | null = null;
-	private timerWorker: Worker | null;
-	private maskPixelCount: number = 0;
-	private count: number = 0;
-	private effectTrack: EffectVideoTrack | null;
+	private pipeline: Pipeline | null = null;
+	private effectTrack: EffectVideoTrack | null = null;
+	private track: MediaStreamTrack | null = null;
+	private backgroundPath: string = "";
+	private backgroundGeneration: number = 0;
+	private enginePromise: Promise<SegmentationEngine> | null = null;
+	private workerDisabled: boolean = false;
 
 	constructor(callService: CallService) {
 		this.callService = callService;
-		this.isInitialized = false;
-		this.canvas = document.createElement("canvas");
-		this.maskCanvas = document.createElement("canvas");
-		this.timerWorker = null;
-		this.track = null;
-		this.effectTrack = null;
 
 		// If the virtual background setting was changed, update the effect.
 		subscribe(backgroundStore, () => {
@@ -82,7 +238,7 @@ export class VirtualBackground {
 				} else {
 					// Simple case: we only change the background effect on the same track.
 					// No need to switch track, we only change the background image.
-					const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+					const backgroundPath = VirtualBackground.getBackgroundPath(background);
 					console.info("Change video background to", backgroundPath);
 					this.setBackground(backgroundPath);
 				}
@@ -90,22 +246,17 @@ export class VirtualBackground {
 				// Last case, the current video has no effect and we want to turn it on.
 				// Again, we have to update the media stream with a new track without
 				// stopping the camera.
-				const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
+				const backgroundPath = VirtualBackground.getBackgroundPath(background);
 				console.info("Create video background", backgroundPath);
-				if (!this.isInitialized) {
-					this.init().then(() => {
-						const stream = this.startEffect(video.track, backgroundPath);
-						mediaStreams.setVideoTrackNoStop(stream);
-						this.callService.updateVideoTrack(stream, true);
-					});
-				} else {
-					mediaStreams.setVideoTrackNoStop(this.startEffect(video.track, backgroundPath));
-					if (mediaStreams.video) {
-						this.callService.updateVideoTrack(mediaStreams.video, true);
-					}
-				}
+				const stream = this.startEffect(video.track, backgroundPath);
+				mediaStreams.setVideoTrackNoStop(stream);
+				this.callService.updateVideoTrack(stream, true);
 			}
 		});
+	}
+
+	private static getBackgroundPath(background: number): string {
+		return background > 0 ? "/backgrounds/" + background + ".webp" : "";
 	}
 
 	setVideoTrack = (mediaStream: MediaStreamTrack, isScreenSharing: boolean) => {
@@ -115,28 +266,15 @@ export class VirtualBackground {
 			this.stopEffect(false);
 			return;
 		}
-		if (!this.isInitialized) {
-			this.init().then(() => {
-				this.setVideoTrack(mediaStream, isScreenSharing);
-			});
-		} else {
-			const backgroundPath = background > 0 ? "/backgrounds/" + background + ".webp" : "";
-			const stream = this.startEffect(mediaStream as MediaStreamTrack, backgroundPath);
-			this.callService.setVideoTrack(stream, isScreenSharing);
-		}
+		const stream = this.startEffect(mediaStream, VirtualBackground.getBackgroundPath(background));
+		this.callService.setVideoTrack(stream, isScreenSharing);
 	};
 
-	async init() {
-		this.isInitialized = true;
-		const vision = await FilesetResolver.forVisionTasks("/@mediapipe/wasm");
-		this.imageSegmenter = await ImageSegmenter.createFromOptions(vision, {
-			baseOptions: {
-				modelAssetPath: "/@mediapipe/selfie_segmenter_landscape.tflite",
-			},
-			outputCategoryMask: true,
-			outputConfidenceMasks: false,
-			runningMode: "VIDEO",
-		});
+	/**
+	 * Pre-load the image segmenter used by the main thread pipeline.
+	 */
+	init(): Promise<void> {
+		return this.getEngine().then(() => {});
 	}
 
 	/**
@@ -144,12 +282,9 @@ export class VirtualBackground {
 	 * @param backgroundPath the new virtual background to use.
 	 */
 	setBackground(backgroundPath: string): void {
-		if (backgroundPath != "") {
-			this.backgroundImage = document.createElement("img");
-			this.backgroundImage.crossOrigin = "anonymous";
-			this.backgroundImage.src = backgroundPath;
-		} else {
-			this.backgroundImage = null;
+		this.backgroundPath = backgroundPath;
+		if (this.pipeline) {
+			this.loadBackground(this.pipeline, backgroundPath);
 		}
 	}
 
@@ -176,164 +311,152 @@ export class VirtualBackground {
 	startEffect(track: MediaStreamTrack, backgroundPath: string | null): VideoTrack {
 		this.stopEffect(true);
 		this.track = track;
-		console.error("startEffect track=" + track);
+		this.backgroundPath = backgroundPath ?? "";
+
 		const { frameRate, height, width, deviceId } = track.getSettings();
-		this.video = document.createElement("video");
-		if (!frameRate || !width || !height || !this.video) {
+		if (!width || !height) {
+			console.warn("Video track has no size, no video background effect");
 			return new VideoTrack(track, null);
 		}
-		if (backgroundPath) {
-			this.backgroundImage = document.createElement("img");
-			this.backgroundImage.crossOrigin = "anonymous";
-			this.backgroundImage.src = backgroundPath;
+		const pipeline = this.createPipeline(track, width, height, frameRate ?? DEFAULT_FRAME_RATE);
+		if (!pipeline) {
+			return new VideoTrack(track, null);
 		}
-		this.videoWidth = width;
-		this.videoHeight = height;
-		this.maskWidth = 256;
-		this.maskHeight = 144;
-		this.maskPixelCount = this.maskWidth * this.maskHeight;
-		this.mask = new ImageData(this.maskWidth, this.maskHeight);
-		this.maskCanvas.width = this.maskWidth;
-		this.maskCanvas.height = this.maskHeight;
-		this.maskCtx = this.maskCanvas.getContext("2d", { willReadFrequently: true });
-		this.canvas.width = width;
-		this.canvas.height = height;
-		this.ctx = this.canvas.getContext("2d", { willReadFrequently: true })!;
-		this.count = this.count + 1;
-		if (this.timerWorker == null) {
-			this.timerWorker = new Worker(timerWorkerScript, { name: "Video processing " + this.count });
-			this.timerWorker.onmessage = (data) => this.onTimerMessage(data);
-		}
-
-		this.video.width = width;
-		this.video.height = height;
-		this.video.autoplay = true;
-		this.video.srcObject = new MediaStream([track]);
-		this.video.onloadeddata = () => {
-			console.log("on loaded start post message");
-		};
-		this.timerWorker?.postMessage({ id: SET_TIMEOUT, timeMs: 100 });
-		const result = this.canvas.captureStream(frameRate);
-		console.log("Created new stream " + result);
-		this.effectTrack = new EffectVideoTrack(this, result, deviceId ? deviceId : track.label);
+		this.pipeline = pipeline;
+		this.loadBackground(pipeline, this.backgroundPath);
+		this.effectTrack = new EffectVideoTrack(this, pipeline.output, deviceId ? deviceId : track.label);
 		return this.effectTrack;
 	}
 
-	stopEffect(release: boolean) {
+	stopEffect(release: boolean): void {
 		console.log("stop effect release", release);
-		if (this.timerWorker) {
-			this.timerWorker.postMessage({ id: CLEAR_TIMEOUT });
-			//this.timerWorker.terminate();
-			//this.timerWorker = null;
-		}
-		if (this.video) {
-			this.video.srcObject = null;
-		}
+		const pipeline = this.pipeline;
+		this.pipeline = null;
+		pipeline?.stop();
+
 		const effectTrack = this.effectTrack;
-		if (effectTrack) {
-			this.effectTrack = null;
-			effectTrack.stop();
-		}
+		this.effectTrack = null;
+		effectTrack?.track.stop();
+
 		if (this.track && release) {
 			this.track.stop();
 			this.track = null;
 		}
 	}
 
-	onTimerMessage(response: { data: { id: number } }): void {
-		if (response.data.id == TIMEOUT_TICK) {
-			this.process();
+	/**
+	 * The effect track was stopped by the media stream: release the effect only
+	 * if this is still the current effect track (a new effect could have been started).
+	 */
+	onEffectTrackStopped(track: EffectVideoTrack): void {
+		if (this.effectTrack === track) {
+			this.stopEffect(true);
 		}
 	}
 
-	async process() {
-		// console.log("process image");
-		this.resizeSource();
-		const res: ImageSegmenterResult | null = await this.segmentVideo();
-		if (res) {
-			this.onImageSegmented(res);
-		}
-	}
-
-	resizeSource(): void {
-		// console.log("resizeSource " + this.maskWidth + "x" + this.maskHeight);
-		if (!this.video || !this.maskCtx) {
-			return;
-		}
-		this.maskCtx.drawImage(
-			this.video,
-			0,
-			0,
-			this.videoWidth,
-			this.videoHeight,
-			0,
-			0,
-			this.maskWidth,
-			this.maskHeight,
-		);
-		this.imageData = this.maskCtx.getImageData(0, 0, this.maskWidth, this.maskHeight);
-		//console.log("video size " + this.videoWidth + "x" + this.videoHeight + " image " + this.imageData.width + "x" + this.imageData.height);
-	}
-
-	async segmentVideo(): Promise<ImageSegmenterResult | null> {
-		const startTimeMs = performance.now();
-		return new Promise<ImageSegmenterResult | null>((resolve) => {
-			if (!this.imageSegmenter || !this.imageData) {
-				resolve(null);
-				return;
-			}
-			this.imageSegmenter.segmentForVideo(this.imageData, startTimeMs, (result: ImageSegmenterResult) => {
-				// const endTimeMs = performance.now();
-				// console.log("segmentation time " + (endTimeMs - startTimeMs) + " ms");
-				resolve(result);
+	private getEngine(): Promise<SegmentationEngine> {
+		if (!this.enginePromise) {
+			this.enginePromise = SegmentationEngine.create(false).catch((error) => {
+				// Allow a retry on the next attempt.
+				this.enginePromise = null;
+				throw error;
 			});
-		});
+		}
+		return this.enginePromise;
 	}
 
-	onImageSegmented(result: ImageSegmenterResult): void {
-		if (!result.categoryMask || !this.mask || !this.ctx || !this.video || !this.maskCtx) {
+	private createPipeline(track: MediaStreamTrack, width: number, height: number, frameRate: number): Pipeline | null {
+		if (!this.workerDisabled && hasInsertableStreams()) {
+			try {
+				let pipeline: WorkerPipeline | null = null;
+				pipeline = new WorkerPipeline(track, (message: string) => {
+					if (pipeline) {
+						this.onWorkerFailure(pipeline, message);
+					}
+				});
+				return pipeline;
+			} catch (error) {
+				console.warn("Cannot start the video background worker:", error);
+				this.workerDisabled = true;
+			}
+		}
+		return this.createMainThreadPipeline(track, width, height, frameRate);
+	}
+
+	private createMainThreadPipeline(
+		track: MediaStreamTrack,
+		width: number,
+		height: number,
+		frameRate: number,
+	): Pipeline | null {
+		try {
+			return new MainThreadPipeline(track, width, height, frameRate, this.getEngine());
+		} catch (error) {
+			console.error("Cannot start the video background effect:", error);
+			return null;
+		}
+	}
+
+	/**
+	 * The worker pipeline failed: switch to the main thread pipeline on the same camera track
+	 * and replace the track in the media stream and in the current call.
+	 */
+	private onWorkerFailure(failed: WorkerPipeline, message: string): void {
+		console.warn("Video background worker failed, falling back to the main thread:", message);
+		this.workerDisabled = true;
+		const track = this.track;
+		if (this.pipeline !== failed || !track) {
 			return;
 		}
-
-		const categoryMask = result.categoryMask;
-		const mask: Uint8Array = categoryMask.getAsUint8Array();
-		const image: HTMLImageElement | null = this.backgroundImage;
-
-		// Generate image mask (256x144)
-		for (let i = 0; i < this.maskPixelCount; i++) {
-			this.mask.data[i * 4 + 3] = 255 - mask[i];
-		}
-		this.maskCtx.putImageData(this.mask, 0, 0);
-
-		// Draw the segmentation mask and smooth out the edges (as Jitsi does)
-		this.ctx.globalCompositeOperation = "copy";
-		this.ctx.filter = image ? "blur(4px)" : "blur(8px)";
-		this.ctx.drawImage(
-			this.maskCanvas,
-			0,
-			0,
-			this.maskWidth,
-			this.maskHeight,
-			0,
-			0,
-			this.videoWidth,
-			this.videoHeight,
-		);
-
-		// Draw the foreground video.
-		this.ctx.globalCompositeOperation = "source-in";
-		this.ctx.filter = "none";
-		this.ctx.drawImage(this.video, 0, 0);
-
-		// Draw virtual background.
-		this.ctx.globalCompositeOperation = "destination-over";
-		if (image) {
-			this.ctx.drawImage(image, 0, 0, this.videoWidth, this.videoHeight);
+		failed.stop();
+		const previousTrack = this.effectTrack;
+		const { frameRate, height, width, deviceId } = track.getSettings();
+		const pipeline =
+			width && height
+				? this.createMainThreadPipeline(track, width, height, frameRate ?? DEFAULT_FRAME_RATE)
+				: null;
+		let replacement: VideoTrack;
+		if (pipeline) {
+			this.pipeline = pipeline;
+			this.loadBackground(pipeline, this.backgroundPath);
+			this.effectTrack = new EffectVideoTrack(this, pipeline.output, deviceId ? deviceId : track.label);
+			replacement = this.effectTrack;
 		} else {
-			this.ctx.filter = "blur(8px)";
-			this.ctx.drawImage(this.video, 0, 0);
-			//console.error("Draw segmented " + mask.length + " " + this.videoWidth + "x" + this.videoHeight);
+			// No effect possible: give back the camera track.
+			this.pipeline = null;
+			this.effectTrack = null;
+			this.track = null;
+			replacement = new VideoTrack(track, deviceId ? deviceId : track.label);
 		}
-		this.timerWorker?.postMessage({ id: SET_TIMEOUT, timeMs: 1000 / 15 });
+		if (previousTrack && mediaStreams.video === previousTrack) {
+			mediaStreams.setVideoTrackNoStop(replacement);
+			this.callService.updateVideoTrack(replacement, true);
+		}
+	}
+
+	private loadBackground(pipeline: Pipeline, backgroundPath: string): void {
+		const generation = ++this.backgroundGeneration;
+		if (!backgroundPath) {
+			pipeline.setBackground(null);
+			return;
+		}
+		fetch(backgroundPath)
+			.then((response) => {
+				if (!response.ok) {
+					throw new Error("HTTP " + response.status);
+				}
+				return response.blob();
+			})
+			.then((blob) => createImageBitmap(blob))
+			.then((image) => {
+				if (generation !== this.backgroundGeneration || this.pipeline !== pipeline) {
+					image.close();
+					return;
+				}
+				pipeline.setBackground(image);
+			})
+			.catch((error) => {
+				console.error("Cannot load the background image", backgroundPath, error);
+			});
 	}
 }
