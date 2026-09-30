@@ -47,6 +47,8 @@ export const AudioSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 					const audioTracks: MediaStreamTrack[] = stream.getAudioTracks();
 					const audioDeviceId: string | null =
 						audioTracks.length > 0 ? (audioTracks[0].getSettings().deviceId ?? null) : null;
+					// The stream was opened only to get the permission and the device: release the microphone.
+					mediaDevices.release(stream);
 					const audioDevice = inputDevices.find((device) => device.deviceId === audioDeviceId);
 					if (audioDevice && config.inputDeviceId != audioDevice.deviceId) {
 						onChange({ ...config, inputDeviceId: audioDevice.deviceId });
@@ -66,8 +68,10 @@ export const AudioSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 		mediaDevices
 			.fetchAudioDevices(item.id)
 			.then((stream: MediaStream) => {
+				// The microphone is opened again with the selected device by the audioStore subscriber.
+				mediaDevices.release(stream);
 				const selectedDevice = mediaDevices.getMediaDevice(item.id);
-				if (selectedDevice && stream) {
+				if (selectedDevice) {
 					console.error("Audio ", selectedDevice, "selected");
 					onChange({ ...config, inputDeviceId: selectedDevice.deviceId });
 				}

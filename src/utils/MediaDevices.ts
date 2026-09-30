@@ -28,6 +28,28 @@ class MediaDevices {
 		return this.devices.filter((device) => device.kind === "videoinput");
 	}
 
+	/**
+	 * Refresh the list of devices without opening a new media stream: the device labels
+	 * are available only when a permission was already granted.
+	 */
+	public fetchDevices(): Promise<void> {
+		return navigator.mediaDevices.enumerateDevices().then((devices) => {
+			this.devices = devices;
+		});
+	}
+
+	/**
+	 * Stop every track of the stream (used when the stream was only opened to get the permissions).
+	 *
+	 * @param stream the stream to release.
+	 */
+	public release(stream: MediaStream): void {
+		for (const track of stream.getTracks()) {
+			track.stop();
+			stream.removeTrack(track);
+		}
+	}
+
 	public fetchAudioDevices(deviceId: string | null): Promise<MediaStream> {
 		return new Promise((resolve, reject) => {
 			const constraints: MediaStreamConstraints = deviceId

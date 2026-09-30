@@ -40,6 +40,30 @@ export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 		console.info("VideoSettings useEffect", isOpen);
 		if (isOpen) {
 			const videoDeviceId = config.videoDeviceId;
+			const current: VideoTrack | null = mediaStreams.video;
+			if (current) {
+				// The camera (or the screen) is already opened and possibly sent in the call: preview
+				// the current track and only refresh the device list.  Opening another camera stream
+				// here would leave the current track referenced only by the call and never released.
+				if (localVideoRef.current) {
+					localVideoRef.current.srcObject = new MediaStream([current.track]);
+				}
+				mediaDevices
+					.fetchDevices()
+					.then(() => {
+						const videoDevices: MediaDeviceInfo[] = mediaDevices.getVideoDevices();
+						setVideoState({ videoDevices: videoDevices });
+						const videoDevice = videoDevices.find((device) => device.deviceId === current.deviceId);
+						if (videoDevice && config.videoDeviceId != videoDevice.deviceId) {
+							onChange({ ...config, videoDeviceId: videoDevice.deviceId });
+						}
+					})
+					.catch((error) => {
+						console.error("Failed to get video devices", error);
+					});
+				return;
+			}
+
 			mediaDevices
 				.fetchVideoDevices(videoDeviceId)
 				.then((stream: MediaStream) => {
@@ -56,11 +80,13 @@ export const VideoSettings: FC<SettingsProps> = ({ isOpen, config, onChange }) =
 						localVideoRef.current.srcObject = stream;
 					}
 					if (videoTracks.length > 0) {
-						mediaStreams.setVideoTrackNoStop(new VideoTrack(videoTracks[0], null));
+						// Keep the camera track in the media stream so that it is released by
+						// mediaStreams.stop() or used by the call (a previous track is stopped).
+						mediaStreams.setVideoTrack(new VideoTrack(videoTracks[0], null), false);
 					}
 				})
 				.catch((error) => {
-					console.error("Failed to get audio devices", error);
+					console.error("Failed to get video devices", error);
 				});
 		}
 	}, [isOpen, localVideoRef]); // Re-run when selectedIndex changes

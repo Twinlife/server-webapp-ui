@@ -89,10 +89,15 @@ export class MediaStreams {
 			this.video.stop();
 			this.video = null;
 		}
+		if (this.audio) {
+			this.audio.track.stop();
+			this.audio = null;
+		}
 		for (const track of this.stream.getTracks()) {
 			track.stop();
 			this.stream.removeTrack(track);
 		}
+		this.isScreenSharing = false;
 		if (this.audioMonitor) {
 			this.audioMonitor.close();
 			this.audioMonitor = null;
